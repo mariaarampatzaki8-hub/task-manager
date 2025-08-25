@@ -1,70 +1,48 @@
 {% extends "base.html" %}
-{% block title %}Οι εργασίες μου{% endblock %}
+{% block title %}Πίνακας{% endblock %}
 {% block content %}
 
-<h1 class="title" style="color:var(--accent)">Γεια σου, {{ user.name }}!</h1>
+<h1 class="title" style="color:{{ user.color or 'var(--accent)' }}">
+  👋 Γεια σου, {{ user.name }}!
+</h1>
 
-<div class="columns">
-  <div class="column">
-    <div class="box">
-      <h2 class="subtitle">🟡 Ανοιχτές εργασίες</h2>
-      {% if open_tasks %}
-        {% for t in open_tasks %}
-          <div class="notification is-light" style="border-left:6px solid var(--accent)">
-            <p><strong>{{ t.title }}</strong></p>
-            {% if t.description %}<p>{{ t.description }}</p>{% endif %}
-            <p class="is-size-7">
-              {% if t.due_date %}Προθεσμία: {{ t.due_date.strftime('%d/%m/%Y') }}{% endif %}
-              {% if t.due_time %} {{ t.due_time.strftime('%H:%M') }}{% endif %}
-            </p>
-            <form method="post" action="{{ url_for('toggle_task', task_id=t.id) }}">
-              <button class="button is-small" style="background:var(--accent);color:#fff">Ολοκληρώθηκε</button>
-            </form>
-          </div>
-        {% endfor %}
-      {% else %}
-        <p>Δεν έχεις ανοιχτές εργασίες 🎉</p>
-      {% endif %}
-    </div>
-  </div>
-
-  <div class="column">
-    <div class="box">
-      <h2 class="subtitle">✅ Ολοκληρωμένες</h2>
-      {% if done_tasks %}
-        {% for t in done_tasks %}
-          <div class="notification is-success is-light">
-            <p><strong>{{ t.title }}</strong></p>
-            <p class="is-size-7">Ολοκληρώθηκε στις {{ t.completed_at.strftime('%d/%m/%Y %H:%M') if t.completed_at }}</p>
-            <form method="post" action="{{ url_for('toggle_task', task_id=t.id) }}">
-              <button class="button is-small is-warning">Επαναφορά</button>
-            </form>
-          </div>
-        {% endfor %}
-      {% else %}
-        <p>Δεν υπάρχουν ολοκληρωμένες εργασίες.</p>
-      {% endif %}
-    </div>
-  </div>
-</div>
-
-<!-- Φόρμα αλλαγής κωδικού -->
 <div class="box">
-  <h2 class="subtitle">🔑 Αλλαγή κωδικού</h2>
-  <form method="post" action="{{ url_for('me_change_password') }}">
-    {% if user.password_hash %}
-      <div class="field"><label class="label">Τρέχων κωδικός</label>
-        <input class="input" type="password" name="current_password" required>
-      </div>
-    {% endif %}
-    <div class="field"><label class="label">Νέος κωδικός</label>
-      <input class="input" type="password" name="new_password" required>
-    </div>
-    <div class="field"><label class="label">Επιβεβαίωση νέου</label>
-      <input class="input" type="password" name="confirm_password" required>
-    </div>
-    <button class="button is-link" style="background:var(--accent)">Αλλαγή</button>
-  </form>
+  <h2 class="subtitle">Οι εργασίες σου</h2>
+  {% if tasks %}
+    <table class="table is-fullwidth is-striped">
+      <thead>
+        <tr><th>Τίτλος</th><th>Περιγραφή</th><th>Προθεσμία</th><th>Κατάσταση</th><th>Ενέργειες</th></tr>
+      </thead>
+      <tbody>
+        {% for t in tasks %}
+        <tr>
+          <td>{{ t.title }}</td>
+          <td>{{ t.description }}</td>
+          <td>
+            {% if t.due_date %}{{ t.due_date.strftime('%d/%m/%Y') }}{% endif %}
+            {% if t.due_time %} {{ t.due_time.strftime('%H:%M') }}{% endif %}
+          </td>
+          <td>
+            {% if t.status == 'done' %}
+              <span class="tag is-success">Ολοκληρώθηκε</span>
+            {% else %}
+              <span class="tag is-warning">Ανοιχτή</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if t.status != 'done' %}
+            <form method="post" action="{{ url_for('complete_task', task_id=t.id) }}">
+              <button class="button is-small is-success">Ολοκλήρωση</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>Δεν έχεις εργασίες ακόμα 🎉</p>
+  {% endif %}
 </div>
 
 {% endblock %}
