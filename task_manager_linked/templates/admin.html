@@ -4,38 +4,45 @@
 
 <h1 class="title" style="color:var(--accent)">⚙️ Πίνακας Διαχειριστή</h1>
 
+<!-- Δημιουργία ΝΕΟΥ ΧΡΗΣΤΗ -->
 <div class="box">
-  <h2 class="subtitle">Δημιουργία νέου χρήστη</h2>
+  <h2 class="subtitle">➕ Δημιουργία νέου χρήστη</h2>
   <form method="post" action="{{ url_for('admin_create_user') }}">
     <div class="field">
-      <label class="label">Όνομα Χρήστη</label>
+      <label class="label">Όνομα (π.χ. Μαρία)</label>
+      <input class="input" name="name" required>
+    </div>
+    <div class="field">
+      <label class="label">Username (για login)</label>
       <input class="input" name="username" required>
     </div>
     <div class="field">
-      <label class="label">Email</label>
-      <input class="input" type="email" name="email" required>
+      <label class="label">Email (προαιρετικό)</label>
+      <input class="input" type="email" name="email">
     </div>
     <div class="field">
-      <label class="label">Κωδικός</label>
+      <label class="label">Αρχικός κωδικός</label>
       <input class="input" type="password" name="password" required>
     </div>
     <div class="field">
-      <label class="label">Χρώμα Προφίλ</label>
+      <label class="label">Χρώμα προφίλ</label>
       <input class="input" type="color" name="color" value="#3273dc">
     </div>
-    <button class="button is-primary" style="background:var(--accent)">➕ Δημιουργία</button>
+    <button class="button is-link" style="background:var(--accent)">Δημιουργία χρήστη</button>
   </form>
 </div>
 
+<!-- Δημιουργία ΕΡΓΑΣΙΑΣ -->
 <div class="box">
-  <h2 class="subtitle">Δημιουργία νέας εργασίας</h2>
+  <h2 class="subtitle">📝 Δημιουργία νέας εργασίας</h2>
   <form method="post" action="{{ url_for('admin_create_task') }}">
     <div class="field">
-      <label class="label">Χρήστης</label>
+      <label class="label">Ανάθεση σε</label>
       <div class="select is-fullwidth">
-        <select name="user_id" required>
+        <select name="assignee_id">
+          <option value="">— Κανέναν —</option>
           {% for u in users %}
-          <option value="{{ u.id }}">{{ u.name }}</option>
+            <option value="{{ u.id }}">{{ u.name }}</option>
           {% endfor %}
         </select>
       </div>
@@ -48,34 +55,36 @@
       <label class="label">Περιγραφή</label>
       <textarea class="textarea" name="description"></textarea>
     </div>
-    <div class="field is-grouped">
-      <div class="control">
+    <div class="columns">
+      <div class="column">
         <label class="label">Ημερομηνία</label>
         <input class="input" type="date" name="due_date">
       </div>
-      <div class="control">
+      <div class="column">
         <label class="label">Ώρα</label>
         <input class="input" type="time" name="due_time">
       </div>
     </div>
-    <button class="button is-link" style="background:var(--accent)">📌 Ανάθεση</button>
+    <button class="button is-link" style="background:var(--accent)">Αποθήκευση εργασίας</button>
   </form>
 </div>
 
+<!-- ΛΙΣΤΑ ΧΡΗΣΤΩΝ -->
 <div class="box">
-  <h2 class="subtitle">Λίστα χρηστών</h2>
+  <h2 class="subtitle">👥 Χρήστες</h2>
   {% if users %}
     <table class="table is-fullwidth is-striped">
       <thead>
-        <tr><th>Όνομα</th><th>Email</th><th>Χρώμα</th><th>Token</th></tr>
+        <tr><th>Όνομα</th><th>Username</th><th>Email</th><th>Χρώμα</th><th>Προσωπικό link</th></tr>
       </thead>
       <tbody>
         {% for u in users %}
         <tr>
           <td>{{ u.name }}</td>
-          <td>{{ u.email }}</td>
-          <td><span style="background:{{ u.color }};padding:4px 12px;border-radius:4px;color:white">{{ u.color }}</span></td>
-          <td>/login/{{ u.token }}</td>
+          <td>{{ u.username }}</td>
+          <td>{{ u.email or '—' }}</td>
+          <td><span style="display:inline-block;width:24px;height:16px;background:{{ u.color or '#3273dc' }};border-radius:3px"></span></td>
+          <td><code>/login/{{ u.token }}</code></td>
         </tr>
         {% endfor %}
       </tbody>
@@ -85,18 +94,19 @@
   {% endif %}
 </div>
 
+<!-- ΛΙΣΤΑ ΕΡΓΑΣΙΩΝ -->
 <div class="box">
-  <h2 class="subtitle">Λίστα εργασιών</h2>
+  <h2 class="subtitle">📋 Εργασίες</h2>
   {% if tasks %}
     <table class="table is-fullwidth is-striped">
       <thead>
-        <tr><th>Χρήστης</th><th>Τίτλος</th><th>Προθεσμία</th><th>Κατάσταση</th></tr>
+        <tr><th>Τίτλος</th><th>Σε ποιον</th><th>Προθεσμία</th><th>Κατάσταση</th></tr>
       </thead>
       <tbody>
         {% for t in tasks %}
         <tr>
-          <td>{{ t.user.name }}</td>
           <td>{{ t.title }}</td>
+          <td>{{ t.assignee.name if t.assignee else '—' }}</td>
           <td>
             {% if t.due_date %}{{ t.due_date.strftime('%d/%m/%Y') }}{% endif %}
             {% if t.due_time %} {{ t.due_time.strftime('%H:%M') }}{% endif %}
