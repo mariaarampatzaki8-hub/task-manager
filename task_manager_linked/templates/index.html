@@ -1,13 +1,28 @@
-
 {% extends "base.html" %}
 {% block title %}Αρχική{% endblock %}
 {% block content %}
   <h1>Ιδιωτικό Task Manager</h1>
-  <p>Η πρόσβαση γίνεται μόνο με προσωπικό σύνδεσμο (token link).</p>
   {% if user %}
     <p>Είστε συνδεδεμένος/η ως <strong>{{ user.name }}</strong>.</p>
     <p><a class="button" href="{{ url_for('dashboard') }}">Προβολή εργασιών</a></p>
   {% else %}
-    <p>Ζητήστε από τον διαχειριστή τον προσωπικό σας σύνδεσμο.</p>
+    <p>Η πρόσβαση γίνεται είτε με προσωπικό σύνδεσμο (token), είτε με <strong>username &amp; κωδικό</strong>.</p>
+
+    <div class="card" style="max-width:420px;">
+      <h3>Σύνδεση με username/κωδικό</h3>
+      <form method="post" action="{{ url_for('login_password') }}" class="form-grid">
+        <label>Username
+          <input type="text" name="username" required>
+        </label>
+        <label>Κωδικός
+          <input type="password" name="password" required>
+        </label>
+        <button class="button" type="submit">Σύνδεση</button>
+      </form>
+    </div>
+
+    <p class="muted" style="margin-top:10px;">
+      Εναλλακτικά, ζητήστε από τον διαχειριστή τον προσωπικό σας σύνδεσμο (token link).
+    </p>
   {% endif %}
 {% endblock %}
