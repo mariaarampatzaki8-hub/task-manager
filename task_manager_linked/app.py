@@ -1,6 +1,6 @@
 import os
 import secrets
-from datetime import datetime, date, time as dtime
+from datetime import datetime
 
 from flask import (
     Flask, render_template, request, redirect, url_for,
@@ -9,7 +9,6 @@ from flask import (
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship
 from sqlalchemy import text
-
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # -----------------------
@@ -18,10 +17,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 app = Flask(__name__, instance_relative_config=True)
 os.makedirs(app.instance_path, exist_ok=True)
 
-# Secret key
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-" + secrets.token_hex(16))
 
-# DB URL: Postgres (Render) ή SQLite τοπικά
+# Postgres (Render) ή SQLite fallback
 db_url = os.environ.get("DATABASE_URL")
 if db_url and db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
@@ -37,21 +35,18 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(200), unique=True, nullable=True)
-    # login με μυστικό link
     token = db.Column(db.String(64), unique=True, index=True, nullable=False, default=lambda: secrets.token_urlsafe(16))
-    # admin flag
     is_admin = db.Column(db.Boolean, default=False)
 
     # login με username/κωδικό
     username = db.Column(db.String(80), unique=True, nullable=True)
     password_hash = db.Column(db.String(255), nullable=True)
 
-    # εξατομίκευση χρώματος (theme)
+    # προτιμώμενο χρώμα θέματος
     color = db.Column(db.String(32), nullable=True, default="blue")
 
     tasks = relationship("Task", back_populates="assignee", cascade="all, delete-orphan")
 
-    # helpers
     def set_password(self, password: str):
         self.password_hash = generate_password_hash(password)
 
@@ -63,31 +58,33 @@ class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    # προθεσμία: ημερομηνία + ώρα
     due_date = db.Column(db.Date, nullable=True)
     due_time = db.Column(db.Time, nullable=True)
     status = db.Column(db.String(20), default="open")  # open | done
-    completed_at = db.Column(db.DateTime, nullable=True)  # πότε ολοκληρώθηκε
+    completed_at = db.Column(db.DateTime, nullable=True)
     assignee_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
     assignee = relationship("User", back_populates="tasks")
 
 
 # -----------------------
-# Lightweight migrations
+# Auto-migrations (SQLite)
 # -----------------------
 with app.app_context():
     db.create_all()
-    # SQLite-only migrations (θα αγνοηθούν σε Postgres αν αποτύχουν)
+    # Προσθήκη στηλών αν λείπουν (SQLite). Σε Postgres, αν αποτύχει, απλά αγνοείται.
     try:
         cols_user = [r[1] for r in db.session.execute(text("PRAGMA table_info('user')")).fetchall()]
-        # color column
+        if "username" not in cols_user:
+            db.session.execute(text("ALTER TABLE user ADD COLUMN username VARCHAR(80) UNIQUE"))
+        if "password_hash" not in cols_user:
+            db.session.execute(text("ALTER TABLE user ADD COLUMN password_hash VARCHAR(255)"))
         if "color" not in cols_user:
             db.session.execute(text("ALTER TABLE user ADD COLUMN color VARCHAR(32)"))
         db.session.commit()
     except Exception:
         pass
 
-    # Δημιούργησε admin αν λείπει
+    # Δημιουργία Admin αν δεν υπάρχει
     admin = User.query.filter_by(is_admin=True).first()
     if not admin:
         admin = User(name="Admin", is_admin=True)
@@ -95,7 +92,6 @@ with app.app_context():
         db.session.commit()
         print("Δημιουργήθηκε Admin με token:")
         print("/login/" + admin.token)
-
 
 # -----------------------
 # Helpers / Guards
@@ -109,8 +105,7 @@ def login_required(fn):
     from functools import wraps
     @wraps(fn)
     def wrapper(*args, **kwargs):
-        u = current_user()
-        if not u:
+        if not current_user():
             flash("Απαιτείται σύνδεση.", "warning")
             return redirect(url_for("index"))
         return fn(*args, **kwargs)
@@ -127,16 +122,14 @@ def admin_required(fn):
         return fn(*args, **kwargs)
     return wrapper
 
-
 # -----------------------
-# Routes: Public / Auth
+# Public / Auth routes
 # -----------------------
 @app.route("/")
 def index():
-    u = current_user()
-    return render_template("index.html", user=u)
+    return render_template("index.html", user=current_user())
 
-# Login με token link
+# Token login
 @app.route("/login/<token>")
 def login_token(token):
     user = User.query.filter_by(token=token).first()
@@ -147,7 +140,7 @@ def login_token(token):
     flash(f"Καλωσήρθες, {user.name}!", "success")
     return redirect(url_for("admin" if user.is_admin else "dashboard"))
 
-# Login με username/κωδικό (φόρμα POST από index)
+# Username/password login (POST από αρχική)
 @app.route("/login", methods=["POST"])
 def login_password():
     username = request.form.get("username", "").strip()
@@ -169,16 +162,18 @@ def logout():
     flash("Αποσυνδεθήκατε.", "info")
     return redirect(url_for("index"))
 
-
 # -----------------------
-# Routes: Admin panel
+# Admin panel
 # -----------------------
 @app.route("/admin")
 @admin_required
 def admin():
     users = User.query.order_by(User.id).all()
-    # ταξινόμηση: ανοιχτές πρώτα, μετά completed (πιο πρόσφατες)
-    tasks = Task.query.order_by(Task.status.desc(), Task.due_date.nulls_last(), Task.due_time.nulls_last()).all()
+    tasks = Task.query.order_by(
+        Task.status.desc(),
+        Task.due_date.nulls_last(),
+        Task.due_time.nulls_last()
+    ).all()
     return render_template("admin.html", users=users, tasks=tasks)
 
 # Δημιουργία χρήστη
@@ -197,7 +192,7 @@ def admin_create_user():
     flash("Ο χρήστης δημιουργήθηκε.", "success")
     return redirect(url_for("admin"))
 
-# Ορισμός / αλλαγή username & password
+# Ορισμός/αλλαγή username & password
 @app.route("/admin/set_credentials/<int:user_id>", methods=["POST"])
 @admin_required
 def admin_set_credentials(user_id):
@@ -240,7 +235,7 @@ def admin_set_color(user_id):
     flash("Ενημερώθηκε το χρώμα του χρήστη.", "success")
     return redirect(url_for("admin"))
 
-# Δημιουργία εργασίας & ανάθεση
+# Δημιουργία & ανάθεση εργασίας
 @app.route("/admin/create_task", methods=["POST"])
 @admin_required
 def admin_create_task():
@@ -312,15 +307,13 @@ def export_csv():
         headers={"Content-Disposition": "attachment; filename=tasks.csv"}
     )
 
-
 # -----------------------
-# Routes: User dashboard
+# User dashboard
 # -----------------------
 @app.route("/dashboard")
 @login_required
 def dashboard():
     u = current_user()
-    # χωριστά οι ανοιχτές και οι ολοκληρωμένες
     open_tasks = Task.query.filter_by(assignee_id=u.id, status="open").order_by(
         Task.due_date.nulls_last(), Task.due_time.nulls_last()
     ).all()
@@ -329,7 +322,6 @@ def dashboard():
     ).all()
     return render_template("dashboard.html", user=u, open_tasks=open_tasks, done_tasks=done_tasks)
 
-# Ολοκλήρωση/επαναφορά εργασίας
 @app.route("/task/<int:task_id>/toggle", methods=["POST"])
 @login_required
 def toggle_task(task_id):
@@ -347,9 +339,8 @@ def toggle_task(task_id):
     db.session.commit()
     return redirect(request.referrer or url_for("dashboard"))
 
-
 # -----------------------
-# Error pages (απλά)
+# Errors
 # -----------------------
 @app.errorhandler(404)
 def not_found(e):
@@ -359,10 +350,8 @@ def not_found(e):
 def server_error(e):
     return render_template("error.html", code=500, message="Κάτι πήγε στραβά."), 500
 
-
 # -----------------------
-# Entry point (local)
+# Local run
 # -----------------------
 if __name__ == "__main__":
-    # Για τοπικές δοκιμές μόνο
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
