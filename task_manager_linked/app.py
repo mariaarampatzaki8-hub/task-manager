@@ -38,11 +38,8 @@ class User(db.Model):
     token = db.Column(db.String(64), unique=True, index=True, nullable=False, default=lambda: secrets.token_urlsafe(16))
     is_admin = db.Column(db.Boolean, default=False)
 
-    # login με username/κωδικό
     username = db.Column(db.String(80), unique=True, nullable=True)
     password_hash = db.Column(db.String(255), nullable=True)
-
-    # προτιμώμενο χρώμα θέματος
     color = db.Column(db.String(32), nullable=True, default="blue")
 
     tasks = relationship("Task", back_populates="assignee", cascade="all, delete-orphan")
@@ -65,13 +62,13 @@ class Task(db.Model):
     assignee_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
     assignee = relationship("User", back_populates="tasks")
 
-
 # -----------------------
-# Auto-migrations (SQLite)
+# Auto-migrations (SQLite) + Safe admin bootstrap
 # -----------------------
 with app.app_context():
     db.create_all()
-    # Προσθήκη στηλών αν λείπουν (SQLite). Σε Postgres, αν αποτύχει, απλά αγνοείται.
+
+    # Προσθήκη στηλών που ίσως λείπουν (SQLite PRAGMA)
     try:
         cols_user = [r[1] for r in db.session.execute(text("PRAGMA table_info('user')")).fetchall()]
         if "username" not in cols_user:
@@ -84,9 +81,15 @@ with app.app_context():
     except Exception:
         pass
 
-    # Δημιουργία Admin αν δεν υπάρχει
-    admin = User.query.filter_by(is_admin=True).first()
-    if not admin:
+    # Έλεγχος αν υπάρχει admin (με raw SQL για να μην σκάει σε missing columns)
+    try:
+        has_admin = db.session.execute(
+            text("SELECT 1 FROM user WHERE is_admin = 1 LIMIT 1")
+        ).first()
+    except Exception:
+        has_admin = None
+
+    if not has_admin:
         admin = User(name="Admin", is_admin=True)
         db.session.add(admin)
         db.session.commit()
@@ -94,7 +97,7 @@ with app.app_context():
         print("/login/" + admin.token)
 
 # -----------------------
-# Helpers / Guards
+# Helpers
 # -----------------------
 def current_user():
     if "uid" in session:
@@ -129,7 +132,6 @@ def admin_required(fn):
 def index():
     return render_template("index.html", user=current_user())
 
-# Token login
 @app.route("/login/<token>")
 def login_token(token):
     user = User.query.filter_by(token=token).first()
@@ -140,14 +142,10 @@ def login_token(token):
     flash(f"Καλωσήρθες, {user.name}!", "success")
     return redirect(url_for("admin" if user.is_admin else "dashboard"))
 
-# Username/password login (POST από αρχική)
 @app.route("/login", methods=["POST"])
 def login_password():
     username = request.form.get("username", "").strip()
     password = request.form.get("password", "")
-    if not username or not password:
-        flash("Συμπληρώστε username και κωδικό.", "warning")
-        return redirect(url_for("index"))
     user = User.query.filter_by(username=username).first()
     if not user or not user.check_password(password):
         flash("Λάθος στοιχεία σύνδεσης.", "danger")
@@ -169,14 +167,9 @@ def logout():
 @admin_required
 def admin():
     users = User.query.order_by(User.id).all()
-    tasks = Task.query.order_by(
-        Task.status.desc(),
-        Task.due_date.nulls_last(),
-        Task.due_time.nulls_last()
-    ).all()
+    tasks = Task.query.order_by(Task.status.desc()).all()
     return render_template("admin.html", users=users, tasks=tasks)
 
-# Δημιουργία χρήστη
 @app.route("/admin/create_user", methods=["POST"])
 @admin_required
 def admin_create_user():
@@ -192,29 +185,24 @@ def admin_create_user():
     flash("Ο χρήστης δημιουργήθηκε.", "success")
     return redirect(url_for("admin"))
 
-# Ορισμός/αλλαγή username & password
 @app.route("/admin/set_credentials/<int:user_id>", methods=["POST"])
 @admin_required
 def admin_set_credentials(user_id):
     u = User.query.get_or_404(user_id)
     new_username = request.form.get("username", "").strip() or None
     new_password = request.form.get("password", "")
-
     if new_username:
         clash = User.query.filter(User.username == new_username, User.id != u.id).first()
         if clash:
             flash("Το username χρησιμοποιείται ήδη.", "warning")
             return redirect(url_for("admin"))
         u.username = new_username
-
     if new_password:
         u.set_password(new_password)
-
     db.session.commit()
     flash("Τα στοιχεία σύνδεσης ενημερώθηκαν.", "success")
     return redirect(url_for("admin"))
 
-# Ανανέωση token link
 @app.route("/admin/reset_token/<int:user_id>", methods=["POST"])
 @admin_required
 def admin_reset_token(user_id):
@@ -224,7 +212,6 @@ def admin_reset_token(user_id):
     flash("Ανανεώθηκε το προσωπικό link του χρήστη.", "info")
     return redirect(url_for("admin"))
 
-# Αλλαγή χρώματος χρήστη
 @app.route("/admin/set_color/<int:user_id>", methods=["POST"])
 @admin_required
 def admin_set_color(user_id):
@@ -235,22 +222,15 @@ def admin_set_color(user_id):
     flash("Ενημερώθηκε το χρώμα του χρήστη.", "success")
     return redirect(url_for("admin"))
 
-# Δημιουργία & ανάθεση εργασίας
 @app.route("/admin/create_task", methods=["POST"])
 @admin_required
 def admin_create_task():
     title = request.form.get("title", "").strip()
     description = request.form.get("description", "").strip() or None
     assignee_id = request.form.get("assignee_id")
-    due_date_str = request.form.get("due_date", "").strip()  # YYYY-MM-DD
-    due_time_str = request.form.get("due_time", "").strip()  # HH:MM
-
-    if not title:
-        flash("Ο τίτλος είναι υποχρεωτικός.", "warning")
-        return redirect(url_for("admin"))
-
-    dd = None
-    tt = None
+    due_date_str = request.form.get("due_date", "").strip()
+    due_time_str = request.form.get("due_time", "").strip()
+    dd, tt = None, None
     try:
         if due_date_str:
             dd = datetime.strptime(due_date_str, "%Y-%m-%d").date()
@@ -259,20 +239,17 @@ def admin_create_task():
     except ValueError:
         flash("Μη έγκυρη ημερομηνία/ώρα.", "warning")
         return redirect(url_for("admin"))
-
     t = Task(title=title, description=description, due_date=dd, due_time=tt)
     if assignee_id:
         try:
             t.assignee_id = int(assignee_id)
         except ValueError:
             pass
-
     db.session.add(t)
     db.session.commit()
     flash("Η εργασία δημιουργήθηκε.", "success")
     return redirect(url_for("admin"))
 
-# Διαγραφή εργασίας
 @app.route("/admin/delete_task/<int:task_id>", methods=["POST"])
 @admin_required
 def admin_delete_task(task_id):
@@ -282,44 +259,15 @@ def admin_delete_task(task_id):
     flash("Η εργασία διαγράφηκε.", "info")
     return redirect(url_for("admin"))
 
-# Εξαγωγή CSV
-@app.route("/admin/export_csv")
-@admin_required
-def export_csv():
-    import csv
-    from io import StringIO
-    si = StringIO()
-    w = csv.writer(si)
-    w.writerow(["id", "title", "assignee", "status", "due_date", "due_time", "completed_at"])
-    for t in Task.query.order_by(Task.id).all():
-        w.writerow([
-            t.id,
-            t.title,
-            (t.assignee.name if t.assignee else ""),
-            t.status,
-            (t.due_date.isoformat() if t.due_date else ""),
-            (t.due_time.strftime("%H:%M") if t.due_time else ""),
-            (t.completed_at.isoformat(sep=" ") if t.completed_at else "")
-        ])
-    return Response(
-        si.getvalue(),
-        mimetype="text/csv",
-        headers={"Content-Disposition": "attachment; filename=tasks.csv"}
-    )
-
 # -----------------------
-# User dashboard
+# Dashboard
 # -----------------------
 @app.route("/dashboard")
 @login_required
 def dashboard():
     u = current_user()
-    open_tasks = Task.query.filter_by(assignee_id=u.id, status="open").order_by(
-        Task.due_date.nulls_last(), Task.due_time.nulls_last()
-    ).all()
-    done_tasks = Task.query.filter_by(assignee_id=u.id, status="done").order_by(
-        Task.completed_at.desc().nulls_last()
-    ).all()
+    open_tasks = Task.query.filter_by(assignee_id=u.id, status="open").all()
+    done_tasks = Task.query.filter_by(assignee_id=u.id, status="done").all()
     return render_template("dashboard.html", user=u, open_tasks=open_tasks, done_tasks=done_tasks)
 
 @app.route("/task/<int:task_id>/toggle", methods=["POST"])
