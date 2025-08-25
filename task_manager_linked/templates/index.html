@@ -1,40 +1,22 @@
-<!doctype html>
-<html lang="el">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Αρχική - Task Manager</title>
-  <style>
-    body { font-family: system-ui, sans-serif; margin: 40px; }
-    .card { max-width: 420px; padding: 24px; border: 1px solid #ddd; border-radius: 12px; }
-    input { width: 100%; margin: 6px 0; padding: 8px; }
-    button { padding: 8px 14px; background: #2563eb; color:#fff; border:none; border-radius:6px; cursor:pointer; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>🗂️ Ιδιωτικό Task Manager</h1>
-    
-    {% if user %}
-      <p>Είστε συνδεδεμένος ως <strong>{{ user.name }}</strong>.</p>
-      {% if user.is_admin %}
-        <p><a href="{{ url_for('admin') }}">Μετάβαση στο Admin Panel</a></p>
-      {% else %}
-        <p><a href="{{ url_for('dashboard') }}">Μετάβαση στις εργασίες μου</a></p>
-      {% endif %}
-      <p><a href="{{ url_for('logout') }}">Αποσύνδεση</a></p>
-    {% else %}
-      <form method="post" action="{{ url_for('login_password') }}">
-        <label>Username</label>
-        <input name="username" required>
-        <label>Κωδικός</label>
-        <input type="password" name="password" required>
-        <button type="submit">Σύνδεση</button>
-      </form>
-      <p style="font-size:14px; margin-top:12px;">
-        👉 Αν δεν έχετε στοιχεία, ζητήστε από τον διαχειριστή το προσωπικό σας link.
-      </p>
-    {% endif %}
-  </div>
-</body>
-</html>
+{% extends "base.html" %}
+{% block title %}Είσοδος{% endblock %}
+{% block content %}
+
+<h1 class="title" style="color:var(--accent)">Καλώς ήρθατε στο Task Manager</h1>
+
+<div class="box">
+  <h2 class="subtitle">Σύνδεση</h2>
+  <form method="post" action="{{ url_for('login_password') }}">
+    <div class="field">
+      <label class="label">Όνομα Χρήστη</label>
+      <input class="input" name="username" required>
+    </div>
+    <div class="field">
+      <label class="label">Κωδικός</label>
+      <input class="input" type="password" name="password" required>
+    </div>
+    <button class="button is-link" style="background:var(--accent)">Σύνδεση</button>
+  </form>
+</div>
+
+{% endblock %}
