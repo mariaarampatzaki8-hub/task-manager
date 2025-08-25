@@ -1,90 +1,368 @@
 import os
 import secrets
-from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from datetime import datetime, date, time as dtime
+
+from flask import (
+    Flask, render_template, request, redirect, url_for,
+    session, flash, Response
+)
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship
 from sqlalchemy import text
+
 from werkzeug.security import generate_password_hash, check_password_hash
 
-# --- Flask setup ---
+# -----------------------
+# Flask & Database setup
+# -----------------------
 app = Flask(__name__, instance_relative_config=True)
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-" + secrets.token_hex(16))
 os.makedirs(app.instance_path, exist_ok=True)
 
-db_path = os.path.join(app.instance_path, "app.db")
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + db_path
+# Secret key
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-" + secrets.token_hex(16))
+
+# DB URL: Postgres (Render) ή SQLite τοπικά
+db_url = os.environ.get("DATABASE_URL")
+if db_url and db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+app.config["SQLALCHEMY_DATABASE_URI"] = db_url or "sqlite:///" + os.path.join(app.instance_path, "app.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
 db = SQLAlchemy(app)
 
-# --- Models ---
+# ------------
+# Models
+# ------------
 class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)  # ΠΡΟΣΟΧΗ: Integer
+    id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(200), unique=True, nullable=True)
+    # login με μυστικό link
     token = db.Column(db.String(64), unique=True, index=True, nullable=False, default=lambda: secrets.token_urlsafe(16))
+    # admin flag
     is_admin = db.Column(db.Boolean, default=False)
 
-    # Για login με username/κωδικό
+    # login με username/κωδικό
     username = db.Column(db.String(80), unique=True, nullable=True)
     password_hash = db.Column(db.String(255), nullable=True)
 
+    # εξατομίκευση χρώματος (theme)
+    color = db.Column(db.String(32), nullable=True, default="blue")
+
+    tasks = relationship("Task", back_populates="assignee", cascade="all, delete-orphan")
+
+    # helpers
     def set_password(self, password: str):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password: str) -> bool:
         return bool(self.password_hash) and check_password_hash(self.password_hash, password)
 
-    tasks = relationship("Task", back_populates="assignee", cascade="all, delete")
-
 
 class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
+    # προθεσμία: ημερομηνία + ώρα
     due_date = db.Column(db.Date, nullable=True)
-    status = db.Column(db.String(20), default="open")  # open, done
-    completed_at = db.Column(db.DateTime, nullable=True)
+    due_time = db.Column(db.Time, nullable=True)
+    status = db.Column(db.String(20), default="open")  # open | done
+    completed_at = db.Column(db.DateTime, nullable=True)  # πότε ολοκληρώθηκε
     assignee_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
     assignee = relationship("User", back_populates="tasks")
 
-# --- Lightweight migration for SQLite ---
+
+# -----------------------
+# Lightweight migrations
+# -----------------------
 with app.app_context():
     db.create_all()
+    # SQLite-only migrations (θα αγνοηθούν σε Postgres αν αποτύχουν)
     try:
-        cols = [r[1] for r in db.session.execute(text("PRAGMA table_info('user')")).fetchall()]
-        if "username" not in cols:
-            db.session.execute(text("ALTER TABLE user ADD COLUMN username VARCHAR(80) UNIQUE"))
-        if "password_hash" not in cols:
-            db.session.execute(text("ALTER TABLE user ADD COLUMN password_hash VARCHAR(255)"))
+        cols_user = [r[1] for r in db.session.execute(text("PRAGMA table_info('user')")).fetchall()]
+        # color column
+        if "color" not in cols_user:
+            db.session.execute(text("ALTER TABLE user ADD COLUMN color VARCHAR(32)"))
         db.session.commit()
     except Exception:
         pass
 
-# --- Routes ---
+    # Δημιούργησε admin αν λείπει
+    admin = User.query.filter_by(is_admin=True).first()
+    if not admin:
+        admin = User(name="Admin", is_admin=True)
+        db.session.add(admin)
+        db.session.commit()
+        print("Δημιουργήθηκε Admin με token:")
+        print("/login/" + admin.token)
 
+
+# -----------------------
+# Helpers / Guards
+# -----------------------
+def current_user():
+    if "uid" in session:
+        return User.query.get(session["uid"])
+    return None
+
+def login_required(fn):
+    from functools import wraps
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        u = current_user()
+        if not u:
+            flash("Απαιτείται σύνδεση.", "warning")
+            return redirect(url_for("index"))
+        return fn(*args, **kwargs)
+    return wrapper
+
+def admin_required(fn):
+    from functools import wraps
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        u = current_user()
+        if not u or not u.is_admin:
+            flash("Μόνο για διαχειριστές.", "danger")
+            return redirect(url_for("index"))
+        return fn(*args, **kwargs)
+    return wrapper
+
+
+# -----------------------
+# Routes: Public / Auth
+# -----------------------
 @app.route("/")
 def index():
-    u = None
-    if "uid" in session:
-        u = User.query.get(session["uid"])
+    u = current_user()
     return render_template("index.html", user=u)
 
-# ✅ Login με username/κωδικό
+# Login με token link
+@app.route("/login/<token>")
+def login_token(token):
+    user = User.query.filter_by(token=token).first()
+    if not user:
+        flash("Μη έγκυρος σύνδεσμος.", "danger")
+        return redirect(url_for("index"))
+    session["uid"] = user.id
+    flash(f"Καλωσήρθες, {user.name}!", "success")
+    return redirect(url_for("admin" if user.is_admin else "dashboard"))
+
+# Login με username/κωδικό (φόρμα POST από index)
 @app.route("/login", methods=["POST"])
 def login_password():
     username = request.form.get("username", "").strip()
     password = request.form.get("password", "")
-
     if not username or not password:
         flash("Συμπληρώστε username και κωδικό.", "warning")
         return redirect(url_for("index"))
-
     user = User.query.filter_by(username=username).first()
     if not user or not user.check_password(password):
         flash("Λάθος στοιχεία σύνδεσης.", "danger")
         return redirect(url_for("index"))
-
     session["uid"] = user.id
     flash(f"Καλωσήρθες, {user.name}!", "success")
     return redirect(url_for("admin" if user.is_admin else "dashboard"))
+
+@app.route("/logout")
+def logout():
+    session.pop("uid", None)
+    flash("Αποσυνδεθήκατε.", "info")
+    return redirect(url_for("index"))
+
+
+# -----------------------
+# Routes: Admin panel
+# -----------------------
+@app.route("/admin")
+@admin_required
+def admin():
+    users = User.query.order_by(User.id).all()
+    # ταξινόμηση: ανοιχτές πρώτα, μετά completed (πιο πρόσφατες)
+    tasks = Task.query.order_by(Task.status.desc(), Task.due_date.nulls_last(), Task.due_time.nulls_last()).all()
+    return render_template("admin.html", users=users, tasks=tasks)
+
+# Δημιουργία χρήστη
+@app.route("/admin/create_user", methods=["POST"])
+@admin_required
+def admin_create_user():
+    name = request.form.get("name", "").strip()
+    email = request.form.get("email", "").strip() or None
+    color = request.form.get("color", "").strip() or "blue"
+    if not name:
+        flash("Το όνομα είναι υποχρεωτικό.", "warning")
+        return redirect(url_for("admin"))
+    u = User(name=name, email=email, color=color)
+    db.session.add(u)
+    db.session.commit()
+    flash("Ο χρήστης δημιουργήθηκε.", "success")
+    return redirect(url_for("admin"))
+
+# Ορισμός / αλλαγή username & password
+@app.route("/admin/set_credentials/<int:user_id>", methods=["POST"])
+@admin_required
+def admin_set_credentials(user_id):
+    u = User.query.get_or_404(user_id)
+    new_username = request.form.get("username", "").strip() or None
+    new_password = request.form.get("password", "")
+
+    if new_username:
+        clash = User.query.filter(User.username == new_username, User.id != u.id).first()
+        if clash:
+            flash("Το username χρησιμοποιείται ήδη.", "warning")
+            return redirect(url_for("admin"))
+        u.username = new_username
+
+    if new_password:
+        u.set_password(new_password)
+
+    db.session.commit()
+    flash("Τα στοιχεία σύνδεσης ενημερώθηκαν.", "success")
+    return redirect(url_for("admin"))
+
+# Ανανέωση token link
+@app.route("/admin/reset_token/<int:user_id>", methods=["POST"])
+@admin_required
+def admin_reset_token(user_id):
+    u = User.query.get_or_404(user_id)
+    u.token = secrets.token_urlsafe(16)
+    db.session.commit()
+    flash("Ανανεώθηκε το προσωπικό link του χρήστη.", "info")
+    return redirect(url_for("admin"))
+
+# Αλλαγή χρώματος χρήστη
+@app.route("/admin/set_color/<int:user_id>", methods=["POST"])
+@admin_required
+def admin_set_color(user_id):
+    u = User.query.get_or_404(user_id)
+    color = (request.form.get("color") or "blue").strip().lower()
+    u.color = color
+    db.session.commit()
+    flash("Ενημερώθηκε το χρώμα του χρήστη.", "success")
+    return redirect(url_for("admin"))
+
+# Δημιουργία εργασίας & ανάθεση
+@app.route("/admin/create_task", methods=["POST"])
+@admin_required
+def admin_create_task():
+    title = request.form.get("title", "").strip()
+    description = request.form.get("description", "").strip() or None
+    assignee_id = request.form.get("assignee_id")
+    due_date_str = request.form.get("due_date", "").strip()  # YYYY-MM-DD
+    due_time_str = request.form.get("due_time", "").strip()  # HH:MM
+
+    if not title:
+        flash("Ο τίτλος είναι υποχρεωτικός.", "warning")
+        return redirect(url_for("admin"))
+
+    dd = None
+    tt = None
+    try:
+        if due_date_str:
+            dd = datetime.strptime(due_date_str, "%Y-%m-%d").date()
+        if due_time_str:
+            tt = datetime.strptime(due_time_str, "%H:%M").time()
+    except ValueError:
+        flash("Μη έγκυρη ημερομηνία/ώρα.", "warning")
+        return redirect(url_for("admin"))
+
+    t = Task(title=title, description=description, due_date=dd, due_time=tt)
+    if assignee_id:
+        try:
+            t.assignee_id = int(assignee_id)
+        except ValueError:
+            pass
+
+    db.session.add(t)
+    db.session.commit()
+    flash("Η εργασία δημιουργήθηκε.", "success")
+    return redirect(url_for("admin"))
+
+# Διαγραφή εργασίας
+@app.route("/admin/delete_task/<int:task_id>", methods=["POST"])
+@admin_required
+def admin_delete_task(task_id):
+    t = Task.query.get_or_404(task_id)
+    db.session.delete(t)
+    db.session.commit()
+    flash("Η εργασία διαγράφηκε.", "info")
+    return redirect(url_for("admin"))
+
+# Εξαγωγή CSV
+@app.route("/admin/export_csv")
+@admin_required
+def export_csv():
+    import csv
+    from io import StringIO
+    si = StringIO()
+    w = csv.writer(si)
+    w.writerow(["id", "title", "assignee", "status", "due_date", "due_time", "completed_at"])
+    for t in Task.query.order_by(Task.id).all():
+        w.writerow([
+            t.id,
+            t.title,
+            (t.assignee.name if t.assignee else ""),
+            t.status,
+            (t.due_date.isoformat() if t.due_date else ""),
+            (t.due_time.strftime("%H:%M") if t.due_time else ""),
+            (t.completed_at.isoformat(sep=" ") if t.completed_at else "")
+        ])
+    return Response(
+        si.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=tasks.csv"}
+    )
+
+
+# -----------------------
+# Routes: User dashboard
+# -----------------------
+@app.route("/dashboard")
+@login_required
+def dashboard():
+    u = current_user()
+    # χωριστά οι ανοιχτές και οι ολοκληρωμένες
+    open_tasks = Task.query.filter_by(assignee_id=u.id, status="open").order_by(
+        Task.due_date.nulls_last(), Task.due_time.nulls_last()
+    ).all()
+    done_tasks = Task.query.filter_by(assignee_id=u.id, status="done").order_by(
+        Task.completed_at.desc().nulls_last()
+    ).all()
+    return render_template("dashboard.html", user=u, open_tasks=open_tasks, done_tasks=done_tasks)
+
+# Ολοκλήρωση/επαναφορά εργασίας
+@app.route("/task/<int:task_id>/toggle", methods=["POST"])
+@login_required
+def toggle_task(task_id):
+    u = current_user()
+    t = Task.query.get_or_404(task_id)
+    if t.assignee_id != u.id and not u.is_admin:
+        flash("Δεν επιτρέπεται.", "danger")
+        return redirect(url_for("dashboard"))
+    if t.status == "open":
+        t.status = "done"
+        t.completed_at = datetime.utcnow()
+    else:
+        t.status = "open"
+        t.completed_at = None
+    db.session.commit()
+    return redirect(request.referrer or url_for("dashboard"))
+
+
+# -----------------------
+# Error pages (απλά)
+# -----------------------
+@app.errorhandler(404)
+def not_found(e):
+    return render_template("error.html", code=404, message="Η σελίδα δεν βρέθηκε."), 404
+
+@app.errorhandler(500)
+def server_error(e):
+    return render_template("error.html", code=500, message="Κάτι πήγε στραβά."), 500
+
+
+# -----------------------
+# Entry point (local)
+# -----------------------
+if __name__ == "__main__":
+    # Για τοπικές δοκιμές μόνο
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
