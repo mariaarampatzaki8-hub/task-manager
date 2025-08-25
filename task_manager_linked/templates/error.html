@@ -1,21 +1,8 @@
-<!doctype html>
-<html lang="el">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Σφάλμα</title>
-  <style>
-    body { font-family: system-ui, sans-serif; margin: 40px; }
-    .card { max-width: 560px; padding: 24px; border: 1px solid #ddd; border-radius: 12px; }
-    a { color: #2563eb; text-decoration: none; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>⚠️ Κάτι πήγε στραβά</h1>
-    <p><strong>Κωδικός:</strong> {{ code }}</p>
-    <p>{{ message }}</p>
-    <p><a href="{{ url_for('index') }}">Επιστροφή στην αρχική</a></p>
-  </div>
-</body>
-</html>
+{% extends "base.html" %}
+{% block title %}Σφάλμα{% endblock %}
+{% block content %}
+
+<h1 class="title has-text-danger">⚠️ Κάτι πήγε στραβά</h1>
+<p>{{ message or "Παρουσιάστηκε σφάλμα. Δοκιμάστε ξανά." }}</p>
+
+{% endblock %}
