@@ -1,0 +1,39 @@
+
+<!doctype html>
+<html lang="el">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Task Manager{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+  <body>
+    <nav class="topbar">
+      <div class="brand"><a href="{{ url_for('index') }}">Task Manager</a></div>
+      <div class="navlinks">
+        {% if user %}
+          <span>👋 {{ user.name }}</span>
+          <a href="{{ url_for('dashboard') }}">Οι εργασίες μου</a>
+          {% if user.is_admin %}<a href="{{ url_for('admin') }}">Admin</a>{% endif %}
+          <a href="{{ url_for('logout') }}">Αποσύνδεση</a>
+        {% else %}
+          <span>Ιδιωτική πρόσβαση</span>
+        {% endif %}
+      </div>
+    </nav>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="flash-container">
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% endwith %}
+
+    <main class="container">
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>

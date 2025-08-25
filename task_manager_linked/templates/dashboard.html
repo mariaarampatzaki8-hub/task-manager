@@ -1,0 +1,26 @@
+
+{% extends "base.html" %}
+{% block title %}Οι εργασίες μου{% endblock %}
+{% block content %}
+  <h2>Οι εργασίες μου</h2>
+  {% if not tasks %}
+    <p>Δεν έχετε ανατεθεί εργασίες ακόμη.</p>
+  {% else %}
+    <ul class="task-list">
+      {% for t in tasks %}
+        <li class="task {{ 'done' if t.status == 'done' }}">
+          <div class="task-main">
+            <strong>{{ t.title }}</strong>
+            {% if t.due_date %}<span class="badge">Προθεσμία: {{ t.due_date.strftime("%d/%m/%Y") }}</span>{% endif %}
+          </div>
+          {% if t.description %}<div class="muted">{{ t.description }}</div>{% endif %}
+          <form method="post" action="{{ url_for('toggle_task', task_id=t.id) }}">
+            <button class="button small" type="submit">
+              {{ 'Επισήμανση ως ανοικτή' if t.status == 'done' else 'Ολοκληρώθηκε' }}
+            </button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endblock %}

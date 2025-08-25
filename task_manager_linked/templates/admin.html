@@ -1,0 +1,94 @@
+
+{% extends "base.html" %}
+{% block title %}Πίνακας Διαχειριστή{% endblock %}
+{% block content %}
+  <h2>Πίνακας Διαχειριστή</h2>
+  <section class="grid">
+    <div class="card">
+      <h3>Νέος χρήστης</h3>
+      <form method="post" action="{{ url_for('admin_create_user') }}" class="form-grid">
+        <label>Όνομα* <input type="text" name="name" required></label>
+        <label>Email <input type="email" name="email"></label>
+        <button class="button" type="submit">Δημιουργία</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>Νέα εργασία</h3>
+      <form method="post" action="{{ url_for('admin_create_task') }}" class="form-grid">
+        <label>Τίτλος* <input type="text" name="title" required></label>
+        <label>Περιγραφή <textarea name="description" rows="3"></textarea></label>
+        <label>Προθεσμία <input type="date" name="due_date"></label>
+        <label>Ανάθεση σε
+          <select name="assignee_id">
+            <option value="">— κανέναν —</option>
+            {% for u in users %}
+              <option value="{{ u.id }}">{{ u.name }}{% if u.is_admin %} (admin){% endif %}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <button class="button" type="submit">Αποθήκευση</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="card">
+    <h3>Χρήστες</h3>
+    <table class="table">
+      <thead><tr><th>Όνομα</th><th>Ρόλος</th><th>Σύνδεσμος</th><th>Ενέργειες</th></tr></thead>
+      <tbody>
+        {% for u in users %}
+          <tr>
+            <td>{{ u.name }}{% if u.email %}<div class="muted">{{ u.email }}</div>{% endif %}</td>
+            <td>{{ 'Admin' if u.is_admin else 'Χρήστης' }}</td>
+            <td>
+              <input type="text" readonly value="{{ base_url }}/login/{{ u.token }}" onclick="this.select()">
+            </td>
+            <td>
+              <form method="post" action="{{ url_for('admin_make_admin', user_id=u.id) }}" style="display:inline">
+                <button class="button small" {% if u.is_admin %}disabled{% endif %}>Κάνε Admin</button>
+              </form>
+              <form method="post" action="{{ url_for('admin_delete_user', user_id=u.id) }}" style="display:inline" onsubmit="return confirm('Διαγραφή χρήστη;');">
+                <button class="button small danger" {% if u.is_admin %}disabled{% endif %}>Διαγραφή</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <h3>Εργασίες</h3>
+    <table class="table">
+      <thead><tr><th>Τίτλος</th><th>Προθεσμία</th><th>Κατάσταση</th><th>Ανάθεση</th><th>Ενέργειες</th></tr></thead>
+      <tbody>
+        {% for t in tasks %}
+          <tr>
+            <td>
+              <strong>{{ t.title }}</strong>
+              {% if t.description %}<div class="muted">{{ t.description }}</div>{% endif %}
+            </td>
+            <td>{{ t.due_date.strftime("%d/%m/%Y") if t.due_date else '—' }}</td>
+            <td>{{ 'Ολοκληρωμένη' if t.status == 'done' else 'Ανοιχτή' }}</td>
+            <td>
+              <form method="post" action="{{ url_for('admin_assign', task_id=t.id) }}">
+                <select name="assignee_id" onchange="this.form.submit()">
+                  <option value="">— κανέναν —</option>
+                  {% for u in users %}
+                    <option value="{{ u.id }}" {% if t.assignee_id==u.id %}selected{% endif %}>{{ u.name }}{% if u.is_admin %} (admin){% endif %}</option>
+                  {% endfor %}
+                </select>
+              </form>
+            </td>
+            <td>
+              <form method="post" action="{{ url_for('admin_delete_task', task_id=t.id) }}" onsubmit="return confirm('Διαγραφή εργασίας;');">
+                <button class="button small danger">Διαγραφή</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+{% endblock %}

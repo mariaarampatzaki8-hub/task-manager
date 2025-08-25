@@ -1,0 +1,13 @@
+
+{% extends "base.html" %}
+{% block title %}Αρχική{% endblock %}
+{% block content %}
+  <h1>Ιδιωτικό Task Manager</h1>
+  <p>Η πρόσβαση γίνεται μόνο με προσωπικό σύνδεσμο (token link).</p>
+  {% if user %}
+    <p>Είστε συνδεδεμένος/η ως <strong>{{ user.name }}</strong>.</p>
+    <p><a class="button" href="{{ url_for('dashboard') }}">Προβολή εργασιών</a></p>
+  {% else %}
+    <p>Ζητήστε από τον διαχειριστή τον προσωπικό σας σύνδεσμο.</p>
+  {% endif %}
+{% endblock %}
