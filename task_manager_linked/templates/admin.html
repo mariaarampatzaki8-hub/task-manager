@@ -83,7 +83,7 @@
       <tr>
         <td>{{ u.name }} {% if u.is_admin %}<span class="tag is-info">admin</span>{% endif %}</td>
 
-        <!-- Αλλαγή χρώματος (ΣΩΣΤΟ endpoint: admin_set_color) -->
+        <!-- Αλλαγή χρώματος -->
         <td>
           <form method="post" action="{{ url_for('admin_set_color', user_id=u.id) }}">
             <div class="select">
@@ -98,7 +98,7 @@
 
         <td><code>/login/{{ u.token }}</code></td>
 
-        <!-- Αλλαγή username/κωδικού (ΣΩΣΤΟ endpoint: admin_set_credentials) -->
+        <!-- Αλλαγή username/κωδικού -->
         <td>
           <form method="post" action="{{ url_for('admin_set_credentials', user_id=u.id) }}">
             <input class="input" name="username" value="{{ u.username or '' }}" placeholder="username">
@@ -110,7 +110,7 @@
             <button class="button is-small" style="background:var(--accent);color:#fff">Αποθήκευση</button>
           </form>
 
-          <!-- Ανανέωση token (ΣΩΣΤΟ endpoint: admin_reset_token) -->
+          <!-- Ανανέωση token link -->
           <form method="post" action="{{ url_for('admin_reset_token', user_id=u.id) }}" style="display:inline" onsubmit="return confirm('Ανανέωση link χρήστη;');">
             <button class="button is-small is-light">Ανανέωση link</button>
           </form>
