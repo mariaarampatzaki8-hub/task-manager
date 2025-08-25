@@ -1,39 +1,66 @@
-
 <!doctype html>
 <html lang="el">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Task Manager{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-  </head>
-  <body>
-    <nav class="topbar">
-      <div class="brand"><a href="{{ url_for('index') }}">Task Manager</a></div>
-      <div class="navlinks">
-        {% if user %}
-          <span>👋 {{ user.name }}</span>
-          <a href="{{ url_for('dashboard') }}">Οι εργασίες μου</a>
-          {% if user.is_admin %}<a href="{{ url_for('admin') }}">Admin</a>{% endif %}
-          <a href="{{ url_for('logout') }}">Αποσύνδεση</a>
-        {% else %}
-          <span>Ιδιωτική πρόσβαση</span>
-        {% endif %}
-      </div>
-    </nav>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}{% endblock %} - Task Manager</title>
+  <!-- Bulma CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <style>
+    :root {
+      --accent: {{ user.color if user and user.color else '#2563eb' }};
+    }
+    body { background:#f9fafb; }
+    nav.navbar { background:var(--accent); }
+    nav a.navbar-item, .navbar-brand .navbar-item {
+      color:white !important;
+      font-weight:bold;
+    }
+    .flash { margin: 12px auto; max-width: 600px; }
+  </style>
+</head>
+<body>
 
+<!-- Navigation -->
+<nav class="navbar" role="navigation">
+  <div class="navbar-brand">
+    <a class="navbar-item" href="{{ url_for('index') }}">🗂️ Task Manager</a>
+  </div>
+  <div class="navbar-menu">
+    <div class="navbar-start">
+      {% if user %}
+        {% if user.is_admin %}
+          <a class="navbar-item" href="{{ url_for('admin') }}">Admin</a>
+        {% else %}
+          <a class="navbar-item" href="{{ url_for('dashboard') }}">Οι εργασίες μου</a>
+        {% endif %}
+      {% endif %}
+    </div>
+    <div class="navbar-end">
+      {% if user %}
+        <div class="navbar-item">Γεια σου, {{ user.name }}!</div>
+        <a class="navbar-item" href="{{ url_for('logout') }}">Αποσύνδεση</a>
+      {% endif %}
+    </div>
+  </div>
+</nav>
+
+<!-- Flash messages -->
+<section class="section">
+  <div class="container">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
-      <div class="flash-container">
-        {% for category, message in messages %}
-          <div class="flash {{ category }}">{{ message }}</div>
+        {% for cat, msg in messages %}
+          <div class="notification is-{{ 'danger' if cat=='danger' else ('warning' if cat=='warning' else ('success' if cat=='success' else 'info')) }} flash">
+            {{ msg }}
+          </div>
         {% endfor %}
-      </div>
       {% endif %}
     {% endwith %}
 
-    <main class="container">
-      {% block content %}{% endblock %}
-    </main>
-  </body>
+    {% block content %}{% endblock %}
+  </div>
+</section>
+
+</body>
 </html>
