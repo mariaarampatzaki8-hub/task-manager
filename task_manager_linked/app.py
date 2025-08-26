@@ -156,11 +156,14 @@ def leader_or_admin_required(fn):
         return fn(*a, **kw)
     return wrapper
 
-# ---------- Init DB & seed admin ----------
-
-@app.before_first_request
+# --------- Init DB & seed admin (Flask 3.x safe) ---------
+@app.before_request
 def init_db_and_seed():
+    if getattr(app, "_db_initialized", False):
+        return
+
     db.create_all()
+
     admin = User.query.filter_by(username="admin").first()
     if not admin:
         admin = User(
@@ -168,7 +171,7 @@ def init_db_and_seed():
             username="admin",
             email=None,
             is_admin=True,
-            color="#3273dc"
+            color="#3273dc",
         )
         admin.set_password("admin123")
         admin.token = secrets.token_urlsafe(16)
@@ -176,14 +179,13 @@ def init_db_and_seed():
         db.session.commit()
         app.logger.info("Δημιουργήθηκε Admin με username=admin και password=admin123")
 
-    # κάθε boot γράφουμε προσωρινό login link στα logs
     magic = secrets.token_urlsafe(8)
-    session_key = f"adm:{magic}"
     app.config["ADM_LINK"] = f"/login/{magic}"
     app.logger.info("== Admin login links ==")
-    app.logger.info("Admin: %s", app.config["ADM_LINK"])
+    app.logger.info("Admin: %s", app.config['ADM_LINK'])
     app.logger.info("== End admin links ==")
 
+    app._db_initialized = True
 # ---------- Routes: Auth ----------
 
 @app.route("/")
