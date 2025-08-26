@@ -28,6 +28,15 @@ db = SQLAlchemy(app)
 
 
 # ---------- Models ----------
+class Team(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False, unique=True)
+    leader_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
+
+    # σχέσεις
+    members = relationship("User", backref="team", foreign_keys="User.team_id", lazy="dynamic")
+    leader = relationship("User", foreign_keys=[leader_id], uselist=False)
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
@@ -36,6 +45,8 @@ class User(db.Model):
     email = db.Column(db.String(200), unique=True, nullable=True)
     username = db.Column(db.String(120), unique=True, nullable=True)
     password_hash = db.Column(db.String(255), nullable=True)
+    phone = db.Column(db.String(40), nullable=True)       # νέο
+    id_number = db.Column(db.String(40), nullable=True)   # νέο (ΑΔΤ)
 
     # πρόσβαση
     token = db.Column(db.String(64), unique=True, index=True, nullable=False, default=lambda: secrets.token_urlsafe(16))
@@ -44,6 +55,9 @@ class User(db.Model):
 
     # εμφάνιση
     color = db.Column(db.String(16), nullable=True)  # hex, π.χ. #3273dc
+
+    # ομάδα
+    team_id = db.Column(db.Integer, db.ForeignKey("team.id"), nullable=True)
 
     tasks = relationship("Task", backref="assignee", cascade="all, delete-orphan", lazy="dynamic", foreign_keys="Task.assignee_id")
     notes = relationship("Note", backref="user", cascade="all, delete-orphan", lazy="dynamic")
@@ -105,6 +119,25 @@ def admin_required(fn):
         return fn(*args, **kwargs)
     return wrapper
 
+def admin_or_leader_required(fn):
+    """Πρόσβαση για Admin ή για όποιον είναι leader σε κάποια ομάδα."""
+    from functools import wraps
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        u = current_user()
+        if not u:
+            flash("Πρέπει να συνδεθείς.", "warning")
+            return redirect(url_for("index"))
+        if u.is_admin:
+            return fn(*args, **kwargs)
+        # είναι leader σε κάποια ομάδα;
+        is_leader = Team.query.filter_by(leader_id=u.id).count() > 0
+        if is_leader:
+            return fn(*args, **kwargs)
+        flash("Δεν έχεις δικαίωμα πρόσβασης.", "danger")
+        return redirect(url_for("index"))
+    return wrapper
+
 @app.context_processor
 def inject_user():
     return {"user": current_user()}
@@ -133,7 +166,6 @@ def index():
 
 @app.route("/help")
 def help_page():
-    # Θα φτιάξεις templates/help.html με οδηγίες (placeholder τώρα)
     return render_template("help.html")
 
 @app.route("/login/<token>")
@@ -313,27 +345,11 @@ def all_progress():
 @admin_required
 def admin():
     users = User.query.order_by(User.name.asc()).all()
-
-    # προαιρετικά στατιστικά
-    stats = []
-    for u in users:
-        open_count = Task.query.filter_by(assignee_id=u.id, status="open").count()
-        done_q = Task.query.filter_by(assignee_id=u.id, status="done")
-        done_count = done_q.count()
-        tasks_all = Task.query.filter_by(assignee_id=u.id).all()
-        avg = int(sum(t.progress for t in tasks_all) / len(tasks_all)) if tasks_all else 0
-        last_done = done_q.order_by(Task.completed_at.desc()).first()
-        stats.append({
-            "user": u,
-            "open": open_count,
-            "done": done_count,
-            "avg_progress": avg,
-            "last_done": (last_done.completed_at if last_done else None),
-        })
+    teams = Team.query.order_by(Team.name.asc()).all()
 
     notes = Note.query.order_by(Note.created_at.desc()).limit(50).all()
-    tasks = Task.query.order_by(Task.id.desc()).all()   # για διαχείριση στο admin.html
-    return render_template("admin.html", users=users, stats=stats, notes=notes, tasks=tasks)
+    tasks = Task.query.order_by(Task.id.desc()).all()
+    return render_template("admin.html", users=users, teams=teams, notes=notes, tasks=tasks)
 
 @app.route("/admin/create_user", methods=["POST"])
 @admin_required
@@ -344,6 +360,9 @@ def admin_create_user():
     raw_pw = (request.form.get("password") or "").strip()
     color = request.form.get("color") or "#3273dc"
     make_admin = request.form.get("is_admin") in ("on", "1", "true", "True")
+    phone = (request.form.get("phone") or "").strip() or None
+    id_number = (request.form.get("id_number") or "").strip() or None
+    team_id = request.form.get("team_id")
 
     if not name or not username or not raw_pw:
         flash("Όνομα, username και κωδικός είναι υποχρεωτικά.", "warning")
@@ -357,7 +376,16 @@ def admin_create_user():
         flash("Το username υπάρχει ήδη.", "danger")
         return redirect(url_for("admin"))
 
-    u = User(name=name, username=username, email=email, color=color, is_admin=make_admin)
+    u = User(
+        name=name, username=username, email=email, color=color,
+        is_admin=make_admin, phone=phone, id_number=id_number
+    )
+    if team_id:
+        try:
+            u.team_id = int(team_id)
+        except ValueError:
+            u.team_id = None
+
     u.set_password(raw_pw)
     u.token = secrets.token_urlsafe(16)
 
@@ -402,7 +430,6 @@ def admin_create_task():
     flash("Η εργασία δημιουργήθηκε.", "success")
     return redirect(url_for("admin"))
 
-# Βοηθητικό parser
 def _parse_dt(due_date_s, due_time_s):
     d = None
     tm = None
@@ -417,7 +444,6 @@ def _parse_dt(due_date_s, due_time_s):
         pass
     return d, tm
 
-# Ενημέρωση εργασίας από Admin
 @app.route("/admin/tasks/<int:task_id>/update", methods=["POST"])
 @admin_required
 def admin_update_task(task_id):
@@ -461,7 +487,6 @@ def admin_update_task(task_id):
     flash("Η εργασία ενημερώθηκε.", "success")
     return redirect(url_for("admin"))
 
-# Διαγραφή εργασίας από Admin
 @app.route("/admin/tasks/<int:task_id>/delete", methods=["POST"])
 @admin_required
 def admin_delete_task(task_id):
@@ -471,7 +496,6 @@ def admin_delete_task(task_id):
     flash("Η εργασία διαγράφηκε.", "info")
     return redirect(url_for("admin"))
 
-# Αλλαγή username/κωδικού από admin
 @app.route("/admin/users/<int:user_id>/credentials", methods=["POST"])
 @admin_required
 def admin_set_credentials(user_id):
@@ -493,7 +517,6 @@ def admin_set_credentials(user_id):
     flash("Τα στοιχεία ενημερώθηκαν.", "success")
     return redirect(url_for("admin"))
 
-# Reset password από admin (παράγει προσωρινό)
 @app.route("/admin/users/<int:user_id>/reset_password", methods=["POST"])
 @admin_required
 def admin_reset_password(user_id):
@@ -505,7 +528,6 @@ def admin_reset_password(user_id):
     flash(f"Προσωρινός κωδικός για {u.name}: {tmp}", "warning")
     return redirect(url_for("admin"))
 
-# Αλλαγή χρώματος χρήστη
 @app.route("/admin/users/<int:user_id>/color", methods=["POST"])
 @admin_required
 def admin_set_color(user_id):
@@ -516,7 +538,6 @@ def admin_set_color(user_id):
     flash("Το χρώμα ενημερώθηκε.", "success")
     return redirect(url_for("admin"))
 
-# Ανανεώση προσωπικού link
 @app.route("/admin_reset_token", methods=["POST"])
 @admin_required
 def admin_reset_token():
@@ -527,7 +548,6 @@ def admin_reset_token():
     flash("Το προσωπικό link ανανεώθηκε.", "info")
     return redirect(url_for("admin"))
 
-# Διαγραφή χρήστη (με προστασία να μη μείνει το σύστημα χωρίς Admin)
 @app.route("/admin/users/<int:user_id>/delete", methods=["POST"])
 @admin_required
 def admin_delete_user(user_id):
@@ -547,7 +567,6 @@ def admin_delete_user(user_id):
     flash(f"Ο/Η «{name}» διαγράφηκε.", "info")
     return redirect(url_for("admin"))
 
-# Αλλαγή ρόλου χρήστη (User <-> Admin) με προστασία τελευταίου Admin
 @app.route("/admin/users/<int:user_id>/set_role", methods=["POST"])
 @admin_required
 def admin_set_role(user_id):
@@ -566,6 +585,80 @@ def admin_set_role(user_id):
     db.session.commit()
     flash(f"Ο/Η {u.name} έγινε απλός χρήστης.", "info")
     return redirect(url_for("admin"))
+
+
+# ---------- Teams (Admin) ----------
+@app.route("/admin/teams", methods=["GET", "POST"])
+@admin_required
+def admin_teams():
+    if request.method == "POST":
+        name = (request.form.get("name") or "").strip()
+        if name:
+            if Team.query.filter_by(name=name).first():
+                flash("Υπάρχει ήδη ομάδα με αυτό το όνομα.", "warning")
+            else:
+                team = Team(name=name)
+                db.session.add(team)
+                db.session.commit()
+                flash("Η ομάδα δημιουργήθηκε.", "success")
+        return redirect(url_for("admin_teams"))
+
+    teams = Team.query.order_by(Team.name.asc()).all()
+    users = User.query.order_by(User.name.asc()).all()
+    return render_template("teams.html", teams=teams, users=users)
+
+@app.route("/admin/teams/<int:team_id>/update", methods=["POST"])
+@admin_required
+def admin_update_team(team_id):
+    team = Team.query.get_or_404(team_id)
+    team.name = (request.form.get("name") or team.name).strip()
+    leader_id = request.form.get("leader_id")
+    if leader_id:
+        try:
+            team.leader_id = int(leader_id)
+        except ValueError:
+            team.leader_id = None
+    else:
+        team.leader_id = None
+    db.session.commit()
+    flash("Η ομάδα ενημερώθηκε.", "success")
+    return redirect(url_for("admin_teams"))
+
+@app.route("/admin/teams/<int:team_id>/delete", methods=["POST"])
+@admin_required
+def admin_delete_team(team_id):
+    team = Team.query.get_or_404(team_id)
+    for u in team.members:
+        u.team_id = None
+    db.session.delete(team)
+    db.session.commit()
+    flash("Η ομάδα διαγράφηκε.", "info")
+    return redirect(url_for("admin_teams"))
+
+@app.route("/admin/users/<int:user_id>/assign_team", methods=["POST"])
+@admin_required
+def admin_assign_team(user_id):
+    u = User.query.get_or_404(user_id)
+    team_id = request.form.get("team_id")
+    if team_id:
+        try:
+            u.team_id = int(team_id)
+        except ValueError:
+            u.team_id = None
+    else:
+        u.team_id = None
+    db.session.commit()
+    flash("Ο χρήστης ενημερώθηκε.", "success")
+    return redirect(url_for("admin"))
+
+
+# ---------- Directory (Admins & Leaders) ----------
+@app.route("/directory")
+@admin_or_leader_required
+def directory():
+    users = User.query.order_by(User.name.asc()).all()
+    teams = {t.id: t for t in Team.query.all()}
+    return render_template("directory.html", users=users, teams=teams)
 
 
 # ---------- Error handlers ----------
