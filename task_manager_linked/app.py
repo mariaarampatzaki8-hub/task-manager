@@ -14,7 +14,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 # ---------- App & DB ----------
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
-
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-" + secrets.token_hex(16))
@@ -26,27 +25,27 @@ def create_app():
     uri = os.environ.get("DATABASE_URL")  # π.χ. postgresql://... από Render
 
     if uri:
-        # 1) Heroku-style -> επίσημο
+        # 1) postgres:// -> postgresql://
         if uri.startswith("postgres://"):
             uri = uri.replace("postgres://", "postgresql://", 1)
-        # 2) Χρήση driver pg8000 αντί για psycopg2
+
+        # 2) Χρήση driver pg8000
         if uri.startswith("postgresql://"):
             uri = uri.replace("postgresql://", "postgresql+pg8000://", 1)
-        # 3) SSL on (Render Postgres)
-        if "ssl=" not in uri and "sslmode=" not in uri:
-            sep = "&" if "?" in uri else "?"
-            uri = f"{uri}{sep}ssl=true"
 
         app.config["SQLALCHEMY_DATABASE_URI"] = uri
-        # engine options για σταθερές συνδέσεις και pg8000
-       
     else:
-        # Fallback σε SQLite για τοπική ανάπτυξη
+        # Fallback σε SQLite
         app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + db_path
 
+    # Επιπλέον ρυθμίσεις
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
     return app
 
+
+app = create_app()
+db = SQLAlchemy(app)
 
 app = create_app()
 db = SQLAlchemy(app)
