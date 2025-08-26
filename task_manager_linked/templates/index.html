@@ -1,17 +1,17 @@
 {% extends "base.html" %}
-{% block title %}Αρχική{% endblock %}
+{% block title %}Σύνδεση{% endblock %}
 {% block content %}
 
 <div class="columns is-centered">
-  <div class="column is-6">
+  <div class="column is-5">
     <div class="cardish">
-      <h1 class="title" style="color:var(--accent)">Καλώς ήρθατε</h1>
-      <p class="mb-4">Συνδεθείτε με <strong>username &amp; κωδικό</strong> ή χρησιμοποιήστε το προσωπικό σας link.</p>
+      <h1 class="title" style="color:var(--accent)">Καλώς ήρθες 👋</h1>
+      <p class="mb-4">Συνδέσου με username & κωδικό.</p>
 
       <form method="post" action="{{ url_for('login_password') }}">
         <div class="field">
           <label class="label">Username</label>
-          <input class="input" name="username" required>
+          <input class="input" type="text" name="username" required>
         </div>
         <div class="field">
           <label class="label">Κωδικός</label>
@@ -19,6 +19,12 @@
         </div>
         <button class="button is-link" style="background:var(--accent)">Σύνδεση</button>
       </form>
+
+      <hr>
+      <p class="is-size-7">
+        Αν έχεις **προσωπικό link** (π.χ. από Admin), άνοιξέ το απευθείας:
+        <code>/login/&lt;token&gt;</code>
+      </p>
     </div>
   </div>
 </div>
