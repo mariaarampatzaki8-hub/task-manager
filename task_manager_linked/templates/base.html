@@ -1,93 +1,92 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="el">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Task Manager{% endblock %}</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css">
   <style>
-    :root { --accent: {% if user and user.color %}{{ user.color }}{% else %}#3273dc{% endif %}; }
-    html, body { font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
-    .navbar.is-accent { background: var(--accent); }
-    .navbar.is-accent .navbar-item, .navbar.is-accent .navbar-link { color:#fff; }
-    .navbar.is-accent .navbar-item:hover { background: rgba(255,255,255,0.12); }
-    .cardish { background:#fff; border-radius:14px; padding:18px 20px; box-shadow:0 6px 20px rgba(0,0,0,.06); }
-    .messages { margin: 0 0 16px 0; }
-    .tab-content { margin-top: 16px; }
-    .clock { font-weight:600; color:#fff; }
+    :root{ --brand:#3273dc; }
+    body{ font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    .navbar.is-brand { background: var(--brand); }
+    .clock { font-weight:600; letter-spacing:.5px }
+    .cardish { background:#fff; border:1px solid #eaeaea; border-radius:12px; padding:18px; }
+    .progress.is-thin { height:6px }
+    .note { white-space:pre-wrap }
+    .mini { font-size:.9rem; color:#6b7280 }
+    .pill { border-radius:999px; padding:.2rem .6rem; font-size:.85rem }
   </style>
+  {% block head_extra %}{% endblock %}
 </head>
 <body>
-  <nav class="navbar is-accent" role="navigation" aria-label="main navigation">
-    <div class="navbar-brand">
-      <a class="navbar-item" href="{{ url_for('index') }}"><strong style="color:#fff">Task Manager</strong></a>
-      <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navMenu">
-        <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
-      </a>
+<nav class="navbar is-brand" role="navigation">
+  <div class="navbar-brand">
+    <a class="navbar-item has-text-weight-bold has-text-white" href="{{ url_for('dashboard') }}">Task Manager</a>
+    <a role="button" class="navbar-burger" data-target="nav" aria-label="menu" aria-expanded="false">
+      <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+    </a>
+  </div>
+  <div id="nav" class="navbar-menu">
+    <div class="navbar-start">
+      {% if session.uid %}
+      <a class="navbar-item has-text-white" href="{{ url_for('dashboard') }}">Πίνακας</a>
+      <a class="navbar-item has-text-white" href="{{ url_for('progress') }}">Πρόοδος</a>
+      <a class="navbar-item has-text-white" href="{{ url_for('teams_view') }}">Ομάδες</a>
+      <a class="navbar-item has-text-white" href="{{ url_for('instructions') }}">Οδηγίες</a>
+      {% endif %}
+      {% if current_user and (current_user().is_admin or current_user().is_leader) %}
+      <a class="navbar-item has-text-white" href="{{ url_for('catalog') }}">Κατάλογος</a>
+      {% endif %}
+      {% if current_user and current_user().is_admin %}
+      <a class="navbar-item has-text-white" href="{{ url_for('admin') }}">Admin</a>
+      <a class="navbar-item has-text-white" href="{{ url_for('admin_teams') }}">Διαχείριση Ομάδων</a>
+      {% endif %}
     </div>
-    <div id="navMenu" class="navbar-menu">
-      <div class="navbar-start">
-        {% if user %}
-          <a class="navbar-item" href="{{ url_for('dashboard') }}">Πίνακας</a>
-          <a class="navbar-item" href="{{ url_for('all_progress') }}">Πρόοδος</a>
-          <a class="navbar-item" href="{{ url_for('teams_view') }}">Ομάδες</a>
-          {% if user.is_admin %}
-            <a class="navbar-item" href="{{ url_for('admin') }}">Admin</a>
-            <a class="navbar-item" href="{{ url_for('admin_teams') }}">Διαχείριση Ομάδων</a>
-          {% endif %}
-          <a class="navbar-item" href="{{ url_for('directory') }}">Κατάλογος</a>
-          <a class="navbar-item" href="{{ url_for('help_page') }}">Οδηγίες</a>
-        {% else %}
-          <a class="navbar-item" href="{{ url_for('help_page') }}">Οδηγίες</a>
-        {% endif %}
+    <div class="navbar-end">
+      {% if session.uid %}
+      <a class="navbar-item has-text-white" href="{{ url_for('settings') }}">Ρυθμίσεις</a>
+      <div class="navbar-item">
+        <span class="tag is-light clock" id="clock"></span>
       </div>
-      <div class="navbar-end">
-        <div class="navbar-item"><span id="clock" class="clock"></span></div>
-        <div class="navbar-item">
-          {% if user %}
-            <span class="mr-3" style="color:#fff">Γεια σου, {{ user.name }}!</span>
-            <a class="button is-light" href="{{ url_for('logout') }}">Αποσύνδεση</a>
-          {% else %}
-            <a class="button is-light" href="{{ url_for('index') }}">Σύνδεση</a>
-          {% endif %}
-        </div>
-      </div>
+      <a class="navbar-item has-text-white" href="{{ url_for('logout') }}">Αποσύνδεση</a>
+      {% endif %}
     </div>
-  </nav>
+  </div>
+</nav>
 
-  <section class="section">
-    <div class="container">
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          <div class="messages">
-            {% for category, message in messages %}
-              <div class="notification is-{{ category }}">{{ message }}</div>
-            {% endfor %}
+<section class="section">
+  <div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+          <div class="notification is-{{ 'info' if cat=='info' else 'success' if cat=='success' else 'warning' if cat=='warning' else 'danger' }}">
+            {{ msg }}
           </div>
-        {% endif %}
-      {% endwith %}
-      {% block content %}{% endblock %}
-    </div>
-  </section>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </div>
+</section>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const burgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
-      burgers.forEach(el => el.addEventListener('click', () => {
-        const target = document.getElementById(el.dataset.target);
-        el.classList.toggle('is-active'); target.classList.toggle('is-active');
-      }));
+<script>
+  // burger
+  document.querySelectorAll('.navbar-burger').forEach(b=>{
+    b.addEventListener('click', ()=> {
+      const t=document.getElementById(b.dataset.target);
+      b.classList.toggle('is-active'); t.classList.toggle('is-active');
     });
-    function tick(){
-      const el=document.getElementById('clock'); if(!el) return;
-      const d=new Date(), pad=n=>String(n).padStart(2,'0');
-      const days=['Κυρ','Δευ','Τρ','Τετ','Πεμ','Παρ','Σαβ'];
-      const months=['Ιαν','Φεβ','Μαρ','Απρ','Μαι','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
-      el.textContent=`${days[d.getDay()]} ${pad(d.getDate())} ${months[d.getMonth()]} ${d.getFullYear()} · ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-    }
-    tick(); setInterval(tick,1000);
-  </script>
+  });
+  // clock
+  function tick(){
+    const d=new Date();
+    const z=n=>String(n).padStart(2,'0');
+    const el=document.getElementById('clock');
+    if(el) el.textContent = `${z(d.getDate())}/${z(d.getMonth()+1)}/${d.getFullYear()} ${z(d.getHours())}:${z(d.getMinutes())}:${z(d.getSeconds())}`;
+  }
+  setInterval(tick,1000); tick();
+</script>
 </body>
 </html>
