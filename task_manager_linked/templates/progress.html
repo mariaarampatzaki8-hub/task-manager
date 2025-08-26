@@ -1,22 +1,41 @@
-{% extends "base.html" %}{% block title %}Πρόοδος{% endblock %}
+{% extends "base.html" %}
 {% block content %}
-<h1 class="title is-4">Πρόοδος ομάδας</h1>
-<div class="columns is-multiline">
-{% for row in data %}
-  <div class="column is-4">
-    <div class="cardish">
-      <div class="is-flex is-justify-content-space-between is-align-items-center">
-        <strong>
-          <span class="pill" style="background: {{ row.user.color }}; color:white">{{ row.user.name }}</span>
-          {% if row.user.is_admin %}<span class="tag is-danger is-light ml-2">Admin</span>{% endif %}
-          {% if row.user.is_leader %}<span class="tag is-link is-light ml-1">Leader</span>{% endif %}
-        </strong>
-        <span class="mini">{{ row.done }}/{{ row.total }}</span>
-      </div>
-      <progress class="progress is-primary is-thin" value="{{ row.pct }}" max="100"></progress>
-      <div class="mini">Τελευταία ολοκλήρωση: {{ row.last_done or '-' }}</div>
-    </div>
-  </div>
-{% endfor %}
+<div class="container mt-4">
+    <h2 class="mb-4">📊 Πρόοδος Χρηστών</h2>
+
+    <table class="table table-striped table-bordered">
+        <thead class="table-dark">
+            <tr>
+                <th>Χρήστης</th>
+                <th>Σύνολο Εργασιών</th>
+                <th>Ολοκληρωμένες</th>
+                <th>Ανοιχτές</th>
+                <th>Μέση Πρόοδος (%)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+            <tr>
+                <td>{{ r.user.name }}</td>
+                <td>{{ r.total }}</td>
+                <td class="text-success">{{ r.done }}</td>
+                <td class="text-danger">{{ r.open }}</td>
+                <td>
+                    <div class="progress">
+                        <div class="progress-bar 
+                            {% if r.avg < 50 %} bg-danger 
+                            {% elif r.avg < 80 %} bg-warning 
+                            {% else %} bg-success 
+                            {% endif %}" 
+                            role="progressbar" 
+                            style="width: {{ r.avg }}%">
+                            {{ r.avg }}%
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 {% endblock %}
