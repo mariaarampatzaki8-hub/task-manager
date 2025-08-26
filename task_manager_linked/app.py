@@ -19,24 +19,32 @@ def create_app():
     app = Flask(__name__, instance_relative_config=True)
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-" + secrets.token_hex(16))
 
-    # Instance folder (για SQLite fallback)
+    # --- DB config (Render Postgres αν υπάρχει DATABASE_URL, αλλιώς SQLite fallback) ---
     os.makedirs(app.instance_path, exist_ok=True)
     db_path = os.path.join(app.instance_path, "app_final.db")
 
-    # Postgres από Render ή fallback SQLite
-    uri = os.environ.get("DATABASE_URL")
+    uri = os.environ.get("DATABASE_URL")  # π.χ. postgresql://... από Render
+
     if uri:
-        # Αν έρθει σε μορφή postgres:// -> κάν’ το postgresql+pg8000://
+        # 1) Heroku-style -> επίσημο
         if uri.startswith("postgres://"):
-            uri = uri.replace("postgres://", "postgresql+pg8000://", 1)
-        # Βάλε sslmode=require αν δεν υπάρχει
-        if "sslmode=" not in uri:
-            uri += ("&" if "?" in uri else "?") + "sslmode=require"
+            uri = uri.replace("postgres://", "postgresql://", 1)
+        # 2) Χρήση driver pg8000 αντί για psycopg2
+        if uri.startswith("postgresql://"):
+            uri = uri.replace("postgresql://", "postgresql+pg8000://", 1)
+        # 3) SSL on (Render Postgres)
+        if "ssl=" not in uri and "sslmode=" not in uri:
+            sep = "&" if "?" in uri else "?"
+            uri = f"{uri}{sep}ssl=true"
 
         app.config["SQLALCHEMY_DATABASE_URI"] = uri
-        # Ασφαλής πισίνα συνδέσεων
-        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
+        # engine options για σταθερές συνδέσεις και pg8000
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+            "pool_pre_ping": True,
+            "connect_args": {"ssl": True},
+        }
     else:
+        # Fallback σε SQLite για τοπική ανάπτυξη
         app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + db_path
 
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
