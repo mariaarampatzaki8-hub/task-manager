@@ -1,145 +1,171 @@
 {% extends "base.html" %}
-{% block title %}Πίνακας Διαχειριστή{% endblock %}
 {% block content %}
+<div class="container">
+  <h1 class="title">Πίνακας Διαχείρισης (Admin)</h1>
 
-<h1 class="title" style="color:var(--accent)">⚙️ Πίνακας Διαχειριστή</h1>
+  <!-- Μηνύματα -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="messages">
+        {% for category, message in messages %}
+          <div class="notification is-{{ category }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
 
-<div class="columns">
-  <!-- Δημιουργία χρήστη -->
-  <div class="column">
-    <div class="cardish">
-      <h2 class="subtitle">➕ Νέος χρήστης</h2>
-      <form method="post" action="{{ url_for('admin_create_user') }}">
-        <div class="field"><label class="label">Όνομα</label><input class="input" name="name" required></div>
-        <div class="field"><label class="label">Username</label><input class="input" name="username" required></div>
-        <div class="field"><label class="label">Email (προαιρετικό)</label><input class="input" type="email" name="email"></div>
-        <div class="field"><label class="label">Αρχικός κωδικός</label><input class="input" type="password" name="password" required></div>
-        <div class="field">
-          <label class="label">Χρώμα</label>
-          <div class="select is-fullwidth">
-            <select name="color">
-              <option value="#3273dc">Μπλε</option>
-              <option value="#10b981">Πράσινο</option>
-              <option value="#8b5cf6">Μωβ</option>
-              <option value="#ec4899">Ροζ</option>
-              <option value="#ef4444">Κόκκινο</option>
-              <option value="#f97316">Πορτοκαλί</option>
-            </select>
-          </div>
-        </div>
-        <button class="button is-link" style="background:var(--accent)">Δημιουργία</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- Δημιουργία εργασίας -->
-  <div class="column">
-    <div class="cardish">
-      <h2 class="subtitle">📝 Νέα εργασία</h2>
-      <form method="post" action="{{ url_for('admin_create_task') }}">
-        <div class="field"><label class="label">Τίτλος</label><input class="input" name="title" required></div>
-        <div class="field"><label class="label">Περιγραφή</label><textarea class="textarea" name="description"></textarea></div>
-        <div class="columns">
-          <div class="column">
-            <label class="label">Ημερομηνία</label><input class="input" type="date" name="due_date">
-          </div>
-          <div class="column">
-            <label class="label">Ώρα</label><input class="input" type="time" name="due_time">
-          </div>
-          <div class="column">
-            <label class="label">Ανάθεση σε</label>
-            <div class="select is-fullwidth">
-              <select name="assignee_id">
-                <option value="">— Κανέναν —</option>
-                {% for u in users %}
-                  <option value="{{ u.id }}">{{ u.name }}</option>
-                {% endfor %}
-              </select>
-            </div>
-          </div>
-        </div>
-        <button class="button is-link" style="background:var(--accent)">Αποθήκευση</button>
-      </form>
-    </div>
-  </div>
-</div>
-
-<!-- Εποπτεία χρηστών -->
-<div class="cardish mb-5">
-  <div class="level">
-    <h2 class="subtitle">👥 Εποπτεία χρηστών</h2>
-    <div class="buttons">
-      <a class="button is-light" href="{{ url_for('export_csv') }}">Εξαγωγή CSV</a>
-    </div>
-  </div>
-  {% if stats %}
+  <!-- Λίστα χρηστών -->
+  <h2 class="subtitle">Χρήστες</h2>
+  {% if users %}
     <table class="table is-fullwidth is-striped">
-      <thead><tr><th>Χρήστης</th><th>Ανοιχτές</th><th>Ολοκληρωμένες</th><th>Μ.Ο. προόδου</th><th>Τελευταία ολοκλήρωση</th><th>Ενέργειες</th></tr></thead>
+      <thead>
+        <tr>
+          <th>Όνομα</th>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Admin</th>
+          <th>Χρώμα</th>
+          <th>Ενέργειες</th>
+        </tr>
+      </thead>
       <tbody>
-        {% for s in stats %}
-          <tr>
-            <td>
-              <span class="tag" style="background:{{ s.user.color }}; color:#fff">{{ s.user.name }}</span><br>
-              <small>@{{ s.user.username }}</small><br>
-              <code>/login/{{ s.user.token }}</code>
-            </td>
-            <td>{{ s.open }}</td>
-            <td>{{ s.done }}</td>
-            <td>{{ s.avg_progress }}%</td>
-            <td>{% if s.last_done %}{{ s.last_done.strftime('%d/%m/%Y %H:%M') }}{% else %}—{% endif %}</td>
-            <td>
-              <!-- αλλαγή username/κωδικού -->
-              <form method="post" action="{{ url_for('admin_set_credentials', user_id=s.user.id) }}" style="display:flex; gap:6px; flex-wrap:wrap;">
-                <input class="input" name="username" placeholder="νέο username" style="max-width:160px">
-                <input class="input" type="password" name="password" placeholder="νέος κωδικός" style="max-width:160px">
-                <button class="button is-small" style="background:var(--accent); color:#fff">Αποθήκευση</button>
-              </form>
-
-              <!-- reset password -->
-              <form method="post" action="{{ url_for('admin_reset_password', user_id=s.user.id) }}" onsubmit="return confirm('Reset password για {{ s.user.name }};')">
-                <button class="button is-small is-warning mt-1">🔑 Reset password</button>
-              </form>
-
-              <!-- αλλαγή χρώματος -->
-              <form method="post" action="{{ url_for('admin_set_color', user_id=s.user.id) }}" class="mt-1" style="display:flex; gap:6px; align-items:center">
-                <input class="input" name="color" type="color" value="{{ s.user.color or '#3273dc' }}" style="width:56px; padding:0">
-                <button class="button is-small is-light">Αποθήκευση χρώματος</button>
-              </form>
-
-              <!-- reset token -->
-              <form method="post" action="{{ url_for('admin_reset_token', user_id=s.user.id) }}" class="mt-1" onsubmit="return confirm('Νέο προσωπικό link για {{ s.user.name }};')">
-                <button class="button is-small is-light">Ανανέωση link</button>
-              </form>
-            </td>
-          </tr>
+        {% for u in users %}
+        <tr>
+          <td>{{ u.name }}</td>
+          <td>{{ u.username }}</td>
+          <td>{{ u.email }}</td>
+          <td>{% if u.is_admin %}✅{% else %}—{% endif %}</td>
+          <td>
+            <form method="post" action="{{ url_for('admin_set_color', user_id=u.id) }}">
+              <input type="color" name="color" value="{{ u.color or '#3273dc' }}">
+              <button class="button is-small is-info">Αποθήκευση</button>
+            </form>
+          </td>
+          <td>
+            <form method="post" action="{{ url_for('admin_reset_password', user_id=u.id) }}" style="display:inline">
+              <button class="button is-small is-warning">Reset κωδικού</button>
+            </form>
+            <form method="post" action="{{ url_for('admin_delete_user', user_id=u.id) }}" style="display:inline" onsubmit="return confirm('Σίγουρα διαγραφή;');">
+              <button class="button is-small is-danger">Διαγραφή</button>
+            </form>
+          </td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>
   {% else %}
     <p>Δεν υπάρχουν χρήστες.</p>
   {% endif %}
-</div>
 
-<!-- Πρόσφατες σημειώσεις -->
-<div class="cardish">
-  <h2 class="subtitle">📝 Πρόσφατες σημειώσεις χρηστών</h2>
- <!-- Πρόσφατες σημειώσεις (με edit/delete από Admin) -->
-<div class="cardish">
-  <h2 class="subtitle">📝 Πρόσφατες σημειώσεις χρηστών</h2>
+  <!-- Δημιουργία νέου χρήστη -->
+  <h2 class="subtitle mt-5">Δημιουργία νέου χρήστη</h2>
+  <form method="post" action="{{ url_for('admin_create_user') }}">
+    <div class="field">
+      <label class="label">Όνομα</label>
+      <div class="control">
+        <input class="input" type="text" name="name" required>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label">Username</label>
+      <div class="control">
+        <input class="input" type="text" name="username" required>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label">Email</label>
+      <div class="control">
+        <input class="input" type="email" name="email">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label">Κωδικός</label>
+      <div class="control">
+        <input class="input" type="password" name="password" required>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label">Χρώμα</label>
+      <div class="control">
+        <input type="color" name="color" value="#3273dc">
+      </div>
+    </div>
+
+    <!-- Checkbox για Admin -->
+    <div class="field">
+      <label class="checkbox">
+        <input type="checkbox" name="is_admin">
+        Ο χρήστης αυτός να είναι Admin
+      </label>
+    </div>
+
+    <div class="control mt-2">
+      <button class="button is-primary">Δημιουργία</button>
+    </div>
+  </form>
+
+  <!-- Δημιουργία νέου Task -->
+  <h2 class="subtitle mt-5">Δημιουργία νέου Task</h2>
+  <form method="post" action="{{ url_for('admin_create_task') }}">
+    <div class="field">
+      <label class="label">Τίτλος</label>
+      <div class="control">
+        <input class="input" type="text" name="title" required>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label">Περιγραφή</label>
+      <div class="control">
+        <textarea class="textarea" name="description"></textarea>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label">Ημερομηνία λήξης</label>
+      <div class="control">
+        <input class="input" type="date" name="due_date">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label">Ώρα λήξης</label>
+      <div class="control">
+        <input class="input" type="time" name="due_time">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label">Ανάθεση σε χρήστη</label>
+      <div class="control">
+        <select class="input" name="assignee_id" required>
+          {% for u in users %}
+            <option value="{{ u.id }}">{{ u.name }} ({{ u.username }})</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="control mt-2">
+      <button class="button is-success">Ανάθεση Task</button>
+    </div>
+  </form>
+
+  <!-- Πρόσφατες σημειώσεις χρηστών -->
+  <h2 class="subtitle mt-5">Πρόσφατες σημειώσεις χρηστών</h2>
   {% if notes %}
     <ul>
       {% for n in notes %}
-        <li class="mb-3">
+        <li class="mb-2">
           <strong>{{ n.user.name }}</strong>
-          <small>{{ n.created_at.strftime('%d/%m/%Y %H:%M') }}</small><br>
-          <form method="post" action="{{ url_for('admin_update_note', note_id=n.id) }}" style="display:inline;">
-            <textarea name="content" class="textarea is-small">{{ n.content }}</textarea>
-            <button type="submit" class="button is-small is-info mt-1">Αποθήκευση</button>
-          </form>
-          <form method="post" action="{{ url_for('admin_delete_note', note_id=n.id) }}" style="display:inline;" 
-                onsubmit="return confirm('Σίγουρα θέλεις να διαγράψεις αυτή τη σημείωση;');">
-            <button type="submit" class="button is-small is-danger mt-1">Διαγραφή</button>
-          </form>
+          <small>({{ n.created_at.strftime('%d/%m/%Y %H:%M') }})</small><br>
+          {{ n.content }}
         </li>
       {% endfor %}
     </ul>
@@ -147,23 +173,4 @@
     <p>Δεν υπάρχουν σημειώσεις.</p>
   {% endif %}
 </div>
-
-<!-- Διαγραφή χρήστη -->
-<div class="cardish mt-5">
-  <h2 class="subtitle">🗑️ Διαγραφή χρήστη</h2>
-  <form method="post" action="{{ url_for('admin_delete_user') }}">
-    <div class="field has-addons">
-      <div class="control">
-        <input type="text" name="username" class="input" placeholder="Username προς διαγραφή">
-      </div>
-      <div class="control">
-        <button type="submit" class="button is-danger"
-                onclick="return confirm('Σίγουρα θέλεις να διαγράψεις αυτόν τον χρήστη;');">
-          Διαγραφή
-        </button>
-      </div>
-    </div>
-  </form>
-</div>
-
 {% endblock %}
