@@ -4,7 +4,6 @@
 
 <h1 class="title">Πίνακας Διαχείρισης</h1>
 
-<!-- Tabs -->
 <div class="tabs is-boxed">
   <ul>
     <li class="is-active" data-tab="users"><a>👥 Χρήστες</a></li>
@@ -17,13 +16,13 @@
 
 <!-- USERS -->
 <div id="tab-users" class="tab-content">
-  {% if users %}
   <div class="cardish">
     <h2 class="subtitle">Λίστα χρηστών</h2>
     <table class="table is-fullwidth is-striped is-narrow">
       <thead>
         <tr>
-          <th>Όνομα</th><th>Username</th><th>Email</th><th>Ρόλος</th><th>Χρώμα</th><th>Ενέργειες</th>
+          <th>Όνομα</th><th>Username</th><th>Email</th><th>Τηλέφωνο</th><th>ΑΔΤ</th>
+          <th>Ομάδα</th><th>Ρόλος</th><th>Χρώμα</th><th>Ενέργειες</th>
         </tr>
       </thead>
       <tbody>
@@ -32,6 +31,21 @@
           <td>{{ u.name }}</td>
           <td>{{ u.username }}</td>
           <td>{{ u.email or '—' }}</td>
+          <td>{{ u.phone or '—' }}</td>
+          <td>{{ u.id_number or '—' }}</td>
+          <td>
+            <form method="post" action="{{ url_for('admin_assign_team', user_id=u.id) }}" class="is-flex" style="gap:8px">
+              <div class="select is-small">
+                <select name="team_id">
+                  <option value="">—</option>
+                  {% for t in teams %}
+                    <option value="{{ t.id }}" {% if u.team_id==t.id %}selected{% endif %}>{{ t.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <button class="button is-small">Αποθήκευση</button>
+            </form>
+          </td>
           <td>
             <form method="post" action="{{ url_for('admin_set_role', user_id=u.id) }}" class="is-flex" style="gap:8px">
               <div class="select is-small">
@@ -62,9 +76,6 @@
       </tbody>
     </table>
   </div>
-  {% else %}
-    <p>Δεν υπάρχουν χρήστες.</p>
-  {% endif %}
 </div>
 
 <!-- NEW USER -->
@@ -74,47 +85,57 @@
     <form method="post" action="{{ url_for('admin_create_user') }}">
       <div class="columns">
         <div class="column">
-          <div class="field">
-            <label class="label">Όνομα</label>
-            <input class="input" type="text" name="name" required>
-          </div>
+          <div class="field"><label class="label">Όνομα</label>
+            <input class="input" type="text" name="name" required></div>
         </div>
         <div class="column">
-          <div class="field">
-            <label class="label">Username</label>
-            <input class="input" type="text" name="username" required>
-          </div>
+          <div class="field"><label class="label">Username</label>
+            <input class="input" type="text" name="username" required></div>
         </div>
       </div>
 
       <div class="columns">
         <div class="column">
-          <div class="field">
-            <label class="label">Email</label>
-            <input class="input" type="email" name="email">
-          </div>
+          <div class="field"><label class="label">Email</label>
+            <input class="input" type="email" name="email"></div>
         </div>
         <div class="column">
-          <div class="field">
-            <label class="label">Κωδικός</label>
-            <input class="input" type="password" name="password" required>
-          </div>
+          <div class="field"><label class="label">Κωδικός</label>
+            <input class="input" type="password" name="password" required></div>
+        </div>
+      </div>
+
+      <div class="columns">
+        <div class="column">
+          <div class="field"><label class="label">Τηλέφωνο</label>
+            <input class="input" type="text" name="phone"></div>
+        </div>
+        <div class="column">
+          <div class="field"><label class="label">Αριθμός ταυτότητας (ΑΔΤ)</label>
+            <input class="input" type="text" name="id_number"></div>
         </div>
       </div>
 
       <div class="columns">
         <div class="column is-3">
-          <div class="field">
-            <label class="label">Χρώμα</label>
-            <input type="color" name="color" value="#3273dc">
+          <div class="field"><label class="label">Χρώμα</label>
+            <input type="color" name="color" value="#3273dc"></div>
+        </div>
+        <div class="column is-4">
+          <div class="field"><label class="label">Ομάδα</label>
+            <div class="select is-fullwidth">
+              <select name="team_id">
+                <option value="">—</option>
+                {% for t in teams %}
+                  <option value="{{ t.id }}">{{ t.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
           </div>
         </div>
-        <div class="column is-9">
-          <div class="field">
-            <label class="checkbox">
-              <input type="checkbox" name="is_admin">
-              Ο χρήστης αυτός να είναι Admin
-            </label>
+        <div class="column is-5">
+          <div class="field"><label class="label">Ρόλος</label>
+            <label class="checkbox"><input type="checkbox" name="is_admin"> Admin</label>
           </div>
         </div>
       </div>
@@ -129,31 +150,22 @@
   <div class="cardish">
     <h2 class="subtitle">Δημιουργία νέου task</h2>
     <form method="post" action="{{ url_for('admin_create_task') }}">
-      <div class="field">
-        <label class="label">Τίτλος</label>
-        <input class="input" type="text" name="title" required>
-      </div>
-      <div class="field">
-        <label class="label">Περιγραφή</label>
-        <textarea class="textarea" name="description" rows="3"></textarea>
-      </div>
+      <div class="field"><label class="label">Τίτλος</label>
+        <input class="input" type="text" name="title" required></div>
+      <div class="field"><label class="label">Περιγραφή</label>
+        <textarea class="textarea" name="description" rows="3"></textarea></div>
 
       <div class="columns">
         <div class="column">
-          <div class="field">
-            <label class="label">Ημερομηνία λήξης</label>
-            <input class="input" type="date" name="due_date">
-          </div>
+          <div class="field"><label class="label">Ημερομηνία λήξης</label>
+            <input class="input" type="date" name="due_date"></div>
         </div>
         <div class="column">
-          <div class="field">
-            <label class="label">Ώρα λήξης</label>
-            <input class="input" type="time" name="due_time">
-          </div>
+          <div class="field"><label class="label">Ώρα λήξης</label>
+            <input class="input" type="time" name="due_time"></div>
         </div>
         <div class="column">
-          <div class="field">
-            <label class="label">Ανάθεση σε</label>
+          <div class="field"><label class="label">Ανάθεση σε</label>
             <div class="select is-fullwidth">
               <select name="assignee_id" required>
                 {% for u in users %}
@@ -190,7 +202,7 @@
   </div>
 </div>
 
-<!-- TASKS (ADMIN) -->
+<!-- TASKS -->
 <div id="tab-tasks" class="tab-content" style="display:none;">
   <div class="cardish">
     <h2 class="subtitle">Διαχείριση εργασιών</h2>
@@ -270,7 +282,6 @@
 </div>
 
 <script>
-  // εναλλαγή tabs
   document.querySelectorAll('.tabs li').forEach(li => {
     li.addEventListener('click', () => {
       document.querySelectorAll('.tabs li').forEach(x => x.classList.remove('is-active'));
