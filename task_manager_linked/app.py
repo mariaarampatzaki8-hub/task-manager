@@ -45,7 +45,6 @@ def create_app():
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     return app
     }
-else:
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + db_path
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
