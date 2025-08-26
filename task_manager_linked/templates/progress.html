@@ -1,40 +1,22 @@
-{% extends "base.html" %}
-{% block title %}Πρόοδος Ομάδας{% endblock %}
+{% extends "base.html" %}{% block title %}Πρόοδος{% endblock %}
 {% block content %}
-
-<h1 class="title">📊 Πρόοδος όλων των χρηστών</h1>
-
-{% for u in users %}
-  {% set tasks = user_tasks.get(u.id, []) %}
-  {% set ns = namespace(total=0, count=0) %}
-  {% for t in tasks %}
-    {% set ns.total = ns.total + (t.progress or 0) %}
-    {% set ns.count = ns.count + 1 %}
-  {% endfor %}
-  {% set avg = (ns.total // ns.count) if ns.count > 0 else 0 %}
-
-  <div class="box" style="border-left:6px solid {{ u.color or '#888' }}">
-    <div class="is-flex is-justify-content-space-between is-align-items-center mb-2">
-      <h3 class="title is-5" style="margin:0;">
-        <span class="tag" style="background:{{ u.color or '#3273dc' }}; color:#fff">{{ u.name }}</span>
-      </h3>
-      <strong>{{ avg }}%</strong>
-    </div>
-    <progress class="progress is-small" value="{{ avg }}" max="100">{{ avg }}%</progress>
-
-    {% if tasks %}
-      <div class="mt-3">
-        {% for t in tasks %}
-          <div class="mb-2">
-            <p class="mb-1"><strong>{{ t.title }}</strong> <small>({{ t.status }})</small></p>
-            <progress class="progress is-small" value="{{ t.progress }}" max="100">{{ t.progress }}%</progress>
-          </div>
-        {% endfor %}
+<h1 class="title is-4">Πρόοδος ομάδας</h1>
+<div class="columns is-multiline">
+{% for row in data %}
+  <div class="column is-4">
+    <div class="cardish">
+      <div class="is-flex is-justify-content-space-between is-align-items-center">
+        <strong>
+          <span class="pill" style="background: {{ row.user.color }}; color:white">{{ row.user.name }}</span>
+          {% if row.user.is_admin %}<span class="tag is-danger is-light ml-2">Admin</span>{% endif %}
+          {% if row.user.is_leader %}<span class="tag is-link is-light ml-1">Leader</span>{% endif %}
+        </strong>
+        <span class="mini">{{ row.done }}/{{ row.total }}</span>
       </div>
-    {% else %}
-      <p class="mt-2"><em>Δεν υπάρχουν εργασίες</em></p>
-    {% endif %}
+      <progress class="progress is-primary is-thin" value="{{ row.pct }}" max="100"></progress>
+      <div class="mini">Τελευταία ολοκλήρωση: {{ row.last_done or '-' }}</div>
+    </div>
   </div>
 {% endfor %}
-
+</div>
 {% endblock %}
