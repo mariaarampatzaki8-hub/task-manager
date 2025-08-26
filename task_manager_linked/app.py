@@ -28,7 +28,6 @@ def create_app():
         app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + db_path
 
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     return app
 
 app = create_app()
