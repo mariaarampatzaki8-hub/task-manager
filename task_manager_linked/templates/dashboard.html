@@ -79,19 +79,43 @@
 </div>
 
 <div class="columns">
-  <!-- Σημειωματάριο -->
+  <!-- Σημειωματάριο με edit/delete -->
   <div class="column is-6">
     <div class="cardish">
       <h2 class="subtitle">📝 Οι σημειώσεις μου</h2>
+
+      <!-- Προσθήκη νέας -->
       <form method="post" action="{{ url_for('me_add_note') }}">
         <textarea class="textarea" name="content" rows="3" placeholder="Γράψε ερωτήσεις/παρατηρήσεις…"></textarea>
         <button class="button is-link mt-2" style="background:var(--accent)">Αποθήκευση</button>
       </form>
+
+      <!-- Λίστα σημειώσεων με κουμπιά -->
       {% if notes %}
         <ul class="mt-3">
           {% for n in notes %}
-            <li class="mb-2">
-              <small>{{ n.created_at.strftime('%d/%m/%Y %H:%M') }}</small><br>{{ n.content }}
+            <li class="mb-3">
+              <div class="is-flex is-justify-content-space-between is-align-items-center">
+                <div>
+                  <small class="has-text-grey">{{ n.created_at.strftime('%d/%m/%Y %H:%M') }}</small><br>
+                  <span id="note-text-{{ n.id }}">{{ n.content }}</span>
+                </div>
+                <div class="buttons">
+                  <button class="button is-small is-light" onclick="toggleEdit({{ n.id }})">✏️ Επεξεργασία</button>
+                  <form method="post" action="{{ url_for('me_delete_note', note_id=n.id) }}" onsubmit="return confirm('Διαγραφή σημείωσης;')">
+                    <button class="button is-small is-danger">🗑️ Διαγραφή</button>
+                  </form>
+                </div>
+              </div>
+
+              <!-- Edit form (κρυφό μέχρι να πατηθεί Επεξεργασία) -->
+              <form id="note-form-{{ n.id }}" method="post" action="{{ url_for('me_update_note', note_id=n.id) }}" class="mt-2" style="display:none">
+                <textarea class="textarea" name="content" rows="3">{{ n.content }}</textarea>
+                <div class="mt-2">
+                  <button class="button is-small is-link" style="background:var(--accent)">Αποθήκευση αλλαγών</button>
+                  <button type="button" class="button is-small is-light" onclick="toggleEdit({{ n.id }})">Άκυρο</button>
+                </div>
+              </form>
             </li>
           {% endfor %}
         </ul>
@@ -118,5 +142,14 @@
     </div>
   </div>
 </div>
+
+<script>
+  function toggleEdit(id){
+    const form = document.getElementById('note-form-' + id);
+    const text = document.getElementById('note-text-' + id);
+    if(form.style.display === 'none'){ form.style.display = 'block'; text.style.display='none'; }
+    else { form.style.display = 'none'; text.style.display=''; }
+  }
+</script>
 
 {% endblock %}
