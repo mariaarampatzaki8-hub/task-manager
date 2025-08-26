@@ -154,27 +154,47 @@
 <div id="tab-progress" class="tab-content" style="display:none;">
   <div class="cardish">
     <h2 class="subtitle">📊 Πρόοδος όλων των χρηστών</h2>
+
     {% for u in users %}
-      <div class="mb-5">
-        <h3><strong style="color:{{ u.color }}">{{ u.name }}</strong></h3>
+      {# Υπολογισμός μέσου % προόδου ανά χρήστη #}
+      {% set total = 0 %}
+      {% set count = 0 %}
+      {% for t in user_tasks[u.id] %}
+        {% set total = total + t.progress %}
+        {% set count = count + 1 %}
+      {% endfor %}
+      {% set avg = (total // count) if count > 0 else 0 %}
+
+      <div class="box" style="border-left:6px solid {{ u.color or '#888' }}">
+        <div class="is-flex is-justify-content-space-between is-align-items-center mb-2">
+          <h3 class="title is-5" style="margin:0;">
+            <span class="tag" style="background:{{ u.color or '#3273dc' }}; color:#fff">{{ u.name }}</span>
+          </h3>
+          <strong>{{ avg }}%</strong>
+        </div>
+        <progress class="progress is-small" value="{{ avg }}" max="100">{{ avg }}%</progress>
+
         {% if user_tasks[u.id] %}
-          {% for t in user_tasks[u.id] %}
-            <div class="box" style="border-left:4px solid {{ u.color }}">
-              <p class="mb-1"><strong>{{ t.title }}</strong></p>
-              <progress class="progress is-small" value="{{ t.progress }}" max="100">{{ t.progress }}%</progress>
-              <small>{{ t.status }} — {{ t.progress }}%</small>
-            </div>
-          {% endfor %}
+          <div class="mt-3">
+            {% for t in user_tasks[u.id] %}
+              <div class="mb-2">
+                <p class="mb-1"><strong>{{ t.title }}</strong> <small>({{ t.status }})</small></p>
+                <progress class="progress is-tiny" value="{{ t.progress }}" max="100">{{ t.progress }}%</progress>
+              </div>
+            {% endfor %}
+          </div>
         {% else %}
-          <p><em>Δεν υπάρχουν εργασίες</em></p>
+          <p class="mt-2"><em>Δεν υπάρχουν εργασίες</em></p>
         {% endif %}
       </div>
     {% endfor %}
+
   </div>
 </div>
 
 <!-- Tabs JS -->
 <script>
+  // εναλλαγή tabs
   document.querySelectorAll('.tabs li').forEach(li => {
     li.addEventListener('click', () => {
       document.querySelectorAll('.tabs li').forEach(x => x.classList.remove('is-active'));
@@ -186,6 +206,7 @@
     });
   });
 
+  // toggle edit φόρμας σημείωσης
   function toggleEdit(id){
     const form = document.getElementById('note-form-' + id);
     const text = document.getElementById('note-text-' + id);
