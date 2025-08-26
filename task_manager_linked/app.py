@@ -472,7 +472,35 @@ def me_add_note():
     db.session.commit()
     flash("Η σημείωση αποθηκεύτηκε.", "success")
     return redirect(url_for("dashboard"))
+@app.route("/me/notes/<int:note_id>/edit", methods=["POST"])
+@login_required
+def me_update_note(note_id):
+    u = current_user()
+    n = Note.query.get_or_404(note_id)
+    if n.user_id != u.id and not u.is_admin:
+        flash("Δεν επιτρέπεται.", "danger")
+        return redirect(url_for("dashboard"))
+    new_content = (request.form.get("content") or "").strip()
+    if not new_content:
+        flash("Το σημείωμα δεν μπορεί να είναι κενό.", "warning")
+        return redirect(url_for("dashboard"))
+    n.content = new_content
+    db.session.commit()
+    flash("Η σημείωση ενημερώθηκε.", "success")
+    return redirect(url_for("dashboard"))
 
+@app.route("/me/notes/<int:note_id>/delete", methods=["POST"])
+@login_required
+def me_delete_note(note_id):
+    u = current_user()
+    n = Note.query.get_or_404(note_id)
+    if n.user_id != u.id and not u.is_admin:
+        flash("Δεν επιτρέπεται.", "danger")
+        return redirect(url_for("dashboard"))
+    db.session.delete(n)
+    db.session.commit()
+    flash("Η σημείωση διαγράφηκε.", "info")
+    return redirect(url_for("dashboard"))
 # Σελίδα κοινής προόδου για όλους
 @app.route("/progress")
 @login_required
