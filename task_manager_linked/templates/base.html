@@ -1,84 +1,113 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="el">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+
   <title>{% block title %}Task Manager{% endblock %}</title>
 
-  <!-- Google Fonts (Inter) -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <!-- Bulma -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <!-- Inter font -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
   <style>
-    :root { --accent: {{ user.color if user and user.color else '#3273dc' }}; }
-    html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#f8fafc; }
-    .navbar { background: var(--accent); }
-    .navbar .navbar-item, .navbar .navbar-brand .navbar-item { color:#fff !important; font-weight:600; }
-    .navbar .navbar-item:hover { background: rgba(255,255,255,0.12) !important; }
-    .clock { color:#fff; opacity:0.95; font-weight:600; }
-    .container { max-width: 1100px; }
-    .cardish { background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:22px; }
-    .progress::-webkit-progress-value { background: var(--accent); }
+    :root {
+      --accent: {% if user and user.color %}{{ user.color }}{% else %}#3273dc{% endif %};
+    }
+    html, body { font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    .navbar.is-accent { background: var(--accent); }
+    .navbar.is-accent .navbar-item, .navbar.is-accent .navbar-link { color:#fff; }
+    .navbar.is-accent .navbar-item:hover { background: rgba(255,255,255,0.12); }
+    .cardish { background:#fff; border-radius:14px; padding:18px 20px; box-shadow:0 6px 20px rgba(0,0,0,.06); }
+    .messages { margin: 0 0 16px 0; }
+    .tab-content { margin-top: 16px; }
+    .clock { font-weight:600; color:#fff; }
   </style>
 </head>
 <body>
 
-<nav class="navbar" role="navigation">
-  <div class="navbar-brand">
-    <a class="navbar-item" href="{{ url_for('index') }}">🗂️ Task Manager</a>
-    <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false"
-       onclick="document.getElementById('nav').classList.toggle('is-active')">
-      <span></span><span></span><span></span>
-    </a>
-  </div>
-  <div id="nav" class="navbar-menu">
-    <div class="navbar-start">
-      {% if user %}
-        <a class="navbar-item" href="{{ url_for('all_progress') }}">Πρόοδος</a>
-        {% if user.is_admin %}
-          <a class="navbar-item" href="{{ url_for('admin') }}">Admin</a>
-        {% else %}
-          <a class="navbar-item" href="{{ url_for('dashboard') }}">Οι εργασίες μου</a>
+  <!-- NAVBAR (global) -->
+  <nav class="navbar is-accent" role="navigation" aria-label="main navigation">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="{{ url_for('index') }}">
+        <strong style="color:#fff">Task Manager</strong>
+      </a>
+      <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navMenu">
+        <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+      </a>
+    </div>
+
+    <div id="navMenu" class="navbar-menu">
+      <div class="navbar-start">
+        {% if user %}
+          <a class="navbar-item" href="{{ url_for('dashboard') }}">Πίνακας</a>
+          <a class="navbar-item" href="{{ url_for('all_progress') }}">Πρόοδος</a>
+          {% if user.is_admin %}
+            <a class="navbar-item" href="{{ url_for('admin') }}">Admin</a>
+          {% endif %}
         {% endif %}
-      {% endif %}
+      </div>
+      <div class="navbar-end">
+        <div class="navbar-item">
+          <span id="clock" class="clock"></span>
+        </div>
+        <div class="navbar-item">
+          {% if user %}
+            <span class="mr-3" style="color:#fff">Γεια σου, {{ user.name }}!</span>
+            <a class="button is-light" href="{{ url_for('logout') }}">Αποσύνδεση</a>
+          {% else %}
+            <a class="button is-light" href="{{ url_for('index') }}">Σύνδεση</a>
+          {% endif %}
+        </div>
+      </div>
     </div>
-    <div class="navbar-end">
-      <div class="navbar-item clock"><span id="clock">--:--</span> · <span id="date">-- -- ----</span></div>
-      {% if user %}
-        <div class="navbar-item">Γεια σου, <strong>&nbsp;{{ user.name }}</strong>!</div>
-        <a class="navbar-item" href="{{ url_for('logout') }}">Αποσύνδεση</a>
-      {% endif %}
-    </div>
-  </div>
-</nav>
+  </nav>
 
-<section class="section">
-  <div class="container">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for cat, msg in messages %}
-          <div class="notification is-{{ 'danger' if cat=='danger' else ('warning' if cat=='warning' else ('success' if cat=='success' else 'info')) }}">
-            {{ msg }}
+  <section class="section">
+    <div class="container">
+
+      <!-- Flash messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="messages">
+            {% for category, message in messages %}
+              <div class="notification is-{{ category }}">{{ message }}</div>
+            {% endfor %}
           </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+        {% endif %}
+      {% endwith %}
 
-    {% block content %}{% endblock %}
-  </div>
-</section>
+      {% block content %}{% endblock %}
+    </div>
+  </section>
 
-<script>
-  function pad(n){return n<10?'0'+n:n;}
-  function tick(){
-    const d = new Date();
-    const hh = pad(d.getHours()), mm = pad(d.getMinutes());
-    const opts = { weekday:'short', day:'2-digit', month:'short', year:'numeric' };
-    document.getElementById('clock').textContent = `${hh}:${mm}`;
-    document.getElementById('date').textContent = d.toLocaleDateString('el-GR', opts);
-  }
-  tick(); setInterval(tick, 1000);
-</script>
+  <script>
+    // burger
+    document.addEventListener('DOMContentLoaded', () => {
+      const burgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+      burgers.forEach(el => {
+        el.addEventListener('click', () => {
+          const target = document.getElementById(el.dataset.target);
+          el.classList.toggle('is-active');
+          target.classList.toggle('is-active');
+        });
+      });
+    });
+
+    // ρολόι/ημερομηνία
+    function tick() {
+      const el = document.getElementById('clock');
+      if(!el) return;
+      const d = new Date();
+      const pad = n => String(n).padStart(2,'0');
+      const days = ['Κυρ','Δευ','Τρ','Τετ','Πεμ','Παρ','Σαβ'];
+      const months = ['Ιαν','Φεβ','Μαρ','Απρ','Μαι','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
+      el.textContent = `${days[d.getDay()]} ${pad(d.getDate())} ${months[d.getMonth()]} ${d.getFullYear()} · ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+    tick();
+    setInterval(tick, 1000);
+  </script>
 </body>
 </html>
