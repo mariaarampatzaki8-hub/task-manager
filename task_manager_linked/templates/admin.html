@@ -1,297 +1,137 @@
-{% extends "base.html" %}
-{% block title %}Admin{% endblock %}
+{% extends "base.html" %}{% block title %}Admin{% endblock %}
 {% block content %}
+<h1 class="title is-4">Πίνακας Διαχείρισης (Admin)</h1>
 
-<h1 class="title">Πίνακας Διαχείρισης</h1>
-
-<div class="tabs is-boxed">
-  <ul>
-    <li class="is-active" data-tab="users"><a>👥 Χρήστες</a></li>
-    <li data-tab="newuser"><a>➕ Νέος χρήστης</a></li>
-    <li data-tab="newtask"><a>🧩 Νέο task</a></li>
-    <li data-tab="notes"><a>📝 Σημειώσεις</a></li>
-    <li data-tab="tasks"><a>🗂 Εργασίες</a></li>
-  </ul>
-</div>
-
-<!-- USERS -->
-<div id="tab-users" class="tab-content">
-  <div class="cardish">
-    <h2 class="subtitle">Λίστα χρηστών</h2>
-    <table class="table is-fullwidth is-striped is-narrow">
-      <thead>
-        <tr>
-          <th>Όνομα</th><th>Username</th><th>Email</th><th>Τηλέφωνο</th><th>ΑΔΤ</th>
-          <th>Ομάδα</th><th>Ρόλος</th><th>Χρώμα</th><th>Ενέργειες</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for u in users %}
-        <tr>
-          <td>{{ u.name }}</td>
-          <td>{{ u.username }}</td>
-          <td>{{ u.email or '—' }}</td>
-          <td>{{ u.phone or '—' }}</td>
-          <td>{{ u.id_number or '—' }}</td>
-          <td>
-            <form method="post" action="{{ url_for('admin_assign_team', user_id=u.id) }}" class="is-flex" style="gap:8px">
-              <div class="select is-small">
-                <select name="team_id">
-                  <option value="">—</option>
-                  {% for t in teams %}
-                    <option value="{{ t.id }}" {% if u.team_id==t.id %}selected{% endif %}>{{ t.name }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-              <button class="button is-small">Αποθήκευση</button>
-            </form>
-          </td>
-          <td>
-            <form method="post" action="{{ url_for('admin_set_role', user_id=u.id) }}" class="is-flex" style="gap:8px">
-              <div class="select is-small">
-                <select name="is_admin">
-                  <option value="0" {% if not u.is_admin %}selected{% endif %}>Χρήστης</option>
-                  <option value="1" {% if u.is_admin %}selected{% endif %}>Admin</option>
-                </select>
-              </div>
-              <button class="button is-small is-link">Αποθήκευση</button>
-            </form>
-          </td>
-          <td>
-            <form method="post" action="{{ url_for('admin_set_color', user_id=u.id) }}" class="is-flex" style="gap:8px">
-              <input type="color" name="color" value="{{ u.color or '#3273dc' }}">
-              <button class="button is-small">Αποθήκευση</button>
-            </form>
-          </td>
-          <td>
-            <form method="post" action="{{ url_for('admin_reset_password', user_id=u.id) }}" style="display:inline">
-              <button class="button is-small is-warning">Reset κωδικού</button>
-            </form>
-            <form method="post" action="{{ url_for('admin_delete_user', user_id=u.id) }}" style="display:inline" onsubmit="return confirm('Σίγουρα διαγραφή;');">
-              <button class="button is-small is-danger">Διαγραφή</button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
-
-<!-- NEW USER -->
-<div id="tab-newuser" class="tab-content" style="display:none;">
-  <div class="cardish">
-    <h2 class="subtitle">Δημιουργία νέου χρήστη</h2>
-    <form method="post" action="{{ url_for('admin_create_user') }}">
-      <div class="columns">
-        <div class="column">
-          <div class="field"><label class="label">Όνομα</label>
-            <input class="input" type="text" name="name" required></div>
-        </div>
-        <div class="column">
-          <div class="field"><label class="label">Username</label>
-            <input class="input" type="text" name="username" required></div>
-        </div>
-      </div>
-
-      <div class="columns">
-        <div class="column">
-          <div class="field"><label class="label">Email</label>
-            <input class="input" type="email" name="email"></div>
-        </div>
-        <div class="column">
-          <div class="field"><label class="label">Κωδικός</label>
-            <input class="input" type="password" name="password" required></div>
-        </div>
-      </div>
-
-      <div class="columns">
-        <div class="column">
-          <div class="field"><label class="label">Τηλέφωνο</label>
-            <input class="input" type="text" name="phone"></div>
-        </div>
-        <div class="column">
-          <div class="field"><label class="label">Αριθμός ταυτότητας (ΑΔΤ)</label>
-            <input class="input" type="text" name="id_number"></div>
-        </div>
-      </div>
-
-      <div class="columns">
-        <div class="column is-3">
-          <div class="field"><label class="label">Χρώμα</label>
-            <input type="color" name="color" value="#3273dc"></div>
-        </div>
-        <div class="column is-4">
-          <div class="field"><label class="label">Ομάδα</label>
-            <div class="select is-fullwidth">
-              <select name="team_id">
-                <option value="">—</option>
-                {% for t in teams %}
-                  <option value="{{ t.id }}">{{ t.name }}</option>
-                {% endfor %}
-              </select>
-            </div>
-          </div>
-        </div>
-        <div class="column is-5">
-          <div class="field"><label class="label">Ρόλος</label>
-            <label class="checkbox"><input type="checkbox" name="is_admin"> Admin</label>
-          </div>
-        </div>
-      </div>
-
-      <button class="button is-primary">Δημιουργία</button>
-    </form>
-  </div>
-</div>
-
-<!-- NEW TASK -->
-<div id="tab-newtask" class="tab-content" style="display:none;">
-  <div class="cardish">
-    <h2 class="subtitle">Δημιουργία νέου task</h2>
-    <form method="post" action="{{ url_for('admin_create_task') }}">
-      <div class="field"><label class="label">Τίτλος</label>
-        <input class="input" type="text" name="title" required></div>
-      <div class="field"><label class="label">Περιγραφή</label>
-        <textarea class="textarea" name="description" rows="3"></textarea></div>
-
-      <div class="columns">
-        <div class="column">
-          <div class="field"><label class="label">Ημερομηνία λήξης</label>
-            <input class="input" type="date" name="due_date"></div>
-        </div>
-        <div class="column">
-          <div class="field"><label class="label">Ώρα λήξης</label>
-            <input class="input" type="time" name="due_time"></div>
-        </div>
-        <div class="column">
-          <div class="field"><label class="label">Ανάθεση σε</label>
-            <div class="select is-fullwidth">
-              <select name="assignee_id" required>
-                {% for u in users %}
-                  <option value="{{ u.id }}">{{ u.name }} ({{ u.username }})</option>
-                {% endfor %}
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <button class="button is-success">Ανάθεση</button>
-    </form>
-  </div>
-</div>
-
-<!-- NOTES -->
-<div id="tab-notes" class="tab-content" style="display:none;">
-  <div class="cardish">
-    <h2 class="subtitle">Πρόσφατες σημειώσεις χρηστών</h2>
-    {% if notes %}
-      <ul>
-        {% for n in notes %}
-          <li class="mb-3">
-            <strong>{{ n.user.name }}</strong>
-            <small class="has-text-grey">({{ n.created_at.strftime('%d/%m/%Y %H:%M') }})</small><br>
-            {{ n.content }}
-          </li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <p>Δεν υπάρχουν σημειώσεις.</p>
-    {% endif %}
-  </div>
-</div>
-
-<!-- TASKS -->
-<div id="tab-tasks" class="tab-content" style="display:none;">
-  <div class="cardish">
-    <h2 class="subtitle">Διαχείριση εργασιών</h2>
-
-    {% if tasks and tasks|length > 0 %}
-      <table class="table is-fullwidth is-striped is-narrow">
-        <thead>
-          <tr>
-            <th>#</th><th>Τίτλος</th><th>Περιγραφή</th><th>Λήξη</th>
-            <th>Σε</th><th>Πρόοδος</th><th>Κατάσταση</th><th>Ενέργειες</th>
-          </tr>
-        </thead>
+<div class="columns">
+  <div class="column is-7">
+    <div class="cardish">
+      <h2 class="subtitle is-5">Χρήστες</h2>
+      <table class="table is-fullwidth is-striped">
+        <thead><tr><th>Όνομα</th><th>Username</th><th>Email</th><th>Admin</th><th>Leader</th><th>Χρώμα</th><th>Ενέργειες</th></tr></thead>
         <tbody>
-          {% for t in tasks %}
+          {% for u in users %}
           <tr>
-            <td>{{ t.id }}</td>
-            <td style="min-width:220px">
-              <form method="post" action="{{ url_for('admin_update_task', task_id=t.id) }}">
-                <input class="input is-small" type="text" name="title" value="{{ t.title }}" required>
-            </td>
-            <td style="min-width:260px">
-                <textarea class="textarea is-small" name="description" rows="2">{{ t.description or '' }}</textarea>
-            </td>
-            <td style="min-width:190px">
-              <div class="columns is-mobile" style="gap:6px;">
-                <div class="column is-half">
-                  <input class="input is-small" type="date" name="due_date"
-                         value="{{ t.due_date.strftime('%Y-%m-%d') if t.due_date else '' }}">
-                </div>
-                <div class="column is-half">
-                  <input class="input is-small" type="time" name="due_time"
-                         value="{{ t.due_time.strftime('%H:%M') if t.due_time else '' }}">
-                </div>
-              </div>
-            </td>
-            <td>
-              <div class="select is-small is-fullwidth">
-                <select name="assignee_id">
-                  <option value="">—</option>
-                  {% for u in users %}
-                    <option value="{{ u.id }}" {% if t.assignee_id==u.id %}selected{% endif %}>{{ u.name }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-            </td>
-            <td style="min-width:120px">
-              <div class="field has-addons">
-                <div class="control is-expanded">
-                  <input class="input is-small" type="number" name="progress" min="0" max="100" value="{{ t.progress or 0 }}">
-                </div>
-                <div class="control"><span class="button is-small is-static">%</span></div>
-              </div>
-            </td>
-            <td>
-              <div class="select is-small">
-                <select name="status">
-                  <option value="open" {% if t.status=='open' %}selected{% endif %}>open</option>
-                  <option value="done" {% if t.status=='done' %}selected{% endif %}>done</option>
-                </select>
-              </div>
-            </td>
-            <td style="white-space:nowrap">
-                <button class="button is-small is-link">Αποθήκευση</button>
+            <td>{{ u.name }}</td>
+            <td>{{ u.username }}</td>
+            <td>{{ u.email or '—' }}</td>
+            <td>{{ '✔️' if u.is_admin else '—' }}</td>
+            <td>{{ '✔️' if u.is_leader else '—' }}</td>
+            <td><span class="tag" style="background: {{ u.color }}; color: #fff">  </span></td>
+            <td class="is-flex" style="gap:6px">
+              <form method="post" action="{{ url_for('admin_reset_token', user_id=u.id) }}">
+                <button class="button is-small is-warning is-light">Reset link</button>
               </form>
-              <form method="post" action="{{ url_for('admin_delete_task', task_id=t.id) }}" style="display:inline" onsubmit="return confirm('Διαγραφή εργασίας;');">
-                <button class="button is-small is-danger">Διαγραφή</button>
+              <form method="post" action="{{ url_for('admin_set_admin', user_id=u.id) }}">
+                <input type="hidden" name="is_admin" value="{{ '0' if u.is_admin else '1' }}">
+                <button class="button is-small is-info is-light">{{ 'Αφαίρεση admin' if u.is_admin else 'Κάνε admin' }}</button>
               </form>
+              <form method="post" action="{{ url_for('admin_set_leader', user_id=u.id) }}">
+                <input type="hidden" name="is_leader" value="{{ '0' if u.is_leader else '1' }}">
+                <button class="button is-small is-link is-light">{{ 'Αφαίρεση leader' if u.is_leader else 'Κάνε leader' }}</button>
+              </form>
+              {% if u.username != 'admin' %}
+              <form method="post" action="{{ url_for('admin_delete_user', user_id=u.id) }}">
+                <button class="button is-small is-danger is-light" onclick="return confirm('Διαγραφή χρήστη;')">Διαγραφή</button>
+              </form>
+              {% endif %}
             </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
-    {% else %}
-      <p>Δεν υπάρχουν εργασίες.</p>
-    {% endif %}
+
+      <h3 class="subtitle is-6 mt-4">Δημιουργία νέου χρήστη</h3>
+      <form method="post" action="{{ url_for('admin_create_user') }}">
+        <div class="columns is-multiline">
+          <div class="column is-4"><input class="input" name="name" placeholder="Όνομα" required></div>
+          <div class="column is-4"><input class="input" name="username" placeholder="Username" required></div>
+          <div class="column is-4"><input class="input" type="password" name="password" placeholder="Κωδικός" required></div>
+          <div class="column is-4"><input class="input" name="email" placeholder="Email"></div>
+          <div class="column is-4"><input class="input" name="phone" placeholder="Τηλέφωνο"></div>
+          <div class="column is-4"><input class="input" name="id_number" placeholder="Αρ. ταυτότητας"></div>
+          <div class="column is-4"><input class="input" type="color" name="color" value="#3273dc"></div>
+          <div class="column is-12"><button class="button is-primary">Δημιουργία</button></div>
+        </div>
+      </form>
+    </div>
+
+    <div class="cardish mt-5">
+      <h2 class="subtitle is-5">Εργασίες</h2>
+      <form method="post" action="{{ url_for('admin_create_task') }}" class="mb-4">
+        <div class="columns">
+          <div class="column is-4"><input class="input" name="title" placeholder="Τίτλος" required></div>
+          <div class="column is-5"><input class="input" name="description" placeholder="Περιγραφή"></div>
+          <div class="column is-3">
+            <div class="select is-fullwidth">
+              <select name="assignee_id" required>
+                <option value="">— Ανάθεση σε —</option>
+                {% for u in users %}<option value="{{ u.id }}">{{ u.name }}</option>{% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+        <button class="button is-primary is-light">Δημιουργία εργασίας</button>
+      </form>
+
+      {% for u in users %}
+        <h4 class="has-text-weight-semibold">{{ u.name }}</h4>
+        {% for t in u.tasks.order_by(t.id.desc()) %}
+          <form method="post" action="{{ url_for('admin_edit_task', task_id=t.id) }}" class="box">
+            <div class="columns is-multiline">
+              <div class="column is-3"><input class="input" name="title" value="{{ t.title }}"></div>
+              <div class="column is-5"><input class="input" name="description" value="{{ t.description }}"></div>
+              <div class="column is-2">
+                <div class="select is-fullwidth">
+                  <select name="status">
+                    <option value="open" {% if t.status=='open' %}selected{% endif %}>open</option>
+                    <option value="done" {% if t.status=='done' %}selected{% endif %}>done</option>
+                  </select>
+                </div>
+              </div>
+              <div class="column is-2"><input class="input" type="number" min="0" max="100" name="progress" value="{{ t.progress }}"></div>
+            </div>
+            <div class="is-flex" style="gap:8px">
+              <button class="button is-info is-light">Αποθήκευση</button>
+              <form method="post" action="{{ url_for('admin_delete_task', task_id=t.id) }}">
+                <button formaction="{{ url_for('admin_delete_task', task_id=t.id) }}" class="button is-danger is-light" onclick="return confirm('Διαγραφή;')">Διαγραφή</button>
+              </form>
+            </div>
+          </form>
+        {% else %}
+          <p class="mini">— καμία εργασία —</p>
+        {% endfor %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="column is-5">
+    <div class="cardish">
+      <h2 class="subtitle is-5">Πρόσφατες σημειώσεις χρηστών</h2>
+      {% for n in notes %}
+        <div class="box">
+          <strong>{{ n.user.name }}</strong>
+          <small class="mini">· {{ n.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
+          <p class="note">{{ n.content }}</p>
+          <form method="post" action="{{ url_for('admin_edit_note', note_id=n.id) }}" class="is-flex" style="gap:8px">
+            <input class="input" name="content" value="{{ n.content }}">
+            <button class="button is-small is-info is-light">Αποθήκευση</button>
+            <button class="button is-small is-danger is-light" formaction="{{ url_for('admin_delete_note', note_id=n.id) }}" onclick="return confirm('Διαγραφή σημείωσης;')">Διαγραφή</button>
+          </form>
+        </div>
+      {% else %}
+        <p class="mini">Καμία σημείωση.</p>
+      {% endfor %}
+    </div>
+
+    <div class="cardish mt-5">
+      <h2 class="subtitle is-5">Γρήγορα στατιστικά</h2>
+      <ul>
+        <li>Χρήστες: {{ stats.users }}</li>
+        <li>Εργασίες: {{ stats.tasks }}</li>
+        <li>Ολοκληρωμένες: {{ stats.done }}</li>
+        <li>Ανοιχτές: {{ stats.open }}</li>
+      </ul>
+    </div>
   </div>
 </div>
-
-<script>
-  document.querySelectorAll('.tabs li').forEach(li => {
-    li.addEventListener('click', () => {
-      document.querySelectorAll('.tabs li').forEach(x => x.classList.remove('is-active'));
-      li.classList.add('is-active');
-      document.querySelectorAll('.tab-content').forEach(x => x.style.display='none');
-      const id = 'tab-' + li.dataset.tab;
-      const el = document.getElementById(id);
-      if(el) el.style.display = 'block';
-    });
-  });
-</script>
-
 {% endblock %}
