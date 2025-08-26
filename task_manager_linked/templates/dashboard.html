@@ -1,48 +1,92 @@
 {% extends "base.html" %}
-{% block title %}Πίνακας{% endblock %}
+{% block title %}Οι εργασίες μου{% endblock %}
 {% block content %}
 
-<h1 class="title" style="color:{{ user.color or 'var(--accent)' }}">
-  👋 Γεια σου, {{ user.name }}!
-</h1>
+<h1 class="title" style="color:var(--accent)">👋 Γεια σου, {{ user.name }}!</h1>
 
-<div class="box">
-  <h2 class="subtitle">Οι εργασίες σου</h2>
-  {% if tasks %}
-    <table class="table is-fullwidth is-striped">
-      <thead>
-        <tr><th>Τίτλος</th><th>Περιγραφή</th><th>Προθεσμία</th><th>Κατάσταση</th><th>Ενέργειες</th></tr>
-      </thead>
-      <tbody>
-        {% for t in tasks %}
-        <tr>
-          <td>{{ t.title }}</td>
-          <td>{{ t.description }}</td>
-          <td>
-            {% if t.due_date %}{{ t.due_date.strftime('%d/%m/%Y') }}{% endif %}
-            {% if t.due_time %} {{ t.due_time.strftime('%H:%M') }}{% endif %}
-          </td>
-          <td>
-            {% if t.status == 'done' %}
-              <span class="tag is-success">Ολοκληρώθηκε</span>
-            {% else %}
-              <span class="tag is-warning">Ανοιχτή</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if t.status != 'done' %}
-            <form method="post" action="{{ url_for('complete_task', task_id=t.id) }}">
-              <button class="button is-small is-success">Ολοκλήρωση</button>
+<div class="columns">
+  <!-- Ανοιχτές -->
+  <div class="column">
+    <div class="cardish">
+      <h2 class="subtitle">🟡 Ανοιχτές εργασίες</h2>
+      {% if open_tasks %}
+        {% for t in open_tasks %}
+          <div class="box" style="border-left:6px solid var(--accent)">
+            <p class="mb-2"><strong>{{ t.title }}</strong></p>
+            {% if t.description %}<p class="mb-2">{{ t.description }}</p>{% endif %}
+            <p class="is-size-7 mb-3">
+              {% if t.due_date %}Προθεσμία: {{ t.due_date.strftime('%d/%m/%Y') }}{% endif %}
+              {% if t.due_time %} {{ t.due_time.strftime('%H:%M') }}{% endif %}
+            </p>
+            <progress class="progress is-small" value="{{ t.progress }}" max="100">{{ t.progress }}%</progress>
+            <form method="post" action="{{ url_for('update_task_progress', task_id=t.id) }}" class="mt-2" style="display:flex; gap:8px; align-items:center">
+              <input class="input" type="number" min="0" max="100" name="progress" value="{{ t.progress }}" style="max-width:100px">
+              <button class="button is-light">Ενημέρωση %</button>
             </form>
-            {% endif %}
-          </td>
-        </tr>
+            <form method="post" action="{{ url_for('toggle_task', task_id=t.id) }}" class="mt-2">
+              <button class="button is-success">Ολοκληρώθηκε</button>
+            </form>
+          </div>
         {% endfor %}
-      </tbody>
-    </table>
+      {% else %}
+        <p>Δεν έχεις ανοιχτές εργασίες 🎉</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Ολοκληρωμένες -->
+  <div class="column">
+    <div class="cardish">
+      <h2 class="subtitle">✅ Ολοκληρωμένες</h2>
+      {% if done_tasks %}
+        {% for t in done_tasks %}
+          <div class="box">
+            <p class="mb-2"><strong>{{ t.title }}</strong></p>
+            <p class="is-size-7 mb-2">Ολοκληρώθηκε: {% if t.completed_at %}{{ t.completed_at.strftime('%d/%m/%Y %H:%M') }}{% endif %}</p>
+            <progress class="progress is-small is-success" value="{{ t.progress }}" max="100">{{ t.progress }}%</progress>
+            <form method="post" action="{{ url_for('toggle_task', task_id=t.id) }}" class="mt-2">
+              <button class="button is-warning">Επαναφορά</button>
+            </form>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p>Δεν υπάρχουν ολοκληρωμένες.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Σημειωματάριο -->
+<div class="cardish">
+  <h2 class="subtitle">📝 Οι σημειώσεις μου</h2>
+  <form method="post" action="{{ url_for('me_add_note') }}">
+    <textarea class="textarea" name="content" rows="3" placeholder="Γράψε ερωτήσεις/παρατηρήσεις…"></textarea>
+    <button class="button is-link mt-2" style="background:var(--accent)">Αποθήκευση σημείωσης</button>
+  </form>
+  {% if notes %}
+    <ul class="mt-3">
+      {% for n in notes %}
+        <li class="mb-2"><small>{{ n.created_at.strftime('%d/%m/%Y %H:%M') }}</small><br>{{ n.content }}</li>
+      {% endfor %}
+    </ul>
   {% else %}
-    <p>Δεν έχεις εργασίες ακόμα 🎉</p>
+    <p class="mt-2">Δεν υπάρχουν σημειώσεις ακόμα.</p>
   {% endif %}
+</div>
+
+<!-- Αλλαγή κωδικού -->
+<div class="cardish mt-4">
+  <h2 class="subtitle">🔑 Αλλαγή κωδικού</h2>
+  <form method="post" action="{{ url_for('me_change_password') }}">
+    {% if user.must_change_password %}
+      <p class="notification is-warning">Ο κωδικός σου έχει επαναφερθεί — συμπλήρωσε νέο.</p>
+    {% else %}
+      <div class="field"><label class="label">Τρέχων κωδικός</label><input class="input" type="password" name="current_password" required></div>
+    {% endif %}
+    <div class="field"><label class="label">Νέος κωδικός</label><input class="input" type="password" name="new_password" required></div>
+    <div class="field"><label class="label">Επιβεβαίωση</label><input class="input" type="password" name="confirm_password" required></div>
+    <button class="button is-link" style="background:var(--accent)">Αλλαγή</button>
+  </form>
 </div>
 
 {% endblock %}
