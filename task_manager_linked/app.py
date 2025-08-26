@@ -33,7 +33,6 @@ class Team(db.Model):
     name = db.Column(db.String(200), nullable=False, unique=True)
     leader_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
 
-    # σχέσεις
     members = relationship("User", backref="team", foreign_keys="User.team_id", lazy="dynamic")
     leader = relationship("User", foreign_keys=[leader_id], uselist=False)
 
@@ -45,8 +44,8 @@ class User(db.Model):
     email = db.Column(db.String(200), unique=True, nullable=True)
     username = db.Column(db.String(120), unique=True, nullable=True)
     password_hash = db.Column(db.String(255), nullable=True)
-    phone = db.Column(db.String(40), nullable=True)       # νέο
-    id_number = db.Column(db.String(40), nullable=True)   # νέο (ΑΔΤ)
+    phone = db.Column(db.String(40), nullable=True)
+    id_number = db.Column(db.String(40), nullable=True)   # ΑΔΤ
 
     # πρόσβαση
     token = db.Column(db.String(64), unique=True, index=True, nullable=False, default=lambda: secrets.token_urlsafe(16))
@@ -54,7 +53,7 @@ class User(db.Model):
     must_change_password = db.Column(db.Boolean, default=False)
 
     # εμφάνιση
-    color = db.Column(db.String(16), nullable=True)  # hex, π.χ. #3273dc
+    color = db.Column(db.String(16), nullable=True)  # hex
 
     # ομάδα
     team_id = db.Column(db.Integer, db.ForeignKey("team.id"), nullable=True)
@@ -130,7 +129,6 @@ def admin_or_leader_required(fn):
             return redirect(url_for("index"))
         if u.is_admin:
             return fn(*args, **kwargs)
-        # είναι leader σε κάποια ομάδα;
         is_leader = Team.query.filter_by(leader_id=u.id).count() > 0
         if is_leader:
             return fn(*args, **kwargs)
@@ -346,7 +344,6 @@ def all_progress():
 def admin():
     users = User.query.order_by(User.name.asc()).all()
     teams = Team.query.order_by(Team.name.asc()).all()
-
     notes = Note.query.order_by(Note.created_at.desc()).limit(50).all()
     tasks = Task.query.order_by(Task.id.desc()).all()
     return render_template("admin.html", users=users, teams=teams, notes=notes, tasks=tasks)
@@ -587,7 +584,15 @@ def admin_set_role(user_id):
     return redirect(url_for("admin"))
 
 
-# ---------- Teams (Admin) ----------
+# ---------- Teams ----------
+# Δημόσια (για όλους τους συνδεδεμένους): λίστα ομάδων (read-only)
+@app.route("/teams")
+@login_required
+def teams_view():
+    teams = Team.query.order_by(Team.name.asc()).all()
+    return render_template("teams.html", teams=teams, users=[])
+
+# Διαχείριση ομάδων (admin μόνο)
 @app.route("/admin/teams", methods=["GET", "POST"])
 @admin_required
 def admin_teams():
@@ -607,6 +612,7 @@ def admin_teams():
     users = User.query.order_by(User.name.asc()).all()
     return render_template("teams.html", teams=teams, users=users)
 
+# Ενημέρωση ονόματος & leader
 @app.route("/admin/teams/<int:team_id>/update", methods=["POST"])
 @admin_required
 def admin_update_team(team_id):
@@ -624,6 +630,7 @@ def admin_update_team(team_id):
     flash("Η ομάδα ενημερώθηκε.", "success")
     return redirect(url_for("admin_teams"))
 
+# Διαγραφή ομάδας
 @app.route("/admin/teams/<int:team_id>/delete", methods=["POST"])
 @admin_required
 def admin_delete_team(team_id):
@@ -635,21 +642,35 @@ def admin_delete_team(team_id):
     flash("Η ομάδα διαγράφηκε.", "info")
     return redirect(url_for("admin_teams"))
 
-@app.route("/admin/users/<int:user_id>/assign_team", methods=["POST"])
+# Προσθήκη μέλους σε ομάδα
+@app.route("/admin/teams/<int:team_id>/add_member", methods=["POST"])
 @admin_required
-def admin_assign_team(user_id):
+def admin_team_add_member(team_id):
+    team = Team.query.get_or_404(team_id)
+    try:
+        user_id = int(request.form.get("user_id", 0))
+    except ValueError:
+        flash("Μη έγκυρα στοιχεία.", "danger")
+        return redirect(url_for("admin_teams"))
     u = User.query.get_or_404(user_id)
-    team_id = request.form.get("team_id")
-    if team_id:
-        try:
-            u.team_id = int(team_id)
-        except ValueError:
-            u.team_id = None
-    else:
-        u.team_id = None
+    u.team_id = team.id
     db.session.commit()
-    flash("Ο χρήστης ενημερώθηκε.", "success")
-    return redirect(url_for("admin"))
+    flash(f"Ο/Η {u.name} προστέθηκε στην ομάδα «{team.name}».", "success")
+    return redirect(url_for("admin_teams"))
+
+# Αφαίρεση μέλους από ομάδα
+@app.route("/admin/teams/<int:team_id>/remove_member/<int:user_id>", methods=["POST"])
+@admin_required
+def admin_team_remove_member(team_id, user_id):
+    team = Team.query.get_or_404(team_id)
+    u = User.query.get_or_404(user_id)
+    if u.team_id == team.id:
+        u.team_id = None
+        if team.leader_id == u.id:
+            team.leader_id = None
+        db.session.commit()
+        flash(f"Ο/Η {u.name} αφαιρέθηκε από την ομάδα «{team.name}».", "info")
+    return redirect(url_for("admin_teams"))
 
 
 # ---------- Directory (Admins & Leaders) ----------
