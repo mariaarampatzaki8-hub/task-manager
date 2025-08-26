@@ -4,11 +4,12 @@ from datetime import datetime, date, time
 
 from flask import (
     Flask, render_template, request, redirect,
-    url_for, session, flash, jsonify, send_file
+    url_for, session, flash, send_file
 )
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship
 from werkzeug.security import generate_password_hash, check_password_hash
+
 
 # ---------- App & DB ----------
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -16,17 +17,18 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
 
-    # SECRET_KEY: από env ή random για dev
+    # SECRET_KEY από env ή τυχαίο για dev
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-" + secrets.token_hex(16))
 
     os.makedirs(app.instance_path, exist_ok=True)
-    db_path = os.path.join(app.instance_path, "app_final.db")  # νέο καθαρό όνομα DB
+    db_path = os.path.join(app.instance_path, "app_final.db")
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + db_path
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     return app
 
 app = create_app()
 db = SQLAlchemy(app)
+
 
 # ---------- Models ----------
 class User(db.Model):
@@ -43,7 +45,7 @@ class User(db.Model):
     must_change_password = db.Column(db.Boolean, default=False)
 
     # εμφάνιση
-    color = db.Column(db.String(16), nullable=True)  # hex χρώμα
+    color = db.Column(db.String(16), nullable=True)  # hex, π.χ. #3273dc
 
     tasks = relationship("Task", backref="assignee", cascade="all, delete-orphan", lazy="dynamic", foreign_keys="Task.assignee_id")
     notes = relationship("Note", backref="user", cascade="all, delete-orphan", lazy="dynamic")
@@ -65,8 +67,8 @@ class Task(db.Model):
     due_date = db.Column(db.Date, nullable=True)
     due_time = db.Column(db.Time, nullable=True)
 
-    progress = db.Column(db.Integer, default=0)      # 0..100
-    status = db.Column(db.String(20), default="open")  # open|done
+    progress = db.Column(db.Integer, default=0)           # 0..100
+    status = db.Column(db.String(20), default="open")      # open|done
     completed_at = db.Column(db.DateTime, nullable=True)
 
     assignee_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
@@ -77,6 +79,7 @@ class Note(db.Model):
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+
 
 # ---------- Helpers ----------
 def current_user():
@@ -110,6 +113,7 @@ def admin_required(fn):
 def inject_user():
     return {"user": current_user()}
 
+
 # ---------- Initial DB & bootstrap admin ----------
 with app.app_context():
     db.create_all()
@@ -127,15 +131,14 @@ with app.app_context():
         db.session.add(admin)
         db.session.commit()
         print("== Admin δημιουργήθηκε με username=admin και password=admin123")
-    # πάντα δείξε link σύνδεσης admin στα logs
     print("== Admin login links ==")
     print("Admin:", f"/login/{admin.token}")
     print("== End admin links ==")
 
+
 # ---------- Routes: Public / Auth ----------
 @app.route("/")
 def index():
-    # απλή αρχική (login φόρμα στο index.html)
     return render_template("index.html")
 
 @app.route("/login/<token>")
@@ -146,9 +149,7 @@ def login_token(token):
         return redirect(url_for("index"))
     session["uid"] = u.id
     flash("Συνδέθηκες επιτυχώς.", "success")
-    if u.is_admin:
-        return redirect(url_for("admin"))
-    return redirect(url_for("dashboard"))
+    return redirect(url_for("admin" if u.is_admin else "dashboard"))
 
 @app.route("/login_password", methods=["POST"])
 def login_password():
@@ -160,9 +161,7 @@ def login_password():
         return redirect(url_for("index"))
     session["uid"] = u.id
     flash("Συνδέθηκες επιτυχώς.", "success")
-    if u.is_admin:
-        return redirect(url_for("admin"))
-    return redirect(url_for("dashboard"))
+    return redirect(url_for("admin" if u.is_admin else "dashboard"))
 
 @app.route("/logout")
 def logout():
@@ -170,18 +169,19 @@ def logout():
     flash("Αποσυνδέθηκες.", "info")
     return redirect(url_for("index"))
 
-# ---------- Routes: Dashboard / Tasks / Notes για χρήστη ----------
+
+# ---------- Dashboard / Tasks / Notes (User) ----------
 @app.route("/dashboard")
 @login_required
 def dashboard():
     u = current_user()
 
-    # εργασίες μόνο του χρήστη
+    # εργασίες του συνδεδεμένου χρήστη
     open_tasks = Task.query.filter_by(assignee_id=u.id, status="open").order_by(Task.id.desc()).all()
     done_tasks = Task.query.filter_by(assignee_id=u.id, status="done").order_by(Task.completed_at.desc()).all()
     notes = u.notes.order_by(Note.created_at.desc()).all()
 
-    # για την καρτέλα Πρόοδος Ομάδας
+    # για το tab "Πρόοδος Ομάδας"
     users = User.query.order_by(User.name.asc()).all()
     user_tasks = {
         usr.id: Task.query.filter_by(assignee_id=usr.id).order_by(Task.status.desc(), Task.id.desc()).all()
@@ -196,6 +196,8 @@ def dashboard():
         users=users,
         user_tasks=user_tasks
     )
+
+@app.route("/tasks/<int:task_id>/toggle", methods=["POST"])
 @login_required
 def toggle_task(task_id):
     u = current_user()
@@ -248,7 +250,6 @@ def me_add_note():
     flash("Η σημείωση αποθηκεύτηκε.", "success")
     return redirect(url_for("dashboard"))
 
-# --- Edit/Delete σημειώσεων (χρήστης ή admin) ---
 @app.route("/me/notes/<int:note_id>/edit", methods=["POST"])
 @login_required
 def me_update_note(note_id):
@@ -284,8 +285,7 @@ def me_delete_note(note_id):
 def me_change_password():
     u = current_user()
     if u.must_change_password:
-        # μετά από reset δεν απαιτείται current_password
-        current_ok = True
+        current_ok = True  # μετά από reset δεν απαιτείται current_password
     else:
         current_ok = u.check_password(request.form.get("current_password",""))
     if not current_ok:
@@ -302,15 +302,18 @@ def me_change_password():
     flash("Ο κωδικός άλλαξε επιτυχώς.", "success")
     return redirect(url_for("dashboard"))
 
-# ---------- Σελίδα κοινής προόδου ----------
+
+# ---------- Σελίδα κοινής προόδου (ξεχωριστή, αν θες) ----------
 @app.route("/progress")
 @login_required
 def all_progress():
     users = User.query.order_by(User.name.asc()).all()
-    # εργασίες ανά χρήστη
-    user_tasks = {u.id: Task.query.filter_by(assignee_id=u.id).order_by(Task.status.desc(), Task.id.desc()).all()
-                  for u in users}
+    user_tasks = {
+        u.id: Task.query.filter_by(assignee_id=u.id).order_by(Task.status.desc(), Task.id.desc()).all()
+        for u in users
+    }
     return render_template("progress.html", users=users, user_tasks=user_tasks)
+
 
 # ---------- Admin ----------
 @app.route("/admin")
@@ -318,28 +321,27 @@ def all_progress():
 def admin():
     users = User.query.order_by(User.name.asc()).all()
 
-    # στατιστικά per user
+    # στατιστικά per user (αν τα χρειαστείς στο template)
     stats = []
     for u in users:
         open_count = Task.query.filter_by(assignee_id=u.id, status="open").count()
         done_q = Task.query.filter_by(assignee_id=u.id, status="done")
         done_count = done_q.count()
-        avg = 0
         tasks_all = Task.query.filter_by(assignee_id=u.id).all()
-        if tasks_all:
-            avg = int(sum(t.progress for t in tasks_all) / len(tasks_all))
+        avg = int(sum(t.progress for t in tasks_all) / len(tasks_all)) if tasks_all else 0
         last_done = done_q.order_by(Task.completed_at.desc()).first()
         stats.append({
-            "user": u, "open": open_count, "done": done_count,
+            "user": u,
+            "open": open_count,
+            "done": done_count,
             "avg_progress": avg,
-            "last_done": (last_done.completed_at if last_done else None)
+            "last_done": (last_done.completed_at if last_done else None),
         })
 
     notes = Note.query.order_by(Note.created_at.desc()).limit(50).all()
     return render_template("admin.html", users=users, stats=stats, notes=notes)
 
-@app.route("/admin/create_user", methods=["POST"])
-@admin_required
+# Δημιουργία χρήστη (με επιλογή Admin)
 @app.route("/admin/create_user", methods=["POST"])
 @admin_required
 def admin_create_user():
@@ -348,7 +350,7 @@ def admin_create_user():
     email = (request.form.get("email") or "").strip() or None
     raw_pw = (request.form.get("password") or "").strip()
     color = request.form.get("color") or "#3273dc"
-    make_admin = request.form.get("is_admin") == "on"
+    make_admin = request.form.get("is_admin") in ("on", "1", "true", "True")
 
     if not name or not username or not raw_pw:
         flash("Όνομα, username και κωδικός είναι υποχρεωτικά.", "warning")
@@ -369,9 +371,11 @@ def admin_create_user():
     db.session.add(u)
     db.session.commit()
 
-    role = "Admin" if make_admin else "Χρήστης"
-    flash(f"Δημιουργήθηκε {role} με όνομα {name}.", "success")
+    role = " (Admin)" if make_admin else ""
+    flash(f"Δημιουργήθηκε χρήστης {name}{role}.", "success")
     return redirect(url_for("admin"))
+
+# Δημιουργία task
 @app.route("/admin/create_task", methods=["POST"])
 @admin_required
 def admin_create_task():
@@ -400,11 +404,13 @@ def admin_create_task():
     task = Task(title=title, description=description, due_date=d, due_time=t)
     if assignee_id:
         task.assignee_id = int(assignee_id)
+
     db.session.add(task)
     db.session.commit()
     flash("Η εργασία δημιουργήθηκε.", "success")
     return redirect(url_for("admin"))
 
+# Αλλαγή username/κωδικού από admin (αν τη χρειαστείς)
 @app.route("/admin/users/<int:user_id>/credentials", methods=["POST"])
 @admin_required
 def admin_set_credentials(user_id):
@@ -426,6 +432,7 @@ def admin_set_credentials(user_id):
     flash("Τα στοιχεία ενημερώθηκαν.", "success")
     return redirect(url_for("admin"))
 
+# Reset password από admin (παράγει προσωρινό)
 @app.route("/admin/users/<int:user_id>/reset_password", methods=["POST"])
 @admin_required
 def admin_reset_password(user_id):
@@ -437,6 +444,7 @@ def admin_reset_password(user_id):
     flash(f"Προσωρινός κωδικός για {u.name}: {tmp}", "warning")
     return redirect(url_for("admin"))
 
+# Αλλαγή χρώματος χρήστη
 @app.route("/admin/users/<int:user_id>/color", methods=["POST"])
 @admin_required
 def admin_set_color(user_id):
@@ -447,6 +455,7 @@ def admin_set_color(user_id):
     flash("Το χρώμα ενημερώθηκε.", "success")
     return redirect(url_for("admin"))
 
+# Ανανεώση προσωπικού link (αν χρειαστείς κουμπί)
 @app.route("/admin_reset_token", methods=["POST"])
 @admin_required
 def admin_reset_token():
@@ -457,81 +466,48 @@ def admin_reset_token():
     flash("Το προσωπικό link ανανεώθηκε.", "info")
     return redirect(url_for("admin"))
 
-# --- Admin edit/delete notes ---
-@app.route("/admin/notes/<int:note_id>/edit", methods=["POST"])
+# Διαγραφή χρήστη (με user_id) — ταιριάζει με το admin.html σου
+@app.route("/admin/users/<int:user_id>/delete", methods=["POST"])
 @admin_required
-def admin_update_note(note_id):
-    n = Note.query.get_or_404(note_id)
-    new_content = (request.form.get("content") or "").strip()
-    if not new_content:
-        flash("Το σημείωμα δεν μπορεί να είναι κενό.", "warning")
-        return redirect(url_for("admin"))
-    n.content = new_content
-    db.session.commit()
-    flash(f"Η σημείωση του/της {n.user.name} ενημερώθηκε.", "success")
-    return redirect(url_for("admin"))
-
-@app.route("/admin/notes/<int:note_id>/delete", methods=["POST"])
-@admin_required
-def admin_delete_note(note_id):
-    n = Note.query.get_or_404(note_id)
-    uname = n.user.name
-    db.session.delete(n)
-    db.session.commit()
-    flash(f"Η σημείωση του/της {uname} διαγράφηκε.", "info")
-    return redirect(url_for("admin"))
-
-# --- Admin delete user by username (φόρμα κάτω-κάτω στο admin.html) ---
-@app.route("/admin_delete_user", methods=["POST"])
-@admin_required
-def admin_delete_user():
-    username = (request.form.get("username") or "").strip()
-    if not username:
-        flash("Δώσε username για διαγραφή.", "warning")
-        return redirect(url_for("admin"))
-
-    u = User.query.filter_by(username=username).first()
-    if not u:
-        flash("Δεν βρέθηκε χρήστης με αυτό το username.", "danger")
-        return redirect(url_for("admin"))
-
+def admin_delete_user(user_id):
+    u = User.query.get_or_404(user_id)
     me = current_user()
     if u.id == me.id:
         flash("Δεν μπορείς να διαγράψεις τον εαυτό σου.", "danger")
         return redirect(url_for("admin"))
     if u.is_admin:
-        flash("Η διαγραφή διαχειριστή δεν επιτρέπεται.", "danger")
-        return redirect(url_for("admin"))
-
+        # προσοχή να μη μείνει το σύστημα χωρίς admin
+        admins_left = User.query.filter_by(is_admin=True).count()
+        if admins_left <= 1:
+            flash("Δεν γίνεται να διαγράψεις τον τελευταίο Admin.", "danger")
+            return redirect(url_for("admin"))
     name = u.name
-    db.session.delete(u)  # cascade θα καθαρίσει tasks & notes
+    db.session.delete(u)  # χάρη στο cascade θα φύγουν και tasks/notes
     db.session.commit()
-    flash(f"Ο/Η «{name}» διαγράφηκε μαζί με εργασίες & σημειώσεις.", "info")
+    flash(f"Ο/Η «{name}» διαγράφηκε.", "info")
     return redirect(url_for("admin"))
 
-# ---------- Export CSV ----------
-@app.route("/admin/export_csv")
+# (Προαιρετικό) Αλλαγή ρόλου χρήστη (Χρήστης <-> Admin)
+@app.route("/admin/users/<int:user_id>/set_role", methods=["POST"])
 @admin_required
-def export_csv():
-    # φτιάχνουμε απλό CSV στη μνήμη
-    import csv, io
-    buf = io.StringIO()
-    writer = csv.writer(buf)
-    writer.writerow(["User", "Username", "Task", "Status", "Progress", "DueDate", "DueTime", "CompletedAt"])
-    tasks = Task.query.order_by(Task.id.desc()).all()
-    for t in tasks:
-        u = t.assignee.name if t.assignee else ""
-        dd = t.due_date.isoformat() if t.due_date else ""
-        dt = t.due_time.strftime("%H:%M") if t.due_time else ""
-        ca = t.completed_at.isoformat() if t.completed_at else ""
-        writer.writerow([u, t.assignee.username if t.assignee else "", t.title, t.status, t.progress, dd, dt, ca])
-    buf.seek(0)
-    return send_file(
-        io.BytesIO(buf.getvalue().encode("utf-8-sig")),
-        mimetype="text/csv; charset=utf-8",
-        as_attachment=True,
-        download_name="tasks_export.csv"
-    )
+def admin_set_role(user_id):
+    u = User.query.get_or_404(user_id)
+    make_admin = (request.form.get("is_admin") in ("1", "on", "true", "True"))
+    if make_admin:
+        u.is_admin = True
+        db.session.commit()
+        flash(f"Ο/Η {u.name} έγινε Διαχειριστής.", "success")
+        return redirect(url_for("admin"))
+    # Αφαίρεση admin: μην αφαιρέσεις τον τελευταίο
+    admins_left = User.query.filter_by(is_admin=True).count()
+    if u.is_admin and admins_left <= 1:
+        flash("Δεν γίνεται να αφαιρέσεις τον τελευταίο Admin.", "danger")
+        return redirect(url_for("admin"))
+    u.is_admin = False
+    db.session.commit()
+    flash(f"Ο/Η {u.name} έγινε απλός χρήστης.", "info")
+    return redirect(url_for("admin"))
+
 
 # ---------- Error handlers ----------
 @app.errorhandler(404)
@@ -542,6 +518,6 @@ def not_found(e):
 def internal_error(e):
     return render_template("error.html", code=500, message="Κάτι πήγε στραβά."), 500
 
-# For gunicorn: expose `app`
-# if __name__ == "__main__":  # για local δοκιμές
+# For gunicorn:
+# if __name__ == "__main__":
 #     app.run(debug=True)
