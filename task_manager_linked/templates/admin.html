@@ -11,10 +11,11 @@
     <li data-tab="newuser"><a>➕ Νέος χρήστης</a></li>
     <li data-tab="newtask"><a>🧩 Νέο task</a></li>
     <li data-tab="notes"><a>📝 Σημειώσεις</a></li>
+    <li data-tab="tasks"><a>🗂 Εργασίες</a></li>
   </ul>
 </div>
 
-<!-- -------- USERS TAB -------- -->
+<!-- USERS -->
 <div id="tab-users" class="tab-content">
   {% if users %}
   <div class="cardish">
@@ -22,12 +23,7 @@
     <table class="table is-fullwidth is-striped is-narrow">
       <thead>
         <tr>
-          <th>Όνομα</th>
-          <th>Username</th>
-          <th>Email</th>
-          <th>Ρόλος</th>
-          <th>Χρώμα</th>
-          <th>Ενέργειες</th>
+          <th>Όνομα</th><th>Username</th><th>Email</th><th>Ρόλος</th><th>Χρώμα</th><th>Ενέργειες</th>
         </tr>
       </thead>
       <tbody>
@@ -71,7 +67,7 @@
   {% endif %}
 </div>
 
-<!-- -------- NEW USER TAB -------- -->
+<!-- NEW USER -->
 <div id="tab-newuser" class="tab-content" style="display:none;">
   <div class="cardish">
     <h2 class="subtitle">Δημιουργία νέου χρήστη</h2>
@@ -128,7 +124,7 @@
   </div>
 </div>
 
-<!-- -------- NEW TASK TAB -------- -->
+<!-- NEW TASK -->
 <div id="tab-newtask" class="tab-content" style="display:none;">
   <div class="cardish">
     <h2 class="subtitle">Δημιουργία νέου task</h2>
@@ -174,7 +170,7 @@
   </div>
 </div>
 
-<!-- -------- NOTES TAB -------- -->
+<!-- NOTES -->
 <div id="tab-notes" class="tab-content" style="display:none;">
   <div class="cardish">
     <h2 class="subtitle">Πρόσφατες σημειώσεις χρηστών</h2>
@@ -190,6 +186,85 @@
       </ul>
     {% else %}
       <p>Δεν υπάρχουν σημειώσεις.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- TASKS (ADMIN) -->
+<div id="tab-tasks" class="tab-content" style="display:none;">
+  <div class="cardish">
+    <h2 class="subtitle">Διαχείριση εργασιών</h2>
+
+    {% if tasks and tasks|length > 0 %}
+      <table class="table is-fullwidth is-striped is-narrow">
+        <thead>
+          <tr>
+            <th>#</th><th>Τίτλος</th><th>Περιγραφή</th><th>Λήξη</th>
+            <th>Σε</th><th>Πρόοδος</th><th>Κατάσταση</th><th>Ενέργειες</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in tasks %}
+          <tr>
+            <td>{{ t.id }}</td>
+            <td style="min-width:220px">
+              <form method="post" action="{{ url_for('admin_update_task', task_id=t.id) }}">
+                <input class="input is-small" type="text" name="title" value="{{ t.title }}" required>
+            </td>
+            <td style="min-width:260px">
+                <textarea class="textarea is-small" name="description" rows="2">{{ t.description or '' }}</textarea>
+            </td>
+            <td style="min-width:190px">
+              <div class="columns is-mobile" style="gap:6px;">
+                <div class="column is-half">
+                  <input class="input is-small" type="date" name="due_date"
+                         value="{{ t.due_date.strftime('%Y-%m-%d') if t.due_date else '' }}">
+                </div>
+                <div class="column is-half">
+                  <input class="input is-small" type="time" name="due_time"
+                         value="{{ t.due_time.strftime('%H:%M') if t.due_time else '' }}">
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="select is-small is-fullwidth">
+                <select name="assignee_id">
+                  <option value="">—</option>
+                  {% for u in users %}
+                    <option value="{{ u.id }}" {% if t.assignee_id==u.id %}selected{% endif %}>{{ u.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </td>
+            <td style="min-width:120px">
+              <div class="field has-addons">
+                <div class="control is-expanded">
+                  <input class="input is-small" type="number" name="progress" min="0" max="100" value="{{ t.progress or 0 }}">
+                </div>
+                <div class="control"><span class="button is-small is-static">%</span></div>
+              </div>
+            </td>
+            <td>
+              <div class="select is-small">
+                <select name="status">
+                  <option value="open" {% if t.status=='open' %}selected{% endif %}>open</option>
+                  <option value="done" {% if t.status=='done' %}selected{% endif %}>done</option>
+                </select>
+              </div>
+            </td>
+            <td style="white-space:nowrap">
+                <button class="button is-small is-link">Αποθήκευση</button>
+              </form>
+              <form method="post" action="{{ url_for('admin_delete_task', task_id=t.id) }}" style="display:inline" onsubmit="return confirm('Διαγραφή εργασίας;');">
+                <button class="button is-small is-danger">Διαγραφή</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>Δεν υπάρχουν εργασίες.</p>
     {% endif %}
   </div>
 </div>
