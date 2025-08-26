@@ -1,8 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Σφάλμα{% endblock %}
 {% block content %}
-
-<h1 class="title has-text-danger">⚠️ Κάτι πήγε στραβά</h1>
-<p>{{ message or "Παρουσιάστηκε σφάλμα. Δοκιμάστε ξανά." }}</p>
-
+<div class="cardish">
+  <h1 class="title has-text-danger">⚠️ Κάτι πήγε στραβά</h1>
+  <p><strong>Κωδικός:</strong> {{ code }}</p>
+  <p>{{ message }}</p>
+  <p class="mt-3"><a class="button" href="{{ url_for('index') }}">Επιστροφή στην αρχική</a></p>
+</div>
 {% endblock %}
