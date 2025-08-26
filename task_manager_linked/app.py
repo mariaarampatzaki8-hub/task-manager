@@ -17,28 +17,33 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-" + secrets.token_hex(16))
-# --- DB config (Postgres αν υπάρχει DATABASE_URL, αλλιώς SQLite fallback) ---
-db_path = os.path.join(app.instance_path, "app_final.db")
-uri = os.environ.get("DATABASE_URL")
-if uri:
-    # 1) postgres:// → postgresql://
-    uri = uri.replace("postgres://", "postgresql://", 1)
-    # 2) Χρησιμοποιούμε pg8000 driver
-    if uri.startswith("postgresql://"):
-        uri = uri.replace("postgresql://", "postgresql+pg8000://", 1)
-    # 3) Βεβαιώσου ότι έχει SSL (Render Postgres το απαιτεί)
-    if "?" in uri:
-        if "ssl=" not in uri and "sslmode=" not in uri:
-            uri += "&ssl=true"
+
+    # --- DB config (Postgres αν υπάρχει DATABASE_URL, αλλιώς SQLite fallback) ---
+    db_path = os.path.join(app.instance_path, "app_final.db")
+    uri = os.environ.get("DATABASE_URL")
+    if uri:
+        # 1) postgres:// → postgresql://
+        uri = uri.replace("postgres://", "postgresql://", 1)
+        # 2) Χρήση driver pg8000
+        if uri.startswith("postgresql://"):
+            uri = uri.replace("postgresql://", "postgresql+pg8000://", 1)
+        # 3) SSL για Render Postgres
+        if "?" in uri:
+            if "ssl=" not in uri and "sslmode=" not in uri:
+                uri += "&ssl=true"
+        else:
+            uri += "?ssl=true"
+
+        app.config["SQLALCHEMY_DATABASE_URI"] = uri
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+            "pool_pre_ping": True,
+            "connect_args": {"ssl": True},  # για pg8000
+        }
     else:
-        uri += "?ssl=true"
+        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + db_path
 
-    app.config["SQLALCHEMY_DATABASE_URI"] = uri
-
-    # 4) Engine options για σταθερές συνδέσεις
-    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-        "pool_pre_ping": True,
-        "connect_args": {"ssl": True},  # για pg8000
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    return app
     }
 else:
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + db_path
