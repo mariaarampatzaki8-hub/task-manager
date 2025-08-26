@@ -1,31 +1,31 @@
 {% extends "base.html" %}
+{% block title %}Admin{% endblock %}
 {% block content %}
-<div class="container">
-  <h1 class="title">Πίνακας Διαχείρισης (Admin)</h1>
 
-  <!-- Μηνύματα -->
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div class="messages">
-        {% for category, message in messages %}
-          <div class="notification is-{{ category }}">
-            {{ message }}
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
-  {% endwith %}
+<h1 class="title">Πίνακας Διαχείρισης</h1>
 
-  <!-- Λίστα χρηστών -->
-  <h2 class="subtitle">Χρήστες</h2>
+<!-- Tabs -->
+<div class="tabs is-boxed">
+  <ul>
+    <li class="is-active" data-tab="users"><a>👥 Χρήστες</a></li>
+    <li data-tab="newuser"><a>➕ Νέος χρήστης</a></li>
+    <li data-tab="newtask"><a>🧩 Νέο task</a></li>
+    <li data-tab="notes"><a>📝 Σημειώσεις</a></li>
+  </ul>
+</div>
+
+<!-- -------- USERS TAB -------- -->
+<div id="tab-users" class="tab-content">
   {% if users %}
-    <table class="table is-fullwidth is-striped">
+  <div class="cardish">
+    <h2 class="subtitle">Λίστα χρηστών</h2>
+    <table class="table is-fullwidth is-striped is-narrow">
       <thead>
         <tr>
           <th>Όνομα</th>
           <th>Username</th>
           <th>Email</th>
-          <th>Admin</th>
+          <th>Ρόλος</th>
           <th>Χρώμα</th>
           <th>Ενέργειες</th>
         </tr>
@@ -35,12 +35,22 @@
         <tr>
           <td>{{ u.name }}</td>
           <td>{{ u.username }}</td>
-          <td>{{ u.email }}</td>
-          <td>{% if u.is_admin %}✅{% else %}—{% endif %}</td>
+          <td>{{ u.email or '—' }}</td>
           <td>
-            <form method="post" action="{{ url_for('admin_set_color', user_id=u.id) }}">
+            <form method="post" action="{{ url_for('admin_set_role', user_id=u.id) }}" class="is-flex" style="gap:8px">
+              <div class="select is-small">
+                <select name="is_admin">
+                  <option value="0" {% if not u.is_admin %}selected{% endif %}>Χρήστης</option>
+                  <option value="1" {% if u.is_admin %}selected{% endif %}>Admin</option>
+                </select>
+              </div>
+              <button class="button is-small is-link">Αποθήκευση</button>
+            </form>
+          </td>
+          <td>
+            <form method="post" action="{{ url_for('admin_set_color', user_id=u.id) }}" class="is-flex" style="gap:8px">
               <input type="color" name="color" value="{{ u.color or '#3273dc' }}">
-              <button class="button is-small is-info">Αποθήκευση</button>
+              <button class="button is-small">Αποθήκευση</button>
             </form>
           </td>
           <td>
@@ -55,122 +65,147 @@
         {% endfor %}
       </tbody>
     </table>
+  </div>
   {% else %}
     <p>Δεν υπάρχουν χρήστες.</p>
   {% endif %}
+</div>
 
-  <!-- Δημιουργία νέου χρήστη -->
-  <h2 class="subtitle mt-5">Δημιουργία νέου χρήστη</h2>
-  <form method="post" action="{{ url_for('admin_create_user') }}">
-    <div class="field">
-      <label class="label">Όνομα</label>
-      <div class="control">
-        <input class="input" type="text" name="name" required>
+<!-- -------- NEW USER TAB -------- -->
+<div id="tab-newuser" class="tab-content" style="display:none;">
+  <div class="cardish">
+    <h2 class="subtitle">Δημιουργία νέου χρήστη</h2>
+    <form method="post" action="{{ url_for('admin_create_user') }}">
+      <div class="columns">
+        <div class="column">
+          <div class="field">
+            <label class="label">Όνομα</label>
+            <input class="input" type="text" name="name" required>
+          </div>
+        </div>
+        <div class="column">
+          <div class="field">
+            <label class="label">Username</label>
+            <input class="input" type="text" name="username" required>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <div class="field">
-      <label class="label">Username</label>
-      <div class="control">
-        <input class="input" type="text" name="username" required>
+      <div class="columns">
+        <div class="column">
+          <div class="field">
+            <label class="label">Email</label>
+            <input class="input" type="email" name="email">
+          </div>
+        </div>
+        <div class="column">
+          <div class="field">
+            <label class="label">Κωδικός</label>
+            <input class="input" type="password" name="password" required>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <div class="field">
-      <label class="label">Email</label>
-      <div class="control">
-        <input class="input" type="email" name="email">
+      <div class="columns">
+        <div class="column is-3">
+          <div class="field">
+            <label class="label">Χρώμα</label>
+            <input type="color" name="color" value="#3273dc">
+          </div>
+        </div>
+        <div class="column is-9">
+          <div class="field">
+            <label class="checkbox">
+              <input type="checkbox" name="is_admin">
+              Ο χρήστης αυτός να είναι Admin
+            </label>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <div class="field">
-      <label class="label">Κωδικός</label>
-      <div class="control">
-        <input class="input" type="password" name="password" required>
-      </div>
-    </div>
-
-    <div class="field">
-      <label class="label">Χρώμα</label>
-      <div class="control">
-        <input type="color" name="color" value="#3273dc">
-      </div>
-    </div>
-
-    <!-- Checkbox για Admin -->
-    <div class="field">
-      <label class="checkbox">
-        <input type="checkbox" name="is_admin">
-        Ο χρήστης αυτός να είναι Admin
-      </label>
-    </div>
-
-    <div class="control mt-2">
       <button class="button is-primary">Δημιουργία</button>
-    </div>
-  </form>
+    </form>
+  </div>
+</div>
 
-  <!-- Δημιουργία νέου Task -->
-  <h2 class="subtitle mt-5">Δημιουργία νέου Task</h2>
-  <form method="post" action="{{ url_for('admin_create_task') }}">
-    <div class="field">
-      <label class="label">Τίτλος</label>
-      <div class="control">
+<!-- -------- NEW TASK TAB -------- -->
+<div id="tab-newtask" class="tab-content" style="display:none;">
+  <div class="cardish">
+    <h2 class="subtitle">Δημιουργία νέου task</h2>
+    <form method="post" action="{{ url_for('admin_create_task') }}">
+      <div class="field">
+        <label class="label">Τίτλος</label>
         <input class="input" type="text" name="title" required>
       </div>
-    </div>
-
-    <div class="field">
-      <label class="label">Περιγραφή</label>
-      <div class="control">
-        <textarea class="textarea" name="description"></textarea>
+      <div class="field">
+        <label class="label">Περιγραφή</label>
+        <textarea class="textarea" name="description" rows="3"></textarea>
       </div>
-    </div>
 
-    <div class="field">
-      <label class="label">Ημερομηνία λήξης</label>
-      <div class="control">
-        <input class="input" type="date" name="due_date">
+      <div class="columns">
+        <div class="column">
+          <div class="field">
+            <label class="label">Ημερομηνία λήξης</label>
+            <input class="input" type="date" name="due_date">
+          </div>
+        </div>
+        <div class="column">
+          <div class="field">
+            <label class="label">Ώρα λήξης</label>
+            <input class="input" type="time" name="due_time">
+          </div>
+        </div>
+        <div class="column">
+          <div class="field">
+            <label class="label">Ανάθεση σε</label>
+            <div class="select is-fullwidth">
+              <select name="assignee_id" required>
+                {% for u in users %}
+                  <option value="{{ u.id }}">{{ u.name }} ({{ u.username }})</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <div class="field">
-      <label class="label">Ώρα λήξης</label>
-      <div class="control">
-        <input class="input" type="time" name="due_time">
-      </div>
-    </div>
-
-    <div class="field">
-      <label class="label">Ανάθεση σε χρήστη</label>
-      <div class="control">
-        <select class="input" name="assignee_id" required>
-          {% for u in users %}
-            <option value="{{ u.id }}">{{ u.name }} ({{ u.username }})</option>
-          {% endfor %}
-        </select>
-      </div>
-    </div>
-
-    <div class="control mt-2">
-      <button class="button is-success">Ανάθεση Task</button>
-    </div>
-  </form>
-
-  <!-- Πρόσφατες σημειώσεις χρηστών -->
-  <h2 class="subtitle mt-5">Πρόσφατες σημειώσεις χρηστών</h2>
-  {% if notes %}
-    <ul>
-      {% for n in notes %}
-        <li class="mb-2">
-          <strong>{{ n.user.name }}</strong>
-          <small>({{ n.created_at.strftime('%d/%m/%Y %H:%M') }})</small><br>
-          {{ n.content }}
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p>Δεν υπάρχουν σημειώσεις.</p>
-  {% endif %}
+      <button class="button is-success">Ανάθεση</button>
+    </form>
+  </div>
 </div>
+
+<!-- -------- NOTES TAB -------- -->
+<div id="tab-notes" class="tab-content" style="display:none;">
+  <div class="cardish">
+    <h2 class="subtitle">Πρόσφατες σημειώσεις χρηστών</h2>
+    {% if notes %}
+      <ul>
+        {% for n in notes %}
+          <li class="mb-3">
+            <strong>{{ n.user.name }}</strong>
+            <small class="has-text-grey">({{ n.created_at.strftime('%d/%m/%Y %H:%M') }})</small><br>
+            {{ n.content }}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>Δεν υπάρχουν σημειώσεις.</p>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  // εναλλαγή tabs
+  document.querySelectorAll('.tabs li').forEach(li => {
+    li.addEventListener('click', () => {
+      document.querySelectorAll('.tabs li').forEach(x => x.classList.remove('is-active'));
+      li.classList.add('is-active');
+      document.querySelectorAll('.tab-content').forEach(x => x.style.display='none');
+      const id = 'tab-' + li.dataset.tab;
+      const el = document.getElementById(id);
+      if(el) el.style.display = 'block';
+    });
+  });
+</script>
+
 {% endblock %}
