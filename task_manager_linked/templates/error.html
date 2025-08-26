@@ -1,10 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Σφάλμα{% endblock %}
+{% block title %}Σφάλμα {{ code }}{% endblock %}
 {% block content %}
+
 <div class="cardish">
-  <h1 class="title has-text-danger">⚠️ Κάτι πήγε στραβά</h1>
-  <p><strong>Κωδικός:</strong> {{ code }}</p>
+  <h1 class="title">Σφάλμα {{ code }}</h1>
   <p>{{ message }}</p>
-  <p class="mt-3"><a class="button" href="{{ url_for('index') }}">Επιστροφή στην αρχική</a></p>
+  <a class="button is-link mt-3" style="background:var(--accent)" href="{{ url_for('index') }}">Αρχική</a>
 </div>
+
 {% endblock %}
