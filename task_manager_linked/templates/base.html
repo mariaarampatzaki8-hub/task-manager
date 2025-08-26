@@ -32,12 +32,11 @@
         {% if user %}
           <a class="navbar-item" href="{{ url_for('dashboard') }}">Πίνακας</a>
           <a class="navbar-item" href="{{ url_for('all_progress') }}">Πρόοδος</a>
+          <a class="navbar-item" href="{{ url_for('teams_view') }}">Ομάδες</a>
           {% if user.is_admin %}
             <a class="navbar-item" href="{{ url_for('admin') }}">Admin</a>
-            <a class="navbar-item" href="{{ url_for('admin_teams') }}">Ομάδες</a>
+            <a class="navbar-item" href="{{ url_for('admin_teams') }}">Διαχείριση Ομάδων</a>
           {% endif %}
-          {# Κατάλογος για Admins & Leaders #}
-          {% set is_leader = (user and (user.is_admin or (teams_count if false else false))) %}
           <a class="navbar-item" href="{{ url_for('directory') }}">Κατάλογος</a>
           <a class="navbar-item" href="{{ url_for('help_page') }}">Οδηγίες</a>
         {% else %}
