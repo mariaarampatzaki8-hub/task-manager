@@ -35,7 +35,7 @@
   <div id="nav" class="navbar-menu">
     <div class="navbar-start">
       {% if user %}
-        <a class="navbar-item" href="{{ url_for('progress') }}">Πρόοδος</a>
+        <a class="navbar-item" href="{{ url_for('all_progress') }}">Πρόοδος</a>
         {% if user.is_admin %}
           <a class="navbar-item" href="{{ url_for('admin') }}">Admin</a>
         {% else %}
