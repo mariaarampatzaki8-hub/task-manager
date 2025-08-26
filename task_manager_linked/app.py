@@ -39,10 +39,7 @@ def create_app():
 
         app.config["SQLALCHEMY_DATABASE_URI"] = uri
         # engine options για σταθερές συνδέσεις και pg8000
-       app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_pre_ping": True,
-    "connect_args": {"sslmode": "require"},  # σωστό για pg8000
-}
+       
     else:
         # Fallback σε SQLite για τοπική ανάπτυξη
         app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + db_path
