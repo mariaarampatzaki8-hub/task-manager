@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Πρόοδος Όλων{% endblock %}
+{% block content %}
+
+<h1 class="title" style="color:var(--accent)">📈 Πρόοδος Όλων των Χρηστών</h1>
+
+{% if users %}
+  {% for u in users %}
+    <div class="cardish mb-4">
+      <h2 class="subtitle">
+        <span class="tag" style="background:{{ u.color }}; color:#fff">{{ u.name }}</span>
+        <small>@{{ u.username }}</small>
+      </h2>
+      {% set tasks = user_tasks.get(u.id, []) %}
+      {% if tasks %}
+        <table class="table is-fullwidth is-striped">
+          <thead><tr><th>Εργασία</th><th>Προθεσμία</th><th>Κατάσταση</th><th>Πρόοδος</th></tr></thead>
+          <tbody>
+            {% for t in tasks %}
+              <tr>
+                <td>{{ t.title }}</td>
+                <td>
+                  {% if t.due_date %}{{ t.due_date.strftime('%d/%m/%Y') }}{% endif %}
+                  {% if t.due_time %} {{ t.due_time.strftime('%H:%M') }}{% endif %}
+                </td>
+                <td>
+                  {% if t.status == 'done' %}
+                    <span class="tag is-success">Ολοκληρωμένη</span>
+                  {% else %}
+                    <span class="tag is-warning">Ανοιχτή</span>
+                  {% endif %}
+                </td>
+                <td style="min-width:220px;">
+                  <progress class="progress is-small" value="{{ t.progress }}" max="100">{{ t.progress }}%</progress>
+                  <small>{{ t.progress }}%</small>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p>Δεν υπάρχουν εργασίες.</p>
+      {% endif %}
+    </div>
+  {% endfor %}
+{% else %}
+  <p>Δεν υπάρχουν χρήστες.</p>
+{% endif %}
+
+{% endblock %}
