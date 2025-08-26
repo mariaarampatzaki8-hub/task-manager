@@ -590,7 +590,30 @@ def admin_delete_note(note_id):
     db.session.commit()
     flash("Σημείωση διαγράφηκε.", "info")
     return redirect(url_for("admin"))
+# ---------- Progress ----------
+@app.route("/progress")
+@login_required
+def progress():
+    # Λίστα χρηστών
+    users = User.query.order_by(User.name.asc()).all()
 
+    # Υπολογισμοί ανά χρήστη
+    rows = []
+    for u in users:
+        total = Task.query.filter_by(assignee_id=u.id).count()
+        done = Task.query.filter_by(assignee_id=u.id, status="done").count()
+        open_cnt = Task.query.filter_by(assignee_id=u.id, status="open").count()
+        avg_prog = db.session.query(db.func.avg(Task.progress))\
+            .filter(Task.assignee_id == u.id).scalar() or 0
+        rows.append({
+            "user": u,
+            "total": total,
+            "done": done,
+            "open": open_cnt,
+            "avg": int(round(avg_prog)),
+        })
+
+    return render_template("progress.html", rows=rows)
 
 # --- Admin: Ομάδες (CRUD + ανάθεση μελών/leader) ---
 @app.route("/admin/teams", methods=["GET", "POST"])
