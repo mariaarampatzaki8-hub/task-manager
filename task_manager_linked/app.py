@@ -582,7 +582,34 @@ def admin_set_role(user_id):
     db.session.commit()
     flash(f"Ο/Η {u.name} έγινε απλός χρήστης.", "info")
     return redirect(url_for("admin"))
+@app.route("/admin/assign_team", methods=["POST"])
+@admin_required
+def admin_assign_team():
+    """Ανάθεση/αλλαγή ομάδας σε χρήστη από το admin.html."""
+    try:
+        user_id = int(request.form.get("user_id", 0))
+    except ValueError:
+        flash("Μη έγκυρα στοιχεία χρήστη.", "danger")
+        return redirect(url_for("admin"))
+    team_id = request.form.get("team_id")  # μπορεί να είναι "" (καμία ομάδα)
 
+    u = User.query.get_or_404(user_id)
+    if team_id:
+        try:
+            u.team_id = int(team_id)
+        except ValueError:
+            u.team_id = None
+    else:
+        u.team_id = None
+
+    # Αν ήταν leader σε άλλη ομάδα και τον βγάζουμε, καθάρισε leader αν χρειάζεται
+    t_lead = Team.query.filter_by(leader_id=u.id).first()
+    if t_lead and (u.team_id != t_lead.id):
+        t_lead.leader_id = None
+
+    db.session.commit()
+    flash("Η ομάδα του χρήστη ενημερώθηκε.", "success")
+    return redirect(url_for("admin"))
 
 # ---------- Teams ----------
 # Δημόσια (για όλους τους συνδεδεμένους): λίστα ομάδων (read-only)
