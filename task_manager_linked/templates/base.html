@@ -1,45 +1,84 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="el">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>{% block title %}Task Manager{% endblock %}</title>
+
+  <!-- Google Fonts (Inter) -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- Bulma -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+
   <style>
-    :root {
-      --accent: #3273dc;
-    }
-    body {
-      background: #f5f5f5;
-    }
-    .navbar {
-      background: var(--accent);
-    }
-    .navbar a, .navbar-item {
-      color: #fff !important;
-    }
+    :root { --accent: {{ user.color if user and user.color else '#3273dc' }}; }
+    html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#f8fafc; }
+    .navbar { background: var(--accent); }
+    .navbar .navbar-item, .navbar .navbar-brand .navbar-item { color:#fff !important; font-weight:600; }
+    .navbar .navbar-item:hover { background: rgba(255,255,255,0.12) !important; }
+    .clock { color:#fff; opacity:0.95; font-weight:600; }
+    .container { max-width: 1100px; }
+    .cardish { background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:22px; }
+    .progress::-webkit-progress-value { background: var(--accent); }
   </style>
 </head>
 <body>
-  <nav class="navbar">
-    <div class="navbar-brand">
-      <a class="navbar-item" href="{{ url_for('index') }}">Task Manager</a>
-    </div>
-  </nav>
 
-  <section class="section">
-    <div class="container">
-      {% with messages = get_flashed_messages() %}
-        {% if messages %}
-          <div class="notification is-info">
-            {% for msg in messages %}
-              <p>{{ msg }}</p>
-            {% endfor %}
-          </div>
+<nav class="navbar" role="navigation">
+  <div class="navbar-brand">
+    <a class="navbar-item" href="{{ url_for('index') }}">🗂️ Task Manager</a>
+    <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false"
+       onclick="document.getElementById('nav').classList.toggle('is-active')">
+      <span></span><span></span><span></span>
+    </a>
+  </div>
+  <div id="nav" class="navbar-menu">
+    <div class="navbar-start">
+      {% if user %}
+        <a class="navbar-item" href="{{ url_for('progress') }}">Πρόοδος</a>
+        {% if user.is_admin %}
+          <a class="navbar-item" href="{{ url_for('admin') }}">Admin</a>
+        {% else %}
+          <a class="navbar-item" href="{{ url_for('dashboard') }}">Οι εργασίες μου</a>
         {% endif %}
-      {% endwith %}
-
-      {% block content %}{% endblock %}
+      {% endif %}
     </div>
-  </section>
+    <div class="navbar-end">
+      <div class="navbar-item clock"><span id="clock">--:--</span> · <span id="date">-- -- ----</span></div>
+      {% if user %}
+        <div class="navbar-item">Γεια σου, <strong>&nbsp;{{ user.name }}</strong>!</div>
+        <a class="navbar-item" href="{{ url_for('logout') }}">Αποσύνδεση</a>
+      {% endif %}
+    </div>
+  </div>
+</nav>
+
+<section class="section">
+  <div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+          <div class="notification is-{{ 'danger' if cat=='danger' else ('warning' if cat=='warning' else ('success' if cat=='success' else 'info')) }}">
+            {{ msg }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </div>
+</section>
+
+<script>
+  function pad(n){return n<10?'0'+n:n;}
+  function tick(){
+    const d = new Date();
+    const hh = pad(d.getHours()), mm = pad(d.getMinutes());
+    const opts = { weekday:'short', day:'2-digit', month:'short', year:'numeric' };
+    document.getElementById('clock').textContent = `${hh}:${mm}`;
+    document.getElementById('date').textContent = d.toLocaleDateString('el-GR', opts);
+  }
+  tick(); setInterval(tick, 1000);
+</script>
 </body>
 </html>
