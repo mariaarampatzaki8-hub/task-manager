@@ -1,32 +1,24 @@
-{% extends "base.html" %}
-{% block title %}Σύνδεση{% endblock %}
+{% extends "base.html" %}{% block title %}Σύνδεση · Task Manager{% endblock %}
 {% block content %}
-
 <div class="columns is-centered">
   <div class="column is-5">
     <div class="cardish">
-      <h1 class="title" style="color:var(--accent)">Καλώς ήρθες 👋</h1>
-      <p class="mb-4">Συνδέσου με username & κωδικό.</p>
-
-      <form method="post" action="{{ url_for('login_password') }}">
+      <h1 class="title is-4">Σύνδεση</h1>
+      <form method="post" action="{{ url_for('login') }}">
         <div class="field">
           <label class="label">Username</label>
-          <input class="input" type="text" name="username" required>
+          <div class="control"><input class="input" name="username" required></div>
         </div>
         <div class="field">
           <label class="label">Κωδικός</label>
-          <input class="input" type="password" name="password" required>
+          <div class="control"><input class="input" type="password" name="password" required></div>
         </div>
-        <button class="button is-link" style="background:var(--accent)">Σύνδεση</button>
+        <div class="field">
+          <button class="button is-primary">Είσοδος</button>
+        </div>
       </form>
-
-      <hr>
-      <p class="is-size-7">
-        Αν έχεις **προσωπικό link** (π.χ. από Admin), άνοιξέ το απευθείας:
-        <code>/login/&lt;token&gt;</code>
-      </p>
+      <p class="mini">Tip: ο βασικός admin είναι <code>admin / admin123</code> (μέχρι να τον αλλάξετε)</p>
     </div>
   </div>
 </div>
-
 {% endblock %}
