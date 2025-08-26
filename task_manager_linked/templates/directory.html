@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Κατάλογος{% endblock %}
+{% block content %}
+
+<h1 class="title">📇 Κατάλογος Χρηστών</h1>
+
+<div class="cardish">
+  <table class="table is-fullwidth is-striped is-narrow">
+    <thead>
+      <tr>
+        <th>Όνομα</th>
+        <th>Username</th>
+        <th>Email</th>
+        <th>Τηλέφωνο</th>
+        <th>ΑΔΤ</th>
+        <th>Ομάδα</th>
+        <th>Ρόλος</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>{{ u.name }}</td>
+        <td>{{ u.username or '—' }}</td>
+        <td>{{ u.email or '—' }}</td>
+        <td>{{ u.phone or '—' }}</td>
+        <td>{{ u.id_number or '—' }}</td>
+        <td>
+          {% if u.team_id and teams.get(u.team_id) %}
+            {{ teams[u.team_id].name }}
+          {% else %}
+            —
+          {% endif %}
+        </td>
+        <td>{% if u.is_admin %}Admin{% else %}Χρήστης{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
