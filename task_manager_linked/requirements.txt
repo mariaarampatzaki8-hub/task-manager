@@ -1,4 +1,5 @@
 Flask
 Flask-SQLAlchemy
-SQLAlchemy
+SQLAlchemy>=2.0
 pg8000
+gunicorn
