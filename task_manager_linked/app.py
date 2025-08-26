@@ -569,7 +569,26 @@ def admin_set_leader():
     db.session.commit()
     flash("Leader ενημερώθηκε.", "success")
     return redirect(url_for("admin_teams"))
-
+# ============== Progress (όλοι βλέπουν) ==============
+@app.route("/progress", methods=["GET"], endpoint="progress")
+@login_required
+def progress():
+    users = User.query.order_by(User.name.asc()).all()
+    rows = []
+    for u in users:
+        total = Task.query.filter_by(assignee_id=u.id).count()
+        done = Task.query.filter_by(assignee_id=u.id, status="done").count()
+        open_cnt = Task.query.filter_by(assignee_id=u.id, status="open").count()
+        avg_prog = db.session.query(db.func.avg(Task.progress)) \
+                    .filter(Task.assignee_id == u.id).scalar() or 0
+        rows.append({
+            "user": u,
+            "total": total,
+            "done": done,
+            "open": open_cnt,
+            "avg": int(round(avg_prog)),
+        })
+    return render_template("progress.html", rows=rows)
 # ---------------- Directory (admin & leaders) ----------------
 @app.route("/directory")
 @login_required
