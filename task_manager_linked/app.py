@@ -173,8 +173,6 @@ def logout():
 # ---------- Routes: Dashboard / Tasks / Notes για χρήστη ----------
 @app.route("/dashboard")
 @login_required
-@app.route("/dashboard")
-@login_required
 def dashboard():
     u = current_user()
 
