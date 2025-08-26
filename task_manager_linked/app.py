@@ -340,12 +340,15 @@ def admin():
 
 @app.route("/admin/create_user", methods=["POST"])
 @admin_required
+@app.route("/admin/create_user", methods=["POST"])
+@admin_required
 def admin_create_user():
     name = (request.form.get("name") or "").strip()
     username = (request.form.get("username") or "").strip()
     email = (request.form.get("email") or "").strip() or None
-    color = request.form.get("color") or "#3273dc"
     raw_pw = (request.form.get("password") or "").strip()
+    color = request.form.get("color") or "#3273dc"
+    make_admin = request.form.get("is_admin") == "on"
 
     if not name or not username or not raw_pw:
         flash("Όνομα, username και κωδικός είναι υποχρεωτικά.", "warning")
@@ -354,18 +357,21 @@ def admin_create_user():
     if email and User.query.filter_by(email=email).first():
         flash("Το email υπάρχει ήδη.", "danger")
         return redirect(url_for("admin"))
+
     if User.query.filter_by(username=username).first():
         flash("Το username υπάρχει ήδη.", "danger")
         return redirect(url_for("admin"))
 
-    u = User(name=name, username=username, email=email, color=color)
+    u = User(name=name, username=username, email=email, color=color, is_admin=make_admin)
     u.set_password(raw_pw)
     u.token = secrets.token_urlsafe(16)
+
     db.session.add(u)
     db.session.commit()
-    flash(f"Δημιουργήθηκε χρήστης {name}.", "success")
-    return redirect(url_for("admin"))
 
+    role = "Admin" if make_admin else "Χρήστης"
+    flash(f"Δημιουργήθηκε {role} με όνομα {name}.", "success")
+    return redirect(url_for("admin"))
 @app.route("/admin/create_task", methods=["POST"])
 @admin_required
 def admin_create_task():
