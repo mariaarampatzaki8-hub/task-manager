@@ -17,9 +17,17 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-" + secrets.token_hex(16))
-    os.makedirs(app.instance_path, exist_ok=True)
+        # --- DB config (Postgres αν υπάρχει DATABASE_URL, αλλιώς SQLite fallback) ---
     db_path = os.path.join(app.instance_path, "app_final.db")
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + db_path
+    uri = os.environ.get("DATABASE_URL")
+    if uri:
+        # Αν τυχόν ξεκινάει με 'postgres://', αλλάξ’ το σε 'postgresql://'
+        uri = uri.replace("postgres://", "postgresql://", 1)
+        app.config["SQLALCHEMY_DATABASE_URI"] = uri
+    else:
+        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + db_path
+
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     return app
 
