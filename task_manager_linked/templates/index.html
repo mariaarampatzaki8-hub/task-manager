@@ -1,22 +1,26 @@
 {% extends "base.html" %}
-{% block title %}Είσοδος{% endblock %}
+{% block title %}Αρχική{% endblock %}
 {% block content %}
 
-<h1 class="title" style="color:var(--accent)">Καλώς ήρθατε στο Task Manager</h1>
+<div class="columns is-centered">
+  <div class="column is-6">
+    <div class="cardish">
+      <h1 class="title" style="color:var(--accent)">Καλώς ήρθατε</h1>
+      <p class="mb-4">Συνδεθείτε με <strong>username &amp; κωδικό</strong> ή χρησιμοποιήστε το προσωπικό σας link.</p>
 
-<div class="box">
-  <h2 class="subtitle">Σύνδεση</h2>
-  <form method="post" action="{{ url_for('login_password') }}">
-    <div class="field">
-      <label class="label">Όνομα Χρήστη</label>
-      <input class="input" name="username" required>
+      <form method="post" action="{{ url_for('login_password') }}">
+        <div class="field">
+          <label class="label">Username</label>
+          <input class="input" name="username" required>
+        </div>
+        <div class="field">
+          <label class="label">Κωδικός</label>
+          <input class="input" type="password" name="password" required>
+        </div>
+        <button class="button is-link" style="background:var(--accent)">Σύνδεση</button>
+      </form>
     </div>
-    <div class="field">
-      <label class="label">Κωδικός</label>
-      <input class="input" type="password" name="password" required>
-    </div>
-    <button class="button is-link" style="background:var(--accent)">Σύνδεση</button>
-  </form>
+  </div>
 </div>
 
 {% endblock %}
