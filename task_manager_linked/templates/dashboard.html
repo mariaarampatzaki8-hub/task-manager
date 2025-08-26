@@ -190,13 +190,11 @@
         {% endif %}
       </div>
     {% endfor %}
-
   </div>
 </div>
 
 <!-- Tabs JS -->
 <script>
-  // εναλλαγή tabs
   document.querySelectorAll('.tabs li').forEach(li => {
     li.addEventListener('click', () => {
       document.querySelectorAll('.tabs li').forEach(x => x.classList.remove('is-active'));
@@ -207,8 +205,6 @@
       if(el) el.style.display = 'block';
     });
   });
-
-  // toggle edit φόρμας σημείωσης
   function toggleEdit(id){
     const form = document.getElementById('note-form-' + id);
     const text = document.getElementById('note-text-' + id);
