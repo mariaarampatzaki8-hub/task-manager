@@ -173,14 +173,31 @@ def logout():
 # ---------- Routes: Dashboard / Tasks / Notes για χρήστη ----------
 @app.route("/dashboard")
 @login_required
+@app.route("/dashboard")
+@login_required
 def dashboard():
     u = current_user()
+
+    # εργασίες μόνο του χρήστη
     open_tasks = Task.query.filter_by(assignee_id=u.id, status="open").order_by(Task.id.desc()).all()
     done_tasks = Task.query.filter_by(assignee_id=u.id, status="done").order_by(Task.completed_at.desc()).all()
     notes = u.notes.order_by(Note.created_at.desc()).all()
-    return render_template("dashboard.html", open_tasks=open_tasks, done_tasks=done_tasks, notes=notes)
 
-@app.route("/tasks/<int:task_id>/toggle", methods=["POST"])
+    # για την καρτέλα Πρόοδος Ομάδας
+    users = User.query.order_by(User.name.asc()).all()
+    user_tasks = {
+        usr.id: Task.query.filter_by(assignee_id=usr.id).order_by(Task.status.desc(), Task.id.desc()).all()
+        for usr in users
+    }
+
+    return render_template(
+        "dashboard.html",
+        open_tasks=open_tasks,
+        done_tasks=done_tasks,
+        notes=notes,
+        users=users,
+        user_tasks=user_tasks
+    )
 @login_required
 def toggle_task(task_id):
     u = current_user()
