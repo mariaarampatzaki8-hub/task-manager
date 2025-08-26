@@ -28,7 +28,7 @@
 </head>
 <body>
 
-  <!-- NAVBAR (global) -->
+  <!-- NAVBAR -->
   <nav class="navbar is-accent" role="navigation" aria-label="main navigation">
     <div class="navbar-brand">
       <a class="navbar-item" href="{{ url_for('index') }}">
@@ -47,6 +47,9 @@
           {% if user.is_admin %}
             <a class="navbar-item" href="{{ url_for('admin') }}">Admin</a>
           {% endif %}
+          <a class="navbar-item" href="{{ url_for('help_page') }}">Οδηγίες</a>
+        {% else %}
+          <a class="navbar-item" href="{{ url_for('help_page') }}">Οδηγίες</a>
         {% endif %}
       </div>
       <div class="navbar-end">
@@ -106,8 +109,7 @@
       const months = ['Ιαν','Φεβ','Μαρ','Απρ','Μαι','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
       el.textContent = `${days[d.getDay()]} ${pad(d.getDate())} ${months[d.getMonth()]} ${d.getFullYear()} · ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
     }
-    tick();
-    setInterval(tick, 1000);
+    tick(); setInterval(tick, 1000);
   </script>
 </body>
 </html>
