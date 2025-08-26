@@ -28,8 +28,7 @@ def create_app():
         # 1) postgres:// -> postgresql://
         uri = uri.replace("postgres://", "postgresql://", 1)
         # 2) Driver pg8000
-        if uri.startswith("postgresql://"):
-            uri = uri.replace("postgresql://", "postgresql+pg8000://", 1)
+        
         # 3) SSL (Render Postgres)
         if "?" in uri:
             if "ssl=" not in uri and "sslmode=" not in uri:
@@ -40,7 +39,6 @@ def create_app():
         app.config["SQLALCHEMY_DATABASE_URI"] = uri
         app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
             "pool_pre_ping": True,
-            "connect_args": {"ssl": True},  # για pg8000
         }
     else:
         app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + db_path
