@@ -1,57 +1,109 @@
 {% extends "base.html" %}
-{% block title %}Διαχείριση Ομάδων{% endblock %}
+{% block title %}Ομάδες{% endblock %}
 {% block content %}
 
 <h1 class="title">👥 Ομάδες</h1>
 
-<div class="cardish mb-5">
-  <form method="post" action="{{ url_for('admin_teams') }}">
-    <div class="field has-addons">
-      <div class="control is-expanded">
-        <input class="input" type="text" name="name" placeholder="Νέα ομάδα" required>
-      </div>
-      <div class="control">
-        <button class="button is-primary">Δημιουργία</button>
-      </div>
-    </div>
-  </form>
-</div>
-
-{% for t in teams %}
-  <div class="cardish mb-4">
-    <form method="post" action="{{ url_for('admin_update_team', team_id=t.id) }}">
-      <div class="field">
-        <label class="label">Όνομα ομάδας</label>
-        <input class="input" type="text" name="name" value="{{ t.name }}">
-      </div>
-      <div class="field">
-        <label class="label">Επικεφαλής</label>
-        <div class="select is-fullwidth">
-          <select name="leader_id">
-            <option value="">—</option>
-            {% for u in users %}
-              <option value="{{ u.id }}" {% if t.leader_id==u.id %}selected{% endif %}>{{ u.name }}</option>
-            {% endfor %}
-          </select>
+{% if user.is_admin %}
+  <!-- Δημιουργία νέας ομάδας -->
+  <div class="cardish mb-5">
+    <form method="post" action="{{ url_for('admin_teams') }}">
+      <div class="field has-addons">
+        <div class="control is-expanded">
+          <input class="input" type="text" name="name" placeholder="Νέα ομάδα" required>
+        </div>
+        <div class="control">
+          <button class="button is-primary">Δημιουργία</button>
         </div>
       </div>
-      <button class="button is-link">Αποθήκευση</button>
     </form>
+  </div>
+{% endif %}
 
-    <form method="post" action="{{ url_for('admin_delete_team', team_id=t.id) }}" class="mt-2"
-          onsubmit="return confirm('Σίγουρα διαγραφή ομάδας;');">
-      <button class="button is-danger is-small">Διαγραφή ομάδας</button>
-    </form>
+{% for t in teams %}
+  <div class="cardish mb-5">
+    <div class="is-flex is-justify-content-space-between is-align-items-center">
+      <h2 class="subtitle" style="margin:0">{{ t.name }}</h2>
+      {% if t.leader %}
+        <span class="tag is-info">Leader: {{ t.leader.name }}</span>
+      {% else %}
+        <span class="tag">Leader: —</span>
+      {% endif %}
+    </div>
+
+    {% if user.is_admin %}
+      <!-- Ενημέρωση ονόματος & leader -->
+      <form method="post" action="{{ url_for('admin_update_team', team_id=t.id) }}" class="mt-3">
+        <div class="columns">
+          <div class="column">
+            <label class="label">Όνομα ομάδας</label>
+            <input class="input" type="text" name="name" value="{{ t.name }}">
+          </div>
+          <div class="column">
+            <label class="label">Επικεφαλής</label>
+            <div class="select is-fullwidth">
+              <select name="leader_id">
+                <option value="">—</option>
+                {% for u in users %}
+                  <option value="{{ u.id }}" {% if t.leader_id==u.id %}selected{% endif %}>{{ u.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+        <button class="button is-link">Αποθήκευση</button>
+      </form>
+
+      <!-- Προσθήκη μέλους -->
+      <form method="post" action="{{ url_for('admin_team_add_member', team_id=t.id) }}" class="mt-3">
+        <label class="label">Προσθήκη μέλους</label>
+        <div class="field has-addons">
+          <div class="control is-expanded">
+            <div class="select is-fullwidth">
+              <select name="user_id" required>
+                <option value="">—επίλεξε χρήστη—</option>
+                {% for u in users %}
+                  {% if not u.team_id or u.team_id != t.id %}
+                    <option value="{{ u.id }}">{{ u.name }} ({{ u.username }})</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="control">
+            <button class="button is-success">Προσθήκη</button>
+          </div>
+        </div>
+      </form>
+    {% endif %}
 
     <hr>
-    <p><strong>Μέλη:</strong>
+    <p><strong>Μέλη:</strong></p>
+    <div class="tags">
       {% for m in t.members %}
-        <span class="tag" style="background:{{ m.color or '#888' }}; color:#fff">{{ m.name }}</span>
+        <span class="tag" style="background:{{ m.color or '#888' }}; color:#fff; margin-right:6px; margin-bottom:6px;">
+          {{ m.name }}
+          {% if user.is_admin %}
+            <form method="post" action="{{ url_for('admin_team_remove_member', team_id=t.id, user_id=m.id) }}"
+                  style="display:inline" onsubmit="return confirm('Αφαίρεση μέλους;');">
+              <button class="delete is-small" title="Αφαίρεση" style="margin-left:6px"></button>
+            </form>
+          {% endif %}
+        </span>
       {% else %}
-        <em>— Κανένας</em>
+        <em>— Κανένα μέλος</em>
       {% endfor %}
-    </p>
+    </div>
+
+    {% if user.is_admin %}
+      <form method="post" action="{{ url_for('admin_delete_team', team_id=t.id) }}" class="mt-3"
+            onsubmit="return confirm('Σίγουρα διαγραφή ομάδας;');">
+        <button class="button is-danger is-light is-small">Διαγραφή ομάδας</button>
+      </form>
+    {% endif %}
   </div>
+{% else %}
+  <p>Δεν υπάρχουν ομάδες.</p>
 {% endfor %}
 
 {% endblock %}
