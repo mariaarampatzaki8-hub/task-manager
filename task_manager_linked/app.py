@@ -18,15 +18,18 @@ def create_app():
     app = Flask(__name__, instance_relative_config=True)
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-" + secrets.token_hex(16))
         # --- DB config (Postgres αν υπάρχει DATABASE_URL, αλλιώς SQLite fallback) ---
+        # --- DB config (Postgres αν υπάρχει DATABASE_URL, αλλιώς SQLite fallback) ---
     db_path = os.path.join(app.instance_path, "app_final.db")
     uri = os.environ.get("DATABASE_URL")
     if uri:
-        # Αν τυχόν ξεκινάει με 'postgres://', αλλάξ’ το σε 'postgresql://'
+        # 1) Αν τυχόν ξεκινάει με 'postgres://', κάνε το 'postgresql://'
         uri = uri.replace("postgres://", "postgresql://", 1)
+        # 2) Για psycopg3 αλλάζουμε σε 'postgresql+psycopg://'
+        if uri.startswith("postgresql://"):
+            uri = uri.replace("postgresql://", "postgresql+psycopg://", 1)
         app.config["SQLALCHEMY_DATABASE_URI"] = uri
     else:
         app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + db_path
-
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     return app
 
