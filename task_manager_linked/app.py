@@ -173,8 +173,7 @@ def admin_required(fn):
 
 
 # ---------- Init DB & seed admin ----------
-@app.before_first_request
-def init_db_and_seed():
+with app.app_context():
     try:
         db.create_all()
     except Exception as e:
@@ -189,6 +188,11 @@ def init_db_and_seed():
             is_admin=True,
             color="#3273dc",
         )
+        admin.set_password("admin123")
+        admin.token = secrets.token_urlsafe(16)
+        db.session.add(admin)
+        db.session.commit()
+        app.logger.info("Δημιουργήθηκε Admin με username=admin και password=admin123")
         admin.set_password("admin123")
         admin.token = secrets.token_urlsafe(16)
         db.session.add(admin)
