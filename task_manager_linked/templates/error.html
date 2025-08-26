@@ -1,11 +1,8 @@
-{% extends "base.html" %}
-{% block title %}Σφάλμα {{ code }}{% endblock %}
+{% extends "base.html" %}{% block title %}Σφάλμα {{ code }}{% endblock %}
 {% block content %}
-
-<div class="cardish">
-  <h1 class="title">Σφάλμα {{ code }}</h1>
-  <p>{{ message }}</p>
-  <a class="button is-link mt-3" style="background:var(--accent)" href="{{ url_for('index') }}">Αρχική</a>
+<div class="cardish has-text-centered">
+  <h1 class="title is-3">Σφάλμα {{ code }}</h1>
+  <p class="content">{{ message }}</p>
+  <a href="{{ url_for('index') }}" class="button is-primary">Αρχική</a>
 </div>
-
 {% endblock %}
