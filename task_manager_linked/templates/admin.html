@@ -123,19 +123,47 @@
 <!-- Πρόσφατες σημειώσεις -->
 <div class="cardish">
   <h2 class="subtitle">📝 Πρόσφατες σημειώσεις χρηστών</h2>
+ <!-- Πρόσφατες σημειώσεις (με edit/delete από Admin) -->
+<div class="cardish">
+  <h2 class="subtitle">📝 Πρόσφατες σημειώσεις χρηστών</h2>
   {% if notes %}
     <ul>
       {% for n in notes %}
-        <li class="mb-2">
-          <strong>{{ n.user.name }}</strong> ·
+        <li class="mb-3">
+          <strong>{{ n.user.name }}</strong>
           <small>{{ n.created_at.strftime('%d/%m/%Y %H:%M') }}</small><br>
-          {{ n.content }}
+          <form method="post" action="{{ url_for('admin_update_note', note_id=n.id) }}" style="display:inline;">
+            <textarea name="content" class="textarea is-small">{{ n.content }}</textarea>
+            <button type="submit" class="button is-small is-info mt-1">Αποθήκευση</button>
+          </form>
+          <form method="post" action="{{ url_for('admin_delete_note', note_id=n.id) }}" style="display:inline;" 
+                onsubmit="return confirm('Σίγουρα θέλεις να διαγράψεις αυτή τη σημείωση;');">
+            <button type="submit" class="button is-small is-danger mt-1">Διαγραφή</button>
+          </form>
         </li>
       {% endfor %}
     </ul>
   {% else %}
-    <p>Δεν υπάρχουν σημειώσεις ακόμα.</p>
+    <p>Δεν υπάρχουν σημειώσεις.</p>
   {% endif %}
+</div>
+
+<!-- Διαγραφή χρήστη -->
+<div class="cardish mt-5">
+  <h2 class="subtitle">🗑️ Διαγραφή χρήστη</h2>
+  <form method="post" action="{{ url_for('admin_delete_user') }}">
+    <div class="field has-addons">
+      <div class="control">
+        <input type="text" name="username" class="input" placeholder="Username προς διαγραφή">
+      </div>
+      <div class="control">
+        <button type="submit" class="button is-danger"
+                onclick="return confirm('Σίγουρα θέλεις να διαγράψεις αυτόν τον χρήστη;');">
+          Διαγραφή
+        </button>
+      </div>
+    </div>
+  </form>
 </div>
 
 {% endblock %}
