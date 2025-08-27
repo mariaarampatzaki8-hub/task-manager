@@ -1,22 +1,6 @@
-{% extends "base.html" %}{% block title %}Ομάδες{% endblock %}
+{% extends "base.html" %}
+{% block title %}Ομάδες{% endblock %}
 {% block content %}
-<h1 class="title is-4">Ομάδες</h1>
-<div class="columns is-multiline">
-  {% for t in teams %}
-  <div class="column is-4">
-    <div class="cardish">
-      <h3 class="subtitle is-5">{{ t.name }}</h3>
-      <p class="mini">Leader: {{ t.leader.name if t.leader else '—' }}</p>
-      <div class="mini mb-2">Μέλη:</div>
-      <ul class="ml-3">
-        {% for m in t.members %}
-          <li>{{ m.name }}</li>
-        {% else %}
-          <li class="mini">Κανένα μέλος ακόμη.</li>
-        {% endfor %}
-      </ul>
-    </div>
-  </div>
-  {% endfor %}
-</div>
+  <h1>Ομάδες</h1>
+  <p class="muted">Mock σελίδα για λίστα ομάδων που βλέπουν όλοι.</p>
 {% endblock %}
