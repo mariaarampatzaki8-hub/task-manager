@@ -1,29 +1,45 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Admin: Χρήστες</h1>
-<h3>Νέος χρήστης</h3>
-<form method="post" action="{{ url_for('admin_create_user') }}">
-  <p><label>Username <input name="username" required></label></p>
-  <p><label>Email <input name="email" type="email"></label></p>
-  <p><label>Password <input name="password" type="password" required></label></p>
-  <p><label>Ομάδα (προαιρετικά) <input name="team"></label></p>
-  <p><label><input type="checkbox" name="is_admin"> Διαχειριστής</label></p>
-  <p><button type="submit">Δημιουργία</button></p>
-</form>
+<div class="grid grid-2">
+  <div class="card">
+    <h2 style="margin-top:0">Νέος χρήστης</h2>
+    <form method="post" action="{{ url_for('admin_create_user') }}">
+      <label>Username</label>
+      <input name="username" required>
 
-<h3>Όλοι οι χρήστες</h3>
-<table>
-  <thead><tr><th>#</th><th>Username</th><th>Email</th><th>Role</th><th>Team</th></tr></thead>
-  <tbody>
-  {% for u in users %}
-    <tr>
-      <td>{{ u.id }}</td>
-      <td>{{ u.username }}</td>
-      <td>{{ u.email or '' }}</td>
-      <td>{{ 'Admin' if u.is_admin else 'User' }}</td>
-      <td>{{ u.team.name if u.team else '' }}</td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
+      <label>Email</label>
+      <input name="email" type="email">
+
+      <label>Password</label>
+      <input name="password" type="password" required>
+
+      <label>Χρώμα χρήστη (hex)</label>
+      <input name="color" placeholder="#3273dc">
+
+      <label><input type="checkbox" name="is_admin"> Διαχειριστής</label>
+
+      <div style="margin-top:12px">
+        <button class="btn" type="submit">Δημιουργία</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">Όλοι οι χρήστες</h2>
+    <table>
+      <thead><tr><th>#</th><th>Username</th><th>Email</th><th>Ρόλος</th><th>Χρώμα</th></tr></thead>
+      <tbody>
+        {% for u in users %}
+          <tr>
+            <td>{{ u.id }}</td>
+            <td>{{ u.username }}</td>
+            <td>{{ u.email or '' }}</td>
+            <td>{{ 'Admin' if u.is_admin else 'User' }}</td>
+            <td><span class="badge"><span class="userdot" style="background: {{ u.color or '#999' }}"></span>{{ u.color or '' }}</span></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 {% endblock %}
