@@ -1,30 +1,18 @@
-<!DOCTYPE html>
-<html lang="el">
-<head>
-  <meta charset="UTF-8">
-  <title>Task Manager - Σύνδεση</title>
-</head>
-<body>
-  <h1>Καλώς ήρθες στο Task Manager</h1>
-
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <ul>
-        {% for category, message in messages %}
-          <li><strong>{{ category }}:</strong> {{ message }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
-  {% endwith %}
+{% extends "base.html" %}
+{% block title %}Σύνδεση · Task Manager{% endblock %}
+{% block content %}
+  <h1>Σύνδεση</h1>
+  <p class="muted">Βάλε <strong>admin</strong> για σύνδεση ως Διαχειριστής (mock).</p>
 
   <form action="{{ url_for('login') }}" method="post">
-    <label for="username">Username:</label>
-    <input type="text" name="username" id="username" required>
-    <br>
-    <label for="password">Password:</label>
-    <input type="password" name="password" id="password">
-    <br>
+    <p>
+      <label for="username">Username</label><br>
+      <input type="text" id="username" name="username" required>
+    </p>
+    <p>
+      <label for="password">Κωδικός</label><br>
+      <input type="password" id="password" name="password">
+    </p>
     <button type="submit">Σύνδεση</button>
   </form>
-</body>
-</html>
+{% endblock %}
