@@ -1,68 +1,24 @@
-{% extends "base.html" %}{% block title %}Πίνακας{% endblock %}
-{% block content %}
-<div class="columns">
-  <div class="column">
-    <div class="cardish">
-      <h2 class="title is-5">Ανοιχτές εργασίες</h2>
-      {% if open_tasks %}
-        {% for t in open_tasks %}
-          <div class="box">
-            <div class="is-flex is-justify-content-space-between">
-              <strong>{{ t.title }}</strong>
-              <form method="post" action="{{ url_for('toggle_task', task_id=t.id) }}"><button class="button is-small is-success">Ολοκλήρωση</button></form>
-            </div>
-            <p class="mini">{{ t.description }}</p>
-            <progress class="progress is-primary is-thin" value="{{ t.progress }}" max="100"></progress>
-          </div>
-        {% endfor %}
-      {% else %}<p class="mini">Δεν υπάρχουν ανοιχτές εργασίες.</p>{% endif %}
-    </div>
-  </div>
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard</title>
+</head>
+<body>
+  <h1>Dashboard</h1>
 
-  <div class="column">
-    <div class="cardish">
-      <h2 class="title is-5">Ολοκληρωμένες</h2>
-      {% if done_tasks %}
-        {% for t in done_tasks %}
-          <div class="box">
-            <div class="is-flex is-justify-content-space-between">
-              <strong>{{ t.title }}</strong>
-              <form method="post" action="{{ url_for('toggle_task', task_id=t.id) }}"><button class="button is-small is-warning">Επανέναρξη</button></form>
-            </div>
-            <p class="mini">Ολοκλήρωση: {{ t.completed_at or '-' }}</p>
-          </div>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <ul>
+        {% for category, message in messages %}
+          <li><strong>{{ category }}:</strong> {{ message }}</li>
         {% endfor %}
-      {% else %}<p class="mini">Καμία ολοκληρωμένη εργασία ακόμη.</p>{% endif %}
-    </div>
-  </div>
+      </ul>
+    {% endif %}
+  {% endwith %}
 
-  <div class="column">
-    <div class="cardish">
-      <h2 class="title is-5">Σημειώσεις μου</h2>
-      <form method="post" action="{{ url_for('me_add_note') }}" class="mb-3">
-        <div class="field has-addons">
-          <div class="control is-expanded"><textarea class="textarea" name="content" rows="2" placeholder="Νέα σημείωση…"></textarea></div>
-          <div class="control"><button class="button is-primary">Προσθήκη</button></div>
-        </div>
-      </form>
-      {% for n in notes %}
-        <div class="box">
-          <small class="mini">{{ n.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
-          <p class="note">{{ n.content }}</p>
-          <form method="post" action="{{ url_for('me_edit_note', note_id=n.id) }}" class="mt-2">
-            <div class="field has-addons">
-              <div class="control is-expanded"><input class="input" name="content" value="{{ n.content }}"></div>
-              <div class="control"><button class="button is-info is-light">Αποθήκευση</button></div>
-              <div class="control">
-                <form method="post" action="{{ url_for('me_delete_note', note_id=n.id) }}">
-                  <button formaction="{{ url_for('me_delete_note', note_id=n.id) }}" class="button is-danger is-light">Διαγραφή</button>
-                </form>
-              </div>
-            </div>
-          </form>
-        </div>
-      {% endfor %}
-    </div>
-  </div>
-</div>
-{% endblock %}
+  <p>Γεια σου, {{ name }}! Ο ρόλος σου είναι: <strong>{{ role }}</strong>.</p>
+
+  <a href="{{ url_for('logout') }}">Αποσύνδεση</a>
+</body>
+</html>
