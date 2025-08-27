@@ -185,16 +185,25 @@ def logout():
     return redirect(url_for("index"))
 
 # =====================  Dashboard  =====================
+from flask import session, redirect, url_for, render_template, flash
+
 @app.route("/dashboard")
-@login_required
 def dashboard():
-    u = current_user()
-    return render_template(
-        "dashboard.html",
-        user_name=u.name,
-        user_role=("Διαχειριστής" if u.is_admin else "Χρήστης"),
-        health_status=request.host_url.rstrip("/") + "/healthz -> ok",
-    )
+    # Χωρίς session -> πήγαινε για σύνδεση
+    uid = session.get("uid")
+    if not uid:
+        flash("Χρειάζεται σύνδεση.", "warning")
+        return redirect(url_for("index"))
+
+    # Φέρε τον χρήστη από τη βάση
+    u = User.query.get(uid)
+    if not u:
+        session.clear()
+        flash("Το session έληξε. Συνδέσου ξανά.", "warning")
+        return redirect(url_for("index"))
+
+    role = "Διαχειριστής" if getattr(u, "is_admin", False) else "Χρήστης"
+    return render_template("dashboard.html", user=u, role=role)
 
 # =====================  Notes (για τον χρήστη)  =====================
 @app.route("/me/add_note", methods=["POST"])
