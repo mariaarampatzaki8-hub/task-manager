@@ -1,18 +1,21 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Κατάλογος</h1>
-<table>
-  <thead><tr><th>#</th><th>Username</th><th>Email</th><th>Team</th><th>Role</th></tr></thead>
-  <tbody>
-  {% for u in users %}
-    <tr>
-      <td>{{ u.id }}</td>
-      <td>{{ u.username }}</td>
-      <td>{{ u.email or '' }}</td>
-      <td>{{ u.team.name if u.team else '' }}</td>
-      <td>{{ 'Admin' if u.is_admin else 'User' }}</td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
+<div class="card">
+  <h2 style="margin-top:0">Κατάλογος χρηστών</h2>
+  <table>
+    <thead><tr><th>#</th><th>Username</th><th>Email</th><th>Ομάδα</th><th>Ρόλος</th><th>Χρώμα</th></tr></thead>
+    <tbody>
+      {% for u in users %}
+        <tr>
+          <td>{{ u.id }}</td>
+          <td>{{ u.username }}</td>
+          <td>{{ u.email or '' }}</td>
+          <td>{{ u.team.name if u.team else '—' }}</td>
+          <td>{{ 'Admin' if u.is_admin else 'User' }}</td>
+          <td><span class="badge"><span class="userdot" style="background: {{ u.color or '#999' }}"></span>{{ u.color or '' }}</span></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
 {% endblock %}
