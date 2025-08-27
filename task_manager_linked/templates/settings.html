@@ -1,21 +1,6 @@
-{% extends "base.html" %}{% block title %}Ρυθμίσεις{% endblock %}
+{% extends "base.html" %}
+{% block title %}Ρυθμίσεις{% endblock %}
 {% block content %}
-<div class="columns is-centered">
-  <div class="column is-6">
-    <div class="cardish">
-      <h1 class="title is-4">Ρυθμίσεις</h1>
-      <form method="post">
-        <div class="field">
-          <label class="label">Χρώμα χρήστη</label>
-          <div class="control"><input class="input" name="color" type="color" value="{{ user.color }}"></div>
-        </div>
-        <div class="field">
-          <label class="label">Νέος κωδικός</label>
-          <div class="control"><input class="input" type="password" name="new_password" placeholder="(προαιρετικό)"></div>
-        </div>
-        <button class="button is-primary">Αποθήκευση</button>
-      </form>
-    </div>
-  </div>
-</div>
+  <h1>Ρυθμίσεις</h1>
+  <p class="muted">Mock σελίδα ρυθμίσεων (αλλαγή κωδικού κ.ά. αργότερα).</p>
 {% endblock %}
