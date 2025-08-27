@@ -1,24 +1,7 @@
-{% extends "base.html" %}{% block title %}Σύνδεση · Task Manager{% endblock %}
+{% extends "base.html" %}
+{% block title %}Αρχική{% endblock %}
 {% block content %}
-<div class="columns is-centered">
-  <div class="column is-5">
-    <div class="cardish">
-      <h1 class="title is-4">Σύνδεση</h1>
-      <form method="post" action="{{ url_for('login') }}">
-        <div class="field">
-          <label class="label">Username</label>
-          <div class="control"><input class="input" name="username" required></div>
-        </div>
-        <div class="field">
-          <label class="label">Κωδικός</label>
-          <div class="control"><input class="input" type="password" name="password" required></div>
-        </div>
-        <div class="field">
-          <button class="button is-primary">Είσοδος</button>
-        </div>
-      </form>
-      <p class="mini">Tip: ο βασικός admin είναι <code>admin / admin123</code> (μέχρι να τον αλλάξετε)</p>
-    </div>
-  </div>
-</div>
+  <h1 class="title">Λειτουργεί ο server ✅</h1>
+  <p>Αν βλέπεις αυτή τη σελίδα, το Render σηκώθηκε σωστά.</p>
+  <p>Έλεγξε και το <a href="/healthz">/healthz</a> — πρέπει να γράφει <strong>ok</strong>.</p>
 {% endblock %}
