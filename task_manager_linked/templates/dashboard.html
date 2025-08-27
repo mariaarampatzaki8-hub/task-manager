@@ -1,6 +1,26 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Dashboard</h1>
-<p>Γεια σου, <strong>{{ user.username }}</strong>! Ο ρόλος σου είναι: <strong>{{ 'Διαχειριστής' if user.is_admin else 'Χρήστης' }}</strong>.</p>
-<p>(Mock περιεχόμενο — θα βάλεις εργασίες, σημειώσεις κτλ.)</p>
+<div class="grid grid-2">
+  <div class="card">
+    <h2 style="margin-top:0">Καλωσήρθες, {{ user.username }}!</h2>
+    <p>Ο ρόλος σου είναι: <b>{{ 'Διαχειριστής' if user.is_admin else 'Χρήστης' }}</b>.</p>
+    <p>Χρώμα χρήστη: <span class="badge"><span class="userdot" style="background: {{ user.color }}"></span>{{ user.color }}</span></p>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <a class="btn" href="{{ url_for('progress_view') }}">Δες Πρόοδο</a>
+      <a class="btn secondary" href="{{ url_for('notes') }}">Σημειώσεις</a>
+      {% if user.is_admin %}
+      <a class="btn secondary" href="{{ url_for('admin_home') }}">Πίνακας Διαχειριστή</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">Γρήγορες ενέργειες</h3>
+    <ul style="margin:6px 0 0 18px;color:#cbd5e1;line-height:1.7">
+      <li>Δημιούργησε χρήστες από το <b>Admin</b> (μόνο διαχειριστές).</li>
+      <li>Καθόρισε ομάδες & leader από <b>Διαχείριση Ομάδων</b>.</li>
+      <li>Κράτα σημειώσεις/ερωτήσεις από <b>Σημειώσεις</b>.</li>
+    </ul>
+  </div>
+</div>
 {% endblock %}
