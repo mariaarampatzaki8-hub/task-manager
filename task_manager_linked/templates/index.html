@@ -1,7 +1,14 @@
 {% extends "base.html" %}
 {% block title %}Αρχική{% endblock %}
+
 {% block content %}
-  <h1 class="title">Λειτουργεί ο server ✅</h1>
-  <p>Αν βλέπεις αυτή τη σελίδα, το Render σηκώθηκε σωστά.</p>
-  <p>Έλεγξε και το <a href="/healthz">/healthz</a> — πρέπει να γράφει <strong>ok</strong>.</p>
+<section class="section">
+  <div class="container">
+    <h1 class="title">Καλώς ήρθες στο Task Manager</h1>
+    <p class="subtitle">Συνδέσου για να συνεχίσεις.</p>
+
+    <a class="button is-primary" href="{{ url_for('login') }}">Σύνδεση</a>
+    <a class="button is-light" href="{{ url_for('help_page') }}">Οδηγίες</a>
+  </div>
+</section>
 {% endblock %}
