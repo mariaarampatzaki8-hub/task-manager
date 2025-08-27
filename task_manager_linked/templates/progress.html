@@ -1,41 +1,6 @@
 {% extends "base.html" %}
+{% block title %}Πρόοδος{% endblock %}
 {% block content %}
-<div class="container mt-4">
-    <h2 class="mb-4">📊 Πρόοδος Χρηστών</h2>
-
-    <table class="table table-striped table-bordered">
-        <thead class="table-dark">
-            <tr>
-                <th>Χρήστης</th>
-                <th>Σύνολο Εργασιών</th>
-                <th>Ολοκληρωμένες</th>
-                <th>Ανοιχτές</th>
-                <th>Μέση Πρόοδος (%)</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for r in rows %}
-            <tr>
-                <td>{{ r.user.name }}</td>
-                <td>{{ r.total }}</td>
-                <td class="text-success">{{ r.done }}</td>
-                <td class="text-danger">{{ r.open }}</td>
-                <td>
-                    <div class="progress">
-                        <div class="progress-bar 
-                            {% if r.avg < 50 %} bg-danger 
-                            {% elif r.avg < 80 %} bg-warning 
-                            {% else %} bg-success 
-                            {% endif %}" 
-                            role="progressbar" 
-                            style="width: {{ r.avg }}%">
-                            {{ r.avg }}%
-                        </div>
-                    </div>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+  <h1>Πρόοδος Ομάδας</h1>
+  <p class="muted">Mock σελίδα. Εδώ θα εμφανίζονται τα ποσοστά/μπάρες προόδου όλων.</p>
 {% endblock %}
