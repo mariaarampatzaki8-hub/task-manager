@@ -1,10 +1,25 @@
 {% extends "base.html" %}
-{% block title %}Πίνακας{% endblock %}
-{% block content %}
-  <h1>Dashboard</h1>
-  <p>Γεια σου, <strong>{{ name }}</strong>! Ο ρόλος σου είναι: <strong>{{ role }}</strong>.</p>
+{% block title %}Dashboard{% endblock %}
 
-  <div class="muted">
-    (Mock περιεχόμενο – εδώ αργότερα θα μπει οι εργασίες, σημειώσεις κτλ.)
-  </div>
+{% block content %}
+  <h1 class="title">Dashboard</h1>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for cat, msg in messages %}
+        <div class="notification is-{{ 'success' if cat=='success' else ('warning' if cat=='warning' else 'info') }}">
+          {{ msg }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <p>
+    Γεια σου, <strong>{{ user.username }}</strong>!
+    Ο ρόλος σου είναι: <strong>{{ role }}</strong>.
+  </p>
+
+  <p class="is-size-7 has-text-grey">
+    (Mock περιεχόμενο — εδώ αργότερα θα μπει οι εργασίες, σημειώσεις κτλ.)
+  </p>
 {% endblock %}
