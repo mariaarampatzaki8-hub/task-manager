@@ -1,7 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Σφάλμα {{ code }}{% endblock %}
 {% block content %}
-  <h1>Σφάλμα {{ code }}</h1>
-  <p>{{ message }}</p>
-  <p><a href="{{ url_for('dashboard') }}">Πίσω</a></p>
+<h1>Σφάλμα {{ code }}</h1>
+<p>{{ message }}</p>
+<p><a href="{{ url_for('dashboard') }}">Πίσω</a></p>
 {% endblock %}
