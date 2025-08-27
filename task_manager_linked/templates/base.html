@@ -1,75 +1,53 @@
 <!doctype html>
 <html lang="el">
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   <title>Task Manager</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    :root{
-      --bg:#0f172a; --fg:#e5e7eb; --muted:#94a3b8; --card:#111827; --accent:#22c55e;
-      --danger:#ef4444; --warn:#f59e0b; --info:#38bdf8;
-    }
-    *{box-sizing:border-box}
-    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#0b1220;color:var(--fg)}
-    .nav{position:sticky;top:0;background:var(--bg);border-bottom:1px solid #1f2937;display:flex;gap:12px;align-items:center;padding:12px 16px}
-    .brand{font-weight:700;letter-spacing:.3px}
-    .nav a{color:var(--fg);text-decoration:none;padding:6px 10px;border-radius:8px}
-    .nav a:hover{background:#1f2937}
-    .grow{flex:1}
-    .pill{padding:4px 10px;border-radius:999px;background:#1f2937;color:var(--muted);font-size:12px}
-    .container{max-width:1000px;margin:28px auto;padding:0 16px}
-    .card{background:var(--card);border:1px solid #1f2937;border-radius:14px;padding:18px}
-    .grid{display:grid;gap:16px}
-    .grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
-    @media (max-width:800px){.grid-2{grid-template-columns:1fr}}
-    .btn{background:var(--accent);border:none;color:#052e16;padding:10px 14px;border-radius:10px;font-weight:600;cursor:pointer}
-    .btn.secondary{background:#334155;color:#e5e7eb}
-    .btn.danger{background:var(--danger);color:#fff}
-    label{display:block;margin:.5rem 0 .25rem;color:var(--muted)}
-    input,textarea,select{width:100%;padding:10px;border-radius:10px;border:1px solid #233147;background:#0b1324;color:var(--fg)}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:10px;border-bottom:1px solid #1f2937}
-    th{color:var(--muted);text-align:left}
-    .flash{margin:10px 0;padding:10px 12px;border-radius:10px}
-    .success{background:#052e16;color:#86efac}
-    .danger{background:#3f1215;color:#fecaca}
-    .warning{background:#3b2a07;color:#fde68a}
-    .info{background:#0b2530;color:#bae6fd}
-    .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;background:#1f2937;color:#cbd5e1;font-size:12px}
-    .userdot{width:10px;height:10px;border-radius:50%;display:inline-block;border:1px solid #0003}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0}
+    header{background:#1f2937;color:#fff;padding:12px 16px}
+    a{color:#0b5ed7;text-decoration:none}
+    nav a{color:#fff;margin-right:12px}
+    .container{max-width:1000px;margin:20px auto;padding:0 16px}
+    .flash{padding:10px 12px;border-radius:6px;margin:12px 0}
+    .flash.success{background:#d1fae5}
+    .flash.warning{background:#fef3c7}
+    .flash.danger{background:#fee2e2}
+    footer{color:#777;padding:24px 0}
   </style>
 </head>
 <body>
-  <div class="nav">
-    <div class="brand">Task Manager</div>
-    {% if user %}
-      <a href="{{ url_for('dashboard') }}">Πίνακας</a>
-      <a href="{{ url_for('progress_view') }}">Πρόοδος</a>
-      <a href="{{ url_for('notes') }}">Σημειώσεις</a>
-      <a href="{{ url_for('teams_page') }}">Ομάδες</a>
-      <a href="{{ url_for('directory') }}">Κατάλογος</a>
-      {% if user.is_admin %}
-        <a href="{{ url_for('admin_home') }}">Admin</a>
-        <a href="{{ url_for('admin_teams') }}">Διαχείριση Ομάδων</a>
-      {% endif %}
-      <div class="grow"></div>
-      <span class="pill">
-        <span class="userdot" style="background: {{ user.color or '#999' }}"></span>
-        {{ user.username }} · {{ 'Διαχειριστής' if user.is_admin else 'Χρήστης' }}
-      </span>
-      <a class="btn secondary" href="{{ url_for('logout') }}">Αποσύνδεση</a>
-    {% else %}
-      <div class="grow"></div>
-      <span class="pill">Παρακαλώ συνδέσου</span>
+<header>
+  <nav>
+    <a href="{{ url_for('dashboard') }}">Πίνακας</a>
+    <a href="{{ url_for('progress') }}">Πρόοδος</a>
+    <a href="{{ url_for('teams') }}">Ομάδες</a>
+    {% if user and user.is_admin %}
+      <a href="{{ url_for('admin') }}">Admin</a>
     {% endif %}
-  </div>
-
-  <div class="container">
-    {% for cat, msg in get_flashed_messages(with_categories=True) %}
-      <div class="flash {{cat}}">{{ msg }}</div>
-    {% endfor %}
-    {% block content %}{% endblock %}
-    <div style="margin-top:20px;color:#94a3b8;font-size:12px">status: <code>/healthz</code> → ok</div>
-  </div>
+    <a href="{{ url_for('board') }}">Κατάλογος</a>
+    <a href="{{ url_for('help_page') }}">Οδηγίες</a>
+    <a href="{{ url_for('settings') }}">Ρυθμίσεις</a>
+    <span style="float:right;">
+      {% if user %}
+        Γεια σου, {{ user.username }} — <a href="{{ url_for('logout') }}">Αποσύνδεση</a>
+      {% else %}
+        <a href="{{ url_for('index') }}">Σύνδεση</a>
+      {% endif %}
+    </span>
+  </nav>
+</header>
+<div class="container">
+  {% with messages = get_flashed_messages(with_categories=True) %}
+    {% if messages %}
+      {% for cat,msg in messages %}
+        <div class="flash {{ cat }}">{{ cat }}: {{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+  <footer>status: <code>/healthz -> "{{ url_for('healthz')|safe and 'ok' }}"</code></footer>
+</div>
 </body>
 </html>
