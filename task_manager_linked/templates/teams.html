@@ -1,28 +1,5 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="card">
-  <h2 style="margin-top:0">Ομάδες</h2>
-  {% if teams %}
-    <table>
-      <thead><tr><th>#</th><th>Όνομα</th><th>Leader</th><th>Μέλη</th></tr></thead>
-      <tbody>
-        {% for t in teams %}
-          <tr>
-            <td>{{ t.id }}</td>
-            <td>{{ t.name }}</td>
-            <td>
-              {% if t.leader_id %}
-                {% set leader = (t.members | selectattr('id','equalto', t.leader_id) | list | first) %}
-                {{ leader.username if leader else '—' }}
-              {% else %} — {% endif %}
-            </td>
-            <td>{{ t.members|length }}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <p style="color:#94a3b8">Δεν έχουν οριστεί ομάδες ακόμη.</p>
-  {% endif %}
-</div>
+<h1>Ομάδες</h1>
+<p>Σελίδα ομάδων (placeholder).</p>
 {% endblock %}
