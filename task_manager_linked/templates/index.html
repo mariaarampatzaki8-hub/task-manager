@@ -1,10 +1,18 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Αρχική</h1>
-<form method="post" action="{{ url_for('login') }}">
-  <p><label>Username <input name="username" required></label></p>
-  <p><label>Password <input name="password" type="password" required></label></p>
-  <p><button type="submit">Σύνδεση</button></p>
-  <p style="color:#6b7280">Δοκίμασε: <b>admin / admin123</b></p>
-</form>
+<div class="grid">
+  <div class="card">
+    <h2>Σύνδεση</h2>
+    <form method="post" action="{{ url_for('login') }}">
+      <label>Username</label>
+      <input name="username" required>
+      <label>Password</label>
+      <input type="password" name="password" required>
+      <div style="margin-top:12px">
+        <button class="btn" type="submit">Σύνδεση</button>
+      </div>
+      <p style="color:#94a3b8;margin-top:8px">Δοκίμασε <b>admin / admin123</b></p>
+    </form>
+  </div>
+</div>
 {% endblock %}
