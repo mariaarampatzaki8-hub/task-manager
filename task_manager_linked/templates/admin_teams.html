@@ -1,6 +1,23 @@
 {% extends "base.html" %}
-{% block title %}Διαχείριση Ομάδων{% endblock %}
 {% block content %}
-  <h1>Διαχείριση Ομάδων</h1>
-  <p class="muted">Mock: Δημιουργία/ανάθεση μελών & leader κτλ.</p>
+<h1>Admin: Ομάδες</h1>
+<form method="post">
+  <p><label>Όνομα ομάδας <input name="name" required></label></p>
+  <p><label>Leader (username) <input name="leader"></label></p>
+  <p><button type="submit">Δημιουργία</button></p>
+</form>
+
+<h3>Υπάρχουσες ομάδες</h3>
+<table>
+  <thead><tr><th>#</th><th>Όνομα</th><th>Leader</th></tr></thead>
+  <tbody>
+  {% for t in teams %}
+    <tr>
+      <td>{{ t.id }}</td>
+      <td>{{ t.name }}</td>
+      <td>{% if t.leader_id %}{{ t.members|selectattr('id','equalto',t.leader_id)|map(attribute='username')|list|first }}{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
 {% endblock %}
