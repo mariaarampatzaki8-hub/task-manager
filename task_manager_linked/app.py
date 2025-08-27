@@ -51,9 +51,14 @@ def index():
         return redirect(url_for("dashboard"))
     return render_template("index.html")
 
+from flask import Flask, render_template, request, redirect, url_for, session, flash  # βεβαιώσου ότι έχεις ΚΑΙ αυτά τα imports
 
-@app.route("/login", methods=["POST"])
+@app.route("/login", methods=["GET", "POST"])
 def login():
+    if request.method == "GET":
+        # άνοιξε απλώς τη φόρμα login
+        return render_template("index.html")
+
     """
     ΠΟΛΥ απλό login μόνο για να δουλεύει το UI χωρίς DB:
     - Αν βάλεις username = admin -> is_admin = True
