@@ -1,182 +1,203 @@
-# -*- coding: utf-8 -*-
 import os
-import secrets
-from datetime import datetime
-
 from flask import (
     Flask, render_template, request, redirect,
     url_for, session, flash
 )
+from sqlalchemy import create_engine, text
 
-# =====================  App  =====================
+# ------------------------------------------------------------------------------
+#  App & DB
+# ------------------------------------------------------------------------------
+
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-" + secrets.token_hex(16))
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-please-change")
 
-# ======= DB config: Render Postgres (pg8000) ή SQLite fallback =======
-def _configure_database(app: Flask) -> None:
-    os.makedirs(app.instance_path, exist_ok=True)
-    sqlite_path = os.path.join(app.instance_path, "app_final.db")
+# Render Postgres URL από ENV
+_raw_url = os.environ.get("DATABASE_URL")  # π.χ. postgresql://user:pass@host/db
+DB_URL = None
+if _raw_url:
+    # driver για SQLAlchemy + pg8000
+    DB_URL = _raw_url.replace("postgres://", "postgresql+pg8000://")
 
-    uri = os.environ.get("DATABASE_URL")
-    if uri:
-        if uri.startswith("postgres://"):
-            uri = uri.replace("postgres://", "postgresql://", 1)
-        if uri.startswith("postgresql://"):
-            uri = uri.replace("postgresql://", "postgresql+pg8000://", 1)
-        app.config["SQLALCHEMY_DATABASE_URI"] = uri
-        app.logger.info("DB: Postgres via pg8000")
-    else:
-        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + sqlite_path
-        app.logger.info("DB: SQLite fallback")
+engine = create_engine(
+    DB_URL,
+    pool_pre_ping=True
+) if DB_URL else None
 
-_configure_database(app)
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-# SQLAlchemy
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import relationship
-from werkzeug.security import generate_password_hash, check_password_hash
+# ------------------------------------------------------------------------------
+#  DB bootstrap (δημιουργία πινάκων + seed admin)
+# ------------------------------------------------------------------------------
 
-db = SQLAlchemy(app)
+def ensure_schema_and_seed():
+    """Δημιουργεί τους πίνακες αν δεν υπάρχουν και κάνει seed έναν admin."""
+    if not engine:
+        return
 
-# =====================  Models  =====================
-class Team(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(200), nullable=False, unique=True)
-    leader_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
+    with engine.begin() as conn:
+        # Πίνακες
+        conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS teams (
+            id          SERIAL PRIMARY KEY,
+            name        VARCHAR(200) UNIQUE NOT NULL,
+            leader_id   INTEGER
+        );
+        """))
 
-    members = relationship("User", backref="team", foreign_keys="User.team_id", lazy="dynamic")
-    leader = relationship("User", foreign_keys=[leader_id], uselist=False)
+        conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS users (
+            id                      SERIAL PRIMARY KEY,
+            name                    VARCHAR(200),
+            username                VARCHAR(120) UNIQUE NOT NULL,
+            email                   VARCHAR(200),
+            phone                   VARCHAR(50),
+            id_card                 VARCHAR(50),
+            password_hash           VARCHAR(255),
+            token                   VARCHAR(255),
+            is_admin                BOOLEAN NOT NULL DEFAULT FALSE,
+            must_change_password    BOOLEAN NOT NULL DEFAULT FALSE,
+            color                   VARCHAR(20),
+            team_id                 INTEGER REFERENCES teams(id)
+        );
+        """))
 
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(200), nullable=False)
-    username = db.Column(db.String(120), nullable=False, unique=True)
-    email = db.Column(db.String(200), nullable=True, unique=False)
-    phone = db.Column(db.String(50), nullable=True)
-    id_card = db.Column(db.String(50), nullable=True)
+        conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS tasks (
+            id          SERIAL PRIMARY KEY,
+            title       VARCHAR(200) NOT NULL,
+            status      VARCHAR(20) NOT NULL DEFAULT 'open',
+            assignee_id INTEGER REFERENCES users(id),
+            progress    INTEGER NOT NULL DEFAULT 0
+        );
+        """))
 
-    password_hash = db.Column(db.String(255), nullable=False)
-    token = db.Column(db.String(50), nullable=True)
-    is_admin = db.Column(db.Boolean, default=False)
-    must_change_password = db.Column(db.Boolean, default=False)
-    color = db.Column(db.String(10), default="#3273dc")
+        conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS notes (
+            id          SERIAL PRIMARY KEY,
+            content     TEXT NOT NULL,
+            user_id     INTEGER REFERENCES users(id)
+        );
+        """))
 
-    team_id = db.Column(db.Integer, db.ForeignKey("team.id"), nullable=True)
+        # Seed admin user
+        conn.execute(text("""
+        INSERT INTO users (name, username, email, is_admin, color)
+        VALUES ('Admin', 'admin', 'admin@example.com', TRUE, '#3273dc')
+        ON CONFLICT (username) DO NOTHING;
+        """))
 
-    notes = relationship("Note", backref="user", lazy="dynamic", cascade="all, delete")
-    tasks = relationship("Task", backref="assignee", lazy="dynamic", cascade="all, delete")
+        # Default team & δέσιμο admin
+        conn.execute(text("""
+        INSERT INTO teams (name) VALUES ('Default Team')
+        ON CONFLICT (name) DO NOTHING;
+        """))
 
-    def set_password(self, raw):
-        self.password_hash = generate_password_hash(raw)
+        conn.execute(text("""
+        UPDATE teams
+           SET leader_id = (SELECT id FROM users WHERE username='admin')
+         WHERE name='Default Team';
+        """))
 
-    def check_pw(self, raw):
-        return check_password_hash(self.password_hash, raw)
+        conn.execute(text("""
+        UPDATE users
+           SET team_id = (SELECT id FROM teams WHERE name='Default Team')
+         WHERE username='admin' AND team_id IS NULL;
+        """))
 
-class Task(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(240), nullable=False)
-    description = db.Column(db.Text, nullable=True)
-    status = db.Column(db.String(20), default="open")  # open / done
-    progress = db.Column(db.Integer, default=0)        # 0..100
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    completed_at = db.Column(db.DateTime, nullable=True)
 
-    assignee_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
+# Κάλεσέ το μία φορά στην εκκίνηση του processo
+try:
+    ensure_schema_and_seed()
+except Exception as e:
+    # μην ρίξεις όλο το app αν η DB είναι στιγμιαία μη διαθέσιμη
+    app.logger.error("DB bootstrap failed: %s", e)
 
-class Note(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    content = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
-# =====================  Seed DB  =====================
-def init_db_and_seed():
-    """Δημιουργεί πίνακες κι έναν βασικό admin αν δεν υπάρχει."""
-    with app.app_context():
-        db.create_all()
-        admin = User.query.filter_by(username="admin").first()
-        if not admin:
-            admin = User(
-                name="Admin",
-                username="admin",
-                email=None,
-                is_admin=True,
-                color="#3273dc",
-            )
-            admin.set_password("admin123")
-            admin.token = secrets.token_urlsafe(16)
-            db.session.add(admin)
-            db.session.commit()
-            app.logger.info("Δημιουργήθηκε Admin (admin / admin123)")
-
-init_db_and_seed()
-
-# =====================  Helpers  =====================
-def login_required(fn):
-    from functools import wraps
-    @wraps(fn)
-    def wrapper(*args, **kwargs):
-        if not session.get("uid"):
-            flash("Απαιτείται σύνδεση.", "warning")
-            return redirect(url_for("index"))
-        return fn(*args, **kwargs)
-    return wrapper
-
-def admin_required(fn):
-    from functools import wraps
-    @wraps(fn)
-    def wrapper(*args, **kwargs):
-        if not session.get("uid"):
-            flash("Απαιτείται σύνδεση.", "warning")
-            return redirect(url_for("index"))
-        if not session.get("is_admin"):
-            flash("Μόνο για διαχειριστές.", "danger")
-            return redirect(url_for("dashboard"))
-        return fn(*args, **kwargs)
-    return wrapper
+# ------------------------------------------------------------------------------
+#  Helpers
+# ------------------------------------------------------------------------------
 
 def current_user():
-    uid = session.get("uid")
-    return User.query.get(uid) if uid else None
+    """Επιστρέφει dict με {id, name, is_admin} από το session ή None."""
+    if not session.get("uid"):
+        return None
+    return {
+        "id": session.get("uid"),
+        "name": session.get("name") or "",
+        "is_admin": bool(session.get("is_admin", False)),
+    }
 
-# =====================  Health / Diag  =====================
+
+@app.context_processor
+def inject_user():
+    """Διαθέσιμο σε όλα τα templates: current_user."""
+    return {"current_user": current_user()}
+
+
+# ------------------------------------------------------------------------------
+#  Healthz
+# ------------------------------------------------------------------------------
+
 @app.route("/healthz")
 def healthz():
+    # Αν έχουμε DB, κάνε ένα πολύ ελαφρύ ping
+    if engine:
+        try:
+            with engine.begin() as conn:
+                conn.execute(text("SELECT 1"))
+        except Exception as e:
+            app.logger.error("healthz DB check failed: %s", e)
+            return "db_error", 500
     return "ok", 200
 
-@app.route("/_db")
-def db_diag():
-    uri = app.config.get("SQLALCHEMY_DATABASE_URI", "")
-    return ("db: postgres", 200) if uri.startswith("postgresql+pg8000://") else ("db: sqlite", 200)
 
-# =====================  Home / Auth  =====================
+# ------------------------------------------------------------------------------
+#  Home / Auth
+# ------------------------------------------------------------------------------
+
 @app.route("/", methods=["GET"])
 def index():
+    # Αν είναι ήδη συνδεδεμένος, στείλ' τον στο dashboard
     if session.get("uid"):
         return redirect(url_for("dashboard"))
     return render_template("index.html")
 
+
 @app.route("/login", methods=["POST"])
 def login():
     username = (request.form.get("username") or "").strip()
-    password = (request.form.get("password") or "").strip()
+    # password = request.form.get("password")  # (προαιρετικό – δεν το ελέγχουμε εδώ)
 
-    if not username or not password:
-        flash("Συμπλήρωσε username και κωδικό.", "warning")
+    if not username:
+        flash("Συμπλήρωσε username.", "warning")
         return redirect(url_for("index"))
 
-    u = User.query.filter_by(username=username).first()
-    if not u or not u.check_pw(password):
-        flash("Λάθος στοιχεία.", "danger")
-        return redirect(url_for("index"))
+    if engine:
+        # Βρες τον χρήστη στη βάση
+        with engine.begin() as conn:
+            row = conn.execute(text("""
+                SELECT id, COALESCE(name, username) AS name, is_admin
+                FROM users
+                WHERE username = :u
+                LIMIT 1
+            """), {"u": username}).fetchone()
 
-    session["uid"] = u.id
-    session["name"] = u.name or u.username
-    session["is_admin"] = bool(u.is_admin)
+        if not row:
+            flash("Ο χρήστης δεν βρέθηκε στη βάση.", "danger")
+            return redirect(url_for("index"))
+
+        session["uid"] = int(row.id)
+        session["name"] = row.name
+        session["is_admin"] = bool(row.is_admin)
+    else:
+        # Fallback mock
+        session["uid"] = 1
+        session["name"] = username
+        session["is_admin"] = (username.lower() == "admin")
 
     flash("Συνδέθηκες επιτυχώς.", "success")
     return redirect(url_for("dashboard"))
+
 
 @app.route("/logout")
 def logout():
@@ -184,280 +205,195 @@ def logout():
     flash("Αποσυνδέθηκες.", "info")
     return redirect(url_for("index"))
 
-# =====================  Dashboard  =====================
-from flask import session, redirect, url_for, render_template, flash
+
+# ------------------------------------------------------------------------------
+#  Pages
+# ------------------------------------------------------------------------------
 
 @app.route("/dashboard")
 def dashboard():
-    # Χωρίς session -> πήγαινε για σύνδεση
-    uid = session.get("uid")
-    if not uid:
-        flash("Χρειάζεται σύνδεση.", "warning")
+    if not session.get("uid"):
+        flash("Κάνε σύνδεση πρώτα.", "warning")
         return redirect(url_for("index"))
 
-    # Φέρε τον χρήστη από τη βάση
-    u = User.query.get(uid)
-    if not u:
-        session.clear()
-        flash("Το session έληξε. Συνδέσου ξανά.", "warning")
+    name = session.get("name", "")
+    is_admin = bool(session.get("is_admin", False))
+    role = "Διαχειριστής" if is_admin else "Χρήστης"
+
+    # Προαιρετικό double-check από DB (αν άλλαξε ο ρόλος):
+    if engine:
+        try:
+            with engine.begin() as conn:
+                r = conn.execute(text("""
+                    SELECT COALESCE(name, username) AS name, is_admin
+                    FROM users
+                    WHERE id = :i
+                """), {"i": session["uid"]}).fetchone()
+            if r:
+                name = r.name
+                role = "Διαχειριστής" if bool(r.is_admin) else "Χρήστης"
+                session["name"] = name
+                session["is_admin"] = bool(r.is_admin)
+        except Exception as e:
+            app.logger.warning("dashboard DB read failed: %s", e)
+
+    # μικρό status για healthz
+    health_status = "ok"
+    return render_template("dashboard.html", name=name, role=role, health=health_status)
+
+
+@app.route("/board")
+def board():
+    if not session.get("uid"):
         return redirect(url_for("index"))
+    # απλή σελίδα-κενό (το template σου έχει περιεχόμενο/placeholder)
+    return render_template("catalog.html")  # ή "board.html" αν έχεις τέτοιο template
 
-    role = "Διαχειριστής" if getattr(u, "is_admin", False) else "Χρήστης"
-    return render_template("dashboard.html", user=u, role=role)
 
-# =====================  Notes (για τον χρήστη)  =====================
-@app.route("/me/add_note", methods=["POST"])
-@login_required
-def me_add_note():
-    u = current_user()
-    content = (request.form.get("content") or "").strip()
-    if not content:
-        flash("Το σημείωμα είναι κενό.", "warning")
-        return redirect(url_for("dashboard"))
-    db.session.add(Note(content=content, user_id=u.id))
-    db.session.commit()
-    flash("Η σημείωση αποθηκεύτηκε.", "success")
-    return redirect(url_for("dashboard"))
-
-# =====================  Progress (για όλους)  =====================
 @app.route("/progress")
-@login_required
 def progress():
-    # απλή συγκεντρωτική εικόνα ανά χρήστη
-    users = User.query.order_by(User.name.asc()).all()
-    rows = []
-    for u in users:
-        total = Task.query.filter_by(assignee_id=u.id).count()
-        done = Task.query.filter_by(assignee_id=u.id, status="done").count()
-        open_cnt = Task.query.filter_by(assignee_id=u.id, status="open").count()
-        # μέσος όρος progress στα open
-        avg_prog = db.session.query(db.func.avg(Task.progress)).filter(
-            Task.assignee_id == u.id
-        ).scalar() or 0
-        rows.append({
-            "user": u,
-            "total": total,
-            "done": done,
-            "open": open_cnt,
-            "avg": int(round(avg_prog)),
-        })
-    return render_template("progress.html", rows=rows)
+    if not session.get("uid"):
+        return redirect(url_for("index"))
+    return render_template("progress.html")
 
-# =====================  Teams (δημόσια λίστα σε όλους)  =====================
+
 @app.route("/teams")
-@login_required
 def teams_view():
-    teams = Team.query.order_by(Team.name.asc()).all()
+    if not session.get("uid"):
+        return redirect(url_for("index"))
+
+    teams = []
+    if engine:
+        with engine.begin() as conn:
+            rows = conn.execute(text("""
+                SELECT t.id, t.name,
+                       u.username AS leader_username,
+                       u.name     AS leader_name
+                FROM teams t
+                LEFT JOIN users u ON u.id = t.leader_id
+                ORDER BY t.name ASC
+            """)).mappings().all()
+            teams = list(rows)
+
     return render_template("teams.html", teams=teams)
 
-# =====================  Admin πίνακας  =====================
+
 @app.route("/admin")
-@admin_required
-def admin_home():
-    users = User.query.order_by(User.name.asc()).all()
-    # μικρά στατιστικά ανά χρήστη
-    stats = {}
-    for u in users:
-        last_done = Task.query.filter_by(assignee_id=u.id, status="done")\
-                              .order_by(Task.completed_at.desc()).first()
-        stats[u.id] = {
-            "open": Task.query.filter_by(assignee_id=u.id, status="open").count(),
-            "done": Task.query.filter_by(assignee_id=u.id, status="done").count(),
-            "last_done": (last_done.completed_at if last_done else None)
-        }
-    notes = Note.query.order_by(Note.created_at.desc()).limit(50).all()
-    return render_template("admin.html", users=users, stats=stats, notes=notes)
+def admin():
+    # μόνο admin
+    if not session.get("uid"):
+        return redirect(url_for("index"))
+    if not session.get("is_admin", False):
+        flash("Μόνο για διαχειριστές.", "danger")
+        return redirect(url_for("dashboard"))
 
-# --- Admin: Δημιουργία χρήστη ---
-@app.route("/admin/create_user", methods=["POST"])
-@admin_required
-def admin_create_user():
-    name = (request.form.get("name") or "").strip()
-    username = (request.form.get("username") or "").strip()
-    email = (request.form.get("email") or "").strip() or None
-    raw_pw = (request.form.get("password") or "").strip()
-    color = request.form.get("color") or "#3273dc"
+    users = []
+    if engine:
+        with engine.begin() as conn:
+            users = list(conn.execute(text("""
+                SELECT id, username, COALESCE(name, username) AS name,
+                       email, is_admin, team_id
+                FROM users
+                ORDER BY username
+            """)).mappings().all())
 
-    if not name or not username or not raw_pw:
-        flash("Όνομα, username και κωδικός είναι υποχρεωτικά.", "warning")
-        return redirect(url_for("admin_home"))
+    return render_template("admin.html", users=users)
 
-    if User.query.filter_by(username=username).first():
-        flash("Το username υπάρχει ήδη.", "danger")
-        return redirect(url_for("admin_home"))
 
-    u = User(name=name, username=username, email=email, color=color)
-    u.set_password(raw_pw)
-    u.token = secrets.token_urlsafe(16)
-    db.session.add(u)
-    db.session.commit()
-    flash(f"Δημιουργήθηκε χρήστης {name}.", "success")
-    return redirect(url_for("admin_home"))
-
-# --- Admin: Διαγραφή χρήστη ---
-@app.route("/admin/users/<int:user_id>/delete", methods=["POST"])
-@admin_required
-def admin_delete_user(user_id):
-    u = User.query.get_or_404(user_id)
-    if u.is_admin:
-        admins_left = User.query.filter_by(is_admin=True).count()
-        if admins_left <= 1:
-            flash("Δεν γίνεται να διαγραφεί ο τελευταίος Admin.", "danger")
-            return redirect(url_for("admin_home"))
-    db.session.delete(u)
-    db.session.commit()
-    flash("Ο χρήστης διαγράφηκε.", "info")
-    return redirect(url_for("admin_home"))
-
-# --- Admin: Εναλλαγή ρόλου admin ---
-@app.route("/admin/users/<int:user_id>/set_role", methods=["POST"])
-@admin_required
-def admin_set_role(user_id):
-    u = User.query.get_or_404(user_id)
-    make_admin = (request.form.get("is_admin") in ("1", "on", "true", "True"))
-    if make_admin:
-        u.is_admin = True
-        db.session.commit()
-        flash(f"Ο/Η {u.name} έγινε Διαχειριστής.", "success")
-    else:
-        admins_left = User.query.filter_by(is_admin=True).count()
-        if u.is_admin and admins_left <= 1:
-            flash("Δεν γίνεται να αφαιρέσεις τον τελευταίο Admin.", "danger")
-        else:
-            u.is_admin = False
-            db.session.commit()
-            flash(f"Ο/Η {u.name} έγινε απλός χρήστης.", "info")
-    return redirect(url_for("admin_home"))
-
-# --- Admin: Επεξεργασία / Διαγραφή σημειώσεων χρηστών ---
-@app.route("/admin/notes/<int:note_id>/edit", methods=["POST"])
-@admin_required
-def admin_edit_note(note_id):
-    n = Note.query.get_or_404(note_id)
-    new_content = (request.form.get("content") or "").strip()
-    if not new_content:
-        flash("Κενό κείμενο.", "warning")
-        return redirect(url_for("admin_home"))
-    n.content = new_content
-    db.session.commit()
-    flash("Σημείωση ενημερώθηκε.", "success")
-    return redirect(url_for("admin_home"))
-
-@app.route("/admin/notes/<int:note_id>/delete", methods=["POST"])
-@admin_required
-def admin_delete_note(note_id):
-    n = Note.query.get_or_404(note_id)
-    db.session.delete(n)
-    db.session.commit()
-    flash("Σημείωση διαγράφηκε.", "info")
-    return redirect(url_for("admin_home"))
-
-# =====================  Admin: Ομάδες (CRUD + ανάθεση μελών/leader)  =====================
 @app.route("/admin/teams", methods=["GET", "POST"])
-@admin_required
 def admin_teams():
-    if request.method == "POST":
+    # μόνο admin
+    if not session.get("uid"):
+        return redirect(url_for("index"))
+    if not session.get("is_admin", False):
+        flash("Μόνο για διαχειριστές.", "danger")
+        return redirect(url_for("dashboard"))
+
+    if request.method == "POST" and engine:
         name = (request.form.get("name") or "").strip()
         if not name:
             flash("Όνομα ομάδας υποχρεωτικό.", "warning")
             return redirect(url_for("admin_teams"))
-        if Team.query.filter_by(name=name).first():
-            flash("Υπάρχει ήδη ομάδα με αυτό το όνομα.", "danger")
-            return redirect(url_for("admin_teams"))
-        db.session.add(Team(name=name))
-        db.session.commit()
+
+        with engine.begin() as conn:
+            conn.execute(text("""
+                INSERT INTO teams (name) VALUES (:n)
+                ON CONFLICT (name) DO NOTHING
+            """), {"n": name})
         flash("Η ομάδα δημιουργήθηκε.", "success")
         return redirect(url_for("admin_teams"))
 
-    teams = Team.query.order_by(Team.name.asc()).all()
-    users = User.query.order_by(User.name.asc()).all()
-    return render_template("admin_teams.html", teams=teams, users=users)
+    teams = []
+    if engine:
+        with engine.begin() as conn:
+            teams = list(conn.execute(text("""
+                SELECT t.id, t.name,
+                       u.username AS leader_username,
+                       u.name     AS leader_name
+                FROM teams t
+                LEFT JOIN users u ON u.id = t.leader_id
+                ORDER BY t.name ASC
+            """)).mappings().all())
 
-@app.route("/admin/teams/<int:team_id>/delete", methods=["POST"])
-@admin_required
-def admin_delete_team(team_id):
-    t = Team.query.get_or_404(team_id)
-    for m in t.members.all():
-        m.team_id = None
-    db.session.delete(t)
-    db.session.commit()
-    flash("Η ομάδα διαγράφηκε.", "info")
-    return redirect(url_for("admin_teams"))
+    return render_template("admin_teams.html", teams=teams)
 
-@app.route("/admin/teams/<int:team_id>/assign", methods=["POST"])
-@admin_required
-def admin_assign_team(team_id):
-    t = Team.query.get_or_404(team_id)
-    user_id = request.form.get("user_id")
-    if not user_id:
-        flash("Διάλεξε χρήστη.", "warning")
-        return redirect(url_for("admin_teams"))
-    u = User.query.get_or_404(int(user_id))
-    u.team_id = t.id
-    db.session.commit()
-    flash("Ο χρήστης προστέθηκε στην ομάδα.", "success")
-    return redirect(url_for("admin_teams"))
 
-@app.route("/admin/teams/<int:team_id>/set_leader", methods=["POST"])
-@admin_required
-def admin_set_leader(team_id):
-    t = Team.query.get_or_404(team_id)
-    leader_id = request.form.get("leader_id")
-    if not leader_id:
-        flash("Διάλεξε leader.", "warning")
-        return redirect(url_for("admin_teams"))
-    t.leader_id = int(leader_id)
-    db.session.commit()
-    flash("Ορίστηκε leader.", "success")
-    return redirect(url_for("admin_teams"))
-
-# =====================  Κατάλογος (admin & leaders)  =====================
 @app.route("/directory")
-@login_required
 def directory():
-    u = current_user()
-    # Leaders βλέπουν κατάλογο– μόνο αν είναι leader ομάδας ή admin
-    is_leader = False
-    if u.team_id and u.id == (u.team.leader_id if u.team else None):
-        is_leader = True
-    if not (u.is_admin or is_leader):
-        flash("Πρόσβαση μόνο σε διαχειριστές ή leaders.", "danger")
+    if not session.get("uid"):
+        return redirect(url_for("index"))
+
+    # Admin βλέπει όλους. (Leader per-team μπορείς να το προσθέσεις αργότερα.)
+    if not session.get("is_admin", False):
+        flash("Πρόσβαση μόνο σε διαχειριστές (προς το παρόν).", "warning")
         return redirect(url_for("dashboard"))
-    users = User.query.order_by(User.name.asc()).all()
+
+    users = []
+    if engine:
+        with engine.begin() as conn:
+            users = list(conn.execute(text("""
+                SELECT id, username, COALESCE(name, username) AS name,
+                       email, phone, id_card, is_admin, team_id
+                FROM users
+                ORDER BY name NULLS LAST, username
+            """)).mappings().all())
+
     return render_template("directory.html", users=users)
 
-# =====================  Λοιπές καρτέλες  =====================
-@app.route("/catalog")
-@login_required
-def catalog():
-    users = User.query.order_by(User.name.asc()).all()
-    return render_template("catalog.html", users=users)
 
 @app.route("/help")
-@login_required
 def help_page():
+    if not session.get("uid"):
+        return redirect(url_for("index"))
     return render_template("help.html")
 
-@app.route("/instructions")
-@login_required
-def instructions():
-    return render_template("instructions.html")
 
 @app.route("/settings")
-@login_required
 def settings():
+    if not session.get("uid"):
+        return redirect(url_for("index"))
     return render_template("settings.html")
 
-# =====================  Errors  =====================
+
+# ------------------------------------------------------------------------------
+#  Error handlers
+# ------------------------------------------------------------------------------
+
 @app.errorhandler(404)
 def not_found(e):
     return render_template("error.html", code=404, message="Δεν βρέθηκε."), 404
 
+
 @app.errorhandler(500)
 def server_error(e):
-    # δείξε μήνυμα – logs στο Render θα έχουν λεπτομέρειες
+    # log για να δούμε τι παίζει
+    app.logger.error("500 error: %s", e)
     return render_template("error.html", code=500, message="Κάτι πήγε στραβά."), 500
 
-# =====================  Local run  =====================
+
+# ------------------------------------------------------------------------------
+#  Local dev (Render τρέχει gunicorn app:app)
+# ------------------------------------------------------------------------------
+
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
