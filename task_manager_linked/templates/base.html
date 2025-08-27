@@ -1,64 +1,19 @@
 <!DOCTYPE html>
 <html lang="el">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>{% block title %}Task Manager{% endblock %}</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
 </head>
 <body>
-  <!-- Navbar -->
-  <nav class="navbar is-dark" role="navigation" aria-label="main navigation">
+  <nav class="navbar is-dark">
     <div class="navbar-brand">
-      <a class="navbar-item" href="{{ url_for('dashboard') }}">
-        📋 Task Manager
-      </a>
-    </div>
-
-    <div class="navbar-menu">
-      <div class="navbar-start">
-        <a class="navbar-item" href="{{ url_for('dashboard') }}">Dashboard</a>
-        <a class="navbar-item" href="{{ url_for('progress') }}">Πρόοδος</a>
-        <a class="navbar-item" href="{{ url_for('teams_view') }}">Ομάδες</a>
-        <a class="navbar-item" href="{{ url_for('help_page') }}">Οδηγίες</a>
-        {% if current_user() and (current_user().is_admin or current_user().is_leader) %}
-          <a class="navbar-item" href="{{ url_for('directory') }}">Κατάλογος</a>
-        {% endif %}
-        {% if current_user() and current_user().is_admin %}
-          <a class="navbar-item" href="{{ url_for('admin') }}">Admin</a>
-        {% endif %}
-      </div>
-
-      <div class="navbar-end">
-        {% if current_user() %}
-          <div class="navbar-item">
-            Συνδεδεμένος ως <strong>&nbsp;{{ current_user().username }}</strong>
-          </div>
-          <div class="navbar-item">
-            <a class="button is-light" href="{{ url_for('logout') }}">Αποσύνδεση</a>
-          </div>
-        {% else %}
-          <div class="navbar-item">
-            <a class="button is-light" href="{{ url_for('index') }}">Σύνδεση</a>
-          </div>
-        {% endif %}
-      </div>
+      <a class="navbar-item" href="/">📋 Task Manager</a>
     </div>
   </nav>
-
-  <!-- Flash messages -->
   <section class="section">
     <div class="container">
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          {% for category, message in messages %}
-            <div class="notification is-{{ category }}">
-              {{ message }}
-            </div>
-          {% endfor %}
-        {% endif %}
-      {% endwith %}
-      
       {% block content %}{% endblock %}
     </div>
   </section>
