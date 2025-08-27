@@ -1,85 +1,41 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="el">
 <head>
-  <meta charset="utf-8">
-  <title>{% block title %}Task Manager{% endblock %}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Μίνιμαλ styling -->
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin:0; }
-    .navbar { background:#111827; color:#fff; padding:12px 16px; display:flex; align-items:center; gap:16px; }
-    .navbar a { color:#fff; text-decoration:none; margin-right:12px; opacity:0.9 }
-    .navbar a:hover { opacity:1 }
-    .spacer { flex:1 }
-    .clock { font-variant-numeric: tabular-nums; opacity:.9 }
-    .container { max-width:1000px; margin:24px auto; padding:0 16px; }
-    .flash { padding:10px 12px; border-radius:6px; margin:10px 0; }
-    .flash.success { background:#DCFCE7; color:#065F46; }
-    .flash.info { background:#DBEAFE; color:#1E3A8A; }
-    .flash.warning { background:#FEF9C3; color:#854D0E; }
-    .flash.danger { background:#FEE2E2; color:#991B1B; }
-    footer { color:#6B7280; font-size:12px; text-align:center; padding:24px 0; }
-    button, input, select { font:inherit; padding:8px 10px; border:1px solid #D1D5DB; border-radius:6px; }
-    button { background:#111827; color:white; cursor:pointer; }
-    button:hover { background:#0B1220; }
-    .muted { color:#6B7280 }
-  </style>
-  {% block head %}{% endblock %}
+    <meta charset="UTF-8">
+    <title>Task Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <div class="navbar">
-    <strong>Task Manager</strong>
+    <nav>
+        <a href="{{ url_for('index') }}">Αρχική</a> |
+        <a href="{{ url_for('dashboard') }}">Πίνακας</a> |
+        <a href="{{ url_for('progress_view') }}">Πρόοδος</a> |
+        <a href="{{ url_for('teams') }}">Ομάδες</a> |
+        <a href="{{ url_for('admin') }}">Admin</a> |
+        <a href="{{ url_for('manage_teams') }}">Διαχείριση Ομάδων</a> |
+        <a href="{{ url_for('catalog') }}">Κατάλογος</a> |
+        <a href="{{ url_for('help_page') }}">Οδηγίες</a> |
+        <a href="{{ url_for('settings') }}">Ρυθμίσεις</a>
+        {% if session.get('uid') %}
+            | <span>Γεια σου, {{ session.get('username') }}</span>
+            | <a href="{{ url_for('logout') }}">Αποσύνδεση</a>
+        {% endif %}
+    </nav>
 
-    {% if session.get('uid') %}
-      <a href="{{ url_for('dashboard') }}">Πίνακας</a>
-      <a href="{{ url_for('progress') }}">Πρόοδος</a>
-      <a href="{{ url_for('teams') }}">Ομάδες</a>
-      {% if session.get('is_admin') %}
-        <a href="{{ url_for('admin') }}">Admin</a>
-        <a href="{{ url_for('admin_teams') }}">Διαχείριση Ομάδων</a>
-        <a href="{{ url_for('catalog') }}">Κατάλογος</a>
-      {% endif %}
-      <a href="{{ url_for('help_page') }}">Οδηγίες</a>
-      <a href="{{ url_for('settings') }}">Ρυθμίσεις</a>
-      <div class="spacer"></div>
-      <span class="muted">Γεια σου, {{ session.get('name') }}</span>
-      <span class="clock" id="clock"></span>
-      <a href="{{ url_for('logout') }}">Αποσύνδεση</a>
-    {% else %}
-      <div class="spacer"></div>
-      <a href="{{ url_for('index') }}">Σύνδεση</a>
-    {% endif %}
-  </div>
+    <hr>
 
-  <div class="container">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="flash {{ category }}">{{ message }}</div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+    <main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <ul>
+              {% for category, message in messages %}
+                <li><strong>{{ category }}:</strong> {{ message }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
 
-    {% block content %}{% endblock %}
-  </div>
-
-  <footer>
-    <div>status: <code>/healthz</code> → “ok”</div>
-  </footer>
-
-  <script>
-    function tick() {
-      const el = document.getElementById('clock');
-      if (!el) return;
-      const now = new Date();
-      const fmt = new Intl.DateTimeFormat('el-GR', {
-        weekday: 'short', day: '2-digit', month: '2-digit', year: '2-digit',
-        hour: '2-digit', minute: '2-digit', second: '2-digit'
-      });
-      el.textContent = fmt.format(now);
-    }
-    setInterval(tick, 1000); tick();
-  </script>
-  {% block scripts %}{% endblock %}
+        {% block content %}{% endblock %}
+    </main>
 </body>
 </html>
