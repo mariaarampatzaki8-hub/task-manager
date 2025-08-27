@@ -1,6 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Πρόοδος{% endblock %}
 {% block content %}
-  <h1>Πρόοδος Ομάδας</h1>
-  <p class="muted">Mock σελίδα. Εδώ θα εμφανίζονται τα ποσοστά/μπάρες προόδου όλων.</p>
+<h1>Πρόοδος</h1>
+<table>
+  <thead><tr><th>Χρήστης</th><th>Σύνολο</th><th>Ανοικτά</th><th>Μ.Ο. %</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+    <tr><td>{{ r.user }}</td><td>{{ r.total }}</td><td>{{ r.open }}</td><td>{{ r.avg }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
 {% endblock %}
