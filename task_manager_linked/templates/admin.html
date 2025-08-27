@@ -1,6 +1,29 @@
 {% extends "base.html" %}
-{% block title %}Admin{% endblock %}
 {% block content %}
-  <h1>Πίνακας Διαχείρισης</h1>
-  <p class="muted">Mock admin panel. Αργότερα θα μπουν χρήστες/εργασίες/σημειώσεις.</p>
+<h1>Admin: Χρήστες</h1>
+<h3>Νέος χρήστης</h3>
+<form method="post" action="{{ url_for('admin_create_user') }}">
+  <p><label>Username <input name="username" required></label></p>
+  <p><label>Email <input name="email" type="email"></label></p>
+  <p><label>Password <input name="password" type="password" required></label></p>
+  <p><label>Ομάδα (προαιρετικά) <input name="team"></label></p>
+  <p><label><input type="checkbox" name="is_admin"> Διαχειριστής</label></p>
+  <p><button type="submit">Δημιουργία</button></p>
+</form>
+
+<h3>Όλοι οι χρήστες</h3>
+<table>
+  <thead><tr><th>#</th><th>Username</th><th>Email</th><th>Role</th><th>Team</th></tr></thead>
+  <tbody>
+  {% for u in users %}
+    <tr>
+      <td>{{ u.id }}</td>
+      <td>{{ u.username }}</td>
+      <td>{{ u.email or '' }}</td>
+      <td>{{ 'Admin' if u.is_admin else 'User' }}</td>
+      <td>{{ u.team.name if u.team else '' }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
 {% endblock %}
