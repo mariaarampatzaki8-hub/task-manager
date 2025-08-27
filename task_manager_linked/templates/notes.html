@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="grid grid-2">
+  <div class="card">
+    <h2 style="margin-top:0">Οι σημειώσεις μου</h2>
+    {% if notes %}
+      <ul style="padding-left:18px;line-height:1.7">
+        {% for n in notes %}
+          <li>{{ n.content }} <span style="color:#94a3b8">· {{ n.created_at.strftime('%d/%m/%Y %H:%M') }}</span></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p style="color:#94a3b8">Δεν υπάρχουν σημειώσεις ακόμα.</p>
+    {% endif %}
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">Νέα σημείωση</h3>
+    <form method="post">
+      <label>Κείμενο</label>
+      <textarea name="content" rows="4" required placeholder="Γράψε την ερώτηση/παρατήρηση..."></textarea>
+      <div style="margin-top:12px">
+        <button class="btn" type="submit">Αποθήκευση</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
