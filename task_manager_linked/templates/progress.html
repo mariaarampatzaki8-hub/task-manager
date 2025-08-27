@@ -1,12 +1,30 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Πρόοδος</h1>
-<table>
-  <thead><tr><th>Χρήστης</th><th>Σύνολο</th><th>Ανοικτά</th><th>Μ.Ο. %</th></tr></thead>
-  <tbody>
-  {% for r in rows %}
-    <tr><td>{{ r.user }}</td><td>{{ r.total }}</td><td>{{ r.open }}</td><td>{{ r.avg }}</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
+<div class="card">
+  <h2 style="margin-top:0">Πρόοδος</h2>
+  <table>
+    <thead>
+      <tr><th>Χρήστης</th><th>Σύνολο</th><th>Ολοκληρωμένα</th><th>Μ.Ο. %</th></tr>
+    </thead>
+    <tbody>
+      {% if total is defined %}
+        <tr>
+          <td>{{ user.username }}</td>
+          <td>{{ total }}</td>
+          <td>{{ done }}</td>
+          <td>{{ avg }}</td>
+        </tr>
+      {% else %}
+        {% for r in rows %}
+          <tr>
+            <td>{{ r.user }}</td>
+            <td>{{ r.total }}</td>
+            <td>{{ r.done }}</td>
+            <td>{{ r.avg }}</td>
+          </tr>
+        {% endfor %}
+      {% endif %}
+    </tbody>
+  </table>
+</div>
 {% endblock %}
