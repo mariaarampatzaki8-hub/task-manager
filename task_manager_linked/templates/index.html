@@ -1,45 +1,30 @@
-{% extends "base.html" %}
-{% block title %}Αρχική · Task Manager{% endblock %}
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <title>Task Manager - Σύνδεση</title>
+</head>
+<body>
+  <h1>Καλώς ήρθες στο Task Manager</h1>
 
-{% block content %}
-<section class="section">
-  <div class="container" style="max-width:520px">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <ul>
+        {% for category, message in messages %}
+          <li><strong>{{ category }}:</strong> {{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
 
-    <h1 class="title">Καλώς ήρθες</h1>
-    <p class="subtitle">Σύνδεση στο Task Manager</p>
-
-    <!-- Τίπς για το demo -->
-    <div class="notification is-info is-light">
-      Για δοκιμή: γράψε <strong>admin</strong> στο username για σύνδεση ως διαχειριστής.
-      Ο κωδικός στο mock δεν ελέγχεται.
-    </div>
-
-    <form method="post" action="{{ url_for('login') }}">
-      <div class="field">
-        <label class="label">Username</label>
-        <div class="control">
-          <input class="input" type="text" name="username" placeholder="π.χ. admin" required>
-        </div>
-      </div>
-
-      <div class="field">
-        <label class="label">Κωδικός</label>
-        <div class="control">
-          <input class="input" type="password" name="password" placeholder="••••••••">
-        </div>
-        <p class="help">Στο mock δεν γίνεται έλεγχος κωδικού.</p>
-      </div>
-
-      <div class="field is-grouped is-justify-content-space-between">
-        <div class="control">
-          <button class="button is-primary" type="submit">Σύνδεση</button>
-        </div>
-        <div class="control">
-          <a class="button is-light" href="{{ url_for('help_page') }}">Οδηγίες</a>
-        </div>
-      </div>
-    </form>
-
-  </div>
-</section>
-{% endblock %}
+  <form action="{{ url_for('login') }}" method="post">
+    <label for="username">Username:</label>
+    <input type="text" name="username" id="username" required>
+    <br>
+    <label for="password">Password:</label>
+    <input type="password" name="password" id="password">
+    <br>
+    <button type="submit">Σύνδεση</button>
+  </form>
+</body>
+</html>
