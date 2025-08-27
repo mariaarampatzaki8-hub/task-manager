@@ -1,14 +1,45 @@
 {% extends "base.html" %}
-{% block title %}Αρχική{% endblock %}
+{% block title %}Αρχική · Task Manager{% endblock %}
 
 {% block content %}
 <section class="section">
-  <div class="container">
-    <h1 class="title">Καλώς ήρθες στο Task Manager</h1>
-    <p class="subtitle">Συνδέσου για να συνεχίσεις.</p>
+  <div class="container" style="max-width:520px">
 
-    <a class="button is-primary" href="{{ url_for('login') }}">Σύνδεση</a>
-    <a class="button is-light" href="{{ url_for('help_page') }}">Οδηγίες</a>
+    <h1 class="title">Καλώς ήρθες</h1>
+    <p class="subtitle">Σύνδεση στο Task Manager</p>
+
+    <!-- Τίπς για το demo -->
+    <div class="notification is-info is-light">
+      Για δοκιμή: γράψε <strong>admin</strong> στο username για σύνδεση ως διαχειριστής.
+      Ο κωδικός στο mock δεν ελέγχεται.
+    </div>
+
+    <form method="post" action="{{ url_for('login') }}">
+      <div class="field">
+        <label class="label">Username</label>
+        <div class="control">
+          <input class="input" type="text" name="username" placeholder="π.χ. admin" required>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label">Κωδικός</label>
+        <div class="control">
+          <input class="input" type="password" name="password" placeholder="••••••••">
+        </div>
+        <p class="help">Στο mock δεν γίνεται έλεγχος κωδικού.</p>
+      </div>
+
+      <div class="field is-grouped is-justify-content-space-between">
+        <div class="control">
+          <button class="button is-primary" type="submit">Σύνδεση</button>
+        </div>
+        <div class="control">
+          <a class="button is-light" href="{{ url_for('help_page') }}">Οδηγίες</a>
+        </div>
+      </div>
+    </form>
+
   </div>
 </section>
 {% endblock %}
