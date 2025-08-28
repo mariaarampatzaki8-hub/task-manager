@@ -18,21 +18,18 @@ os.makedirs(app.instance_path, exist_ok=True)
 def build_db_uri():
     uri = (os.environ.get("DATABASE_URL") or "").strip()
     if not uri:
-        # τοπικό fallback
         return "sqlite:///" + os.path.join(app.instance_path, "site.db")
-    # Μετατροπή για SQLAlchemy + pg8000
     if uri.startswith("postgres://"):
         uri = uri.replace("postgres://", "postgresql+pg8000://", 1)
     elif uri.startswith("postgresql://") and "+pg8000" not in uri:
         uri = uri.replace("postgresql://", "postgresql+pg8000://", 1)
-    # Σκόπιμα ΔΕΝ προσθέτουμε sslmode/connect_args εδώ (να αποφύγουμε conflicts).
     return uri
 
 app.config["SQLALCHEMY_DATABASE_URI"] = build_db_uri()
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
-# ---------------- MODELS (tm_* για να μην συγκρούονται με παλιά) ----------------
+# ---------------- MODELS ----------------
 class Team(db.Model):
     __tablename__ = "tm_teams"
     id = db.Column(db.Integer, primary_key=True)
@@ -44,6 +41,10 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(120), unique=True, nullable=False)
     email = db.Column(db.String(200))
+    # extra πεδία (αν δεν τα θες, άστα κενά)
+    phone = db.Column(db.String(50))
+    id_card = db.Column(db.String(50))
+
     password_hash = db.Column(db.String(255), nullable=False)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     color = db.Column(db.String(20), default="#3273dc")
@@ -65,14 +66,13 @@ class Task(db.Model):
 # ---------------- BOOTSTRAP / SEED ----------------
 def bootstrap_db():
     db.create_all()
-    # default team
+
     team = Team.query.filter_by(name="Default Team").first()
     if not team:
         team = Team(name="Default Team")
         db.session.add(team)
         db.session.commit()
 
-    # admin user
     admin = User.query.filter_by(username="admin").first()
     if not admin:
         admin = User(username="admin", email="admin@example.com", is_admin=True, color="#ff4444", team_id=team.id)
@@ -111,15 +111,26 @@ def admin_required(fn):
 def inject_user():
     return {"user": current_user()}
 
-# ---------------- HEALTH ----------------
+# ---------------- HEALTH / DIAG ----------------
 @app.route("/healthz")
 def healthz():
     return "ok", 200
 
+# γρήγορο διαγνωστικό (προαιρετικό)
+from sqlalchemy import inspect
+@app.route("/__diag")
+def __diag():
+    insp = inspect(db.engine)
+    tables = insp.get_table_names()
+    users = db.session.query(User).count()
+    tasks = db.session.query(Task).count()
+    return (f"tables={tables} users={users} tasks={tasks}", 200, {"Content-Type":"text/plain"})
+
 # ---------------- AUTH ----------------
 @app.route("/", methods=["GET"])
 def index():
-    if session.get("uid"): return redirect(url_for("dashboard"))
+    if session.get("uid"):
+        return redirect(url_for("dashboard"))
     return render_template("index.html")
 
 @app.route("/login", methods=["POST"])
@@ -158,8 +169,7 @@ def progress_view():
     avg = int(sum(t.progress for t in tasks) / total) if total else 0
     return render_template("progress.html", total=total, done=done, avg=avg)
 
-# alias για τυχόν παλιά menu links
-@app.route("/progress", endpoint="progress")
+@app.route("/progress", endpoint="progress")  # alias
 @login_required
 def progress_alias():
     return redirect(url_for("progress_view"))
@@ -185,8 +195,12 @@ def board():
 @login_required
 def directory():
     u = current_user()
-    # Admin βλέπει όλους — αλλιώς (προαιρετικά) φιλτράρεις ανά ομάδα
-    users = User.query.order_by(User.username.asc()).all() if (u and u.is_admin) else             User.query.filter_by(team_id=u.team_id).order_by(User.username.asc()).all() if u and u.team_id else []
+    users = (
+        User.query.order_by(User.username.asc()).all()
+        if (u and u.is_admin)
+        else User.query.filter_by(team_id=u.team_id).order_by(User.username.asc()).all()
+        if u and u.team_id else []
+    )
     return render_template("directory.html", users=users)
 
 @app.route("/help")
@@ -194,6 +208,7 @@ def directory():
 def help_page():
     return render_template("help.html")
 
+# ---------------- SETTINGS ----------------
 @app.route("/settings")
 @login_required
 def settings():
@@ -203,23 +218,19 @@ def settings():
 @login_required
 def update_profile():
     u = current_user()
-    email = (request.form.get("email") or "").strip() or None
-    color = (request.form.get("color") or "").strip() or "#3273dc"
-
-    # Αποθήκευση
-    u.email = email
-    u.color = color
+    u.email = (request.form.get("email") or "").strip() or None
+    u.color = (request.form.get("color") or "").strip() or "#3273dc"
+    # αν έχεις και phone/id_card στο template:
+    u.phone = (request.form.get("phone") or "").strip() or None
+    u.id_card = (request.form.get("id_card") or "").strip() or None
     db.session.commit()
-
     flash("Το προφίλ ενημερώθηκε.", "success")
     return redirect(url_for("settings"))
-
 
 @app.route("/settings/password", methods=["POST"])
 @login_required
 def update_password():
     u = current_user()
-
     current_pw = (request.form.get("current_password") or "").strip()
     new_pw     = (request.form.get("new_password") or "").strip()
     confirm_pw = (request.form.get("confirm_password") or "").strip()
@@ -227,22 +238,18 @@ def update_password():
     if not current_pw or not new_pw or not confirm_pw:
         flash("Συμπλήρωσε όλα τα πεδία.", "warning")
         return redirect(url_for("settings"))
-
     if not u.check_password(current_pw):
         flash("Λάθος τρέχων κωδικός.", "danger")
         return redirect(url_for("settings"))
-
     if new_pw != confirm_pw:
         flash("Η επιβεβαίωση δεν ταιριάζει.", "warning")
         return redirect(url_for("settings"))
-
     if len(new_pw) < 6:
         flash("Ο νέος κωδικός πρέπει να έχει τουλάχιστον 6 χαρακτήρες.", "warning")
         return redirect(url_for("settings"))
 
     u.set_password(new_pw)
     db.session.commit()
-
     flash("Ο κωδικός άλλαξε επιτυχώς.", "success")
     return redirect(url_for("settings"))
 
@@ -256,104 +263,6 @@ def admin():
     user_map = {u.id: u.username for u in users}
     return render_template("admin.html", users=users, teams=teams, tasks=tasks, user_map=user_map)
 
-
-@app.route("/admin/tasks", methods=["POST"])
-@admin_required
-def admin_create_task():
-    title = (request.form.get("title") or "").strip()
-    assignee_username = (request.form.get("assignee_username") or "").strip()
-    progress_raw = (request.form.get("progress") or "").strip()
-
-    if not title or not assignee_username:
-        flash("Τίτλος και Username αναλαμβάνοντος είναι υποχρεωτικά.", "warning")
-        return redirect(url_for("admin"))
-
-    user = User.query.filter_by(username=assignee_username).first()
-    if not user:
-        flash("Ο χρήστης δεν βρέθηκε.", "danger")
-        return redirect(url_for("admin"))
-
-    try:
-        progress = max(0, min(100, int(progress_raw))) if progress_raw else 0
-    except ValueError:
-        progress = 0
-
-    t = Task(title=title, assignee_id=user.id, status="open", progress=progress)
-    db.session.add(t)
-    db.session.commit()
-    flash("Η εργασία δημιουργήθηκε και ανατέθηκε.", "success")
-    return redirect(url_for("admin"))
-
-
-@app.route("/admin/tasks/<int:task_id>/toggle", methods=["POST"])
-@admin_required
-def admin_toggle_task(task_id):
-    t = Task.query.get_or_404(task_id)
-    t.status = "done" if t.status != "done" else "open"
-    if t.status == "done":
-        t.progress = 100
-    db.session.commit()
-    flash("Η κατάσταση της εργασίας ενημερώθηκε.", "info")
-    return redirect(url_for("admin"))
-
-
-@app.route("/admin/tasks/<int:task_id>/delete", methods=["POST"])
-@admin_required
-def admin_delete_task(task_id):
-    t = Task.query.get_or_404(task_id)
-    db.session.delete(t)
-    db.session.commit()
-    flash("Η εργασία διαγράφηκε.", "info")
-    return redirect(url_for("admin"))
-@app.route("/admin/tasks", methods=["POST"])
-@admin_required
-def admin_create_task():
-    title = (request.form.get("title") or "").strip()
-    assignee_username = (request.form.get("assignee_username") or "").strip()
-    progress_raw = (request.form.get("progress") or "").strip()
-
-    if not title or not assignee_username:
-        flash("Τίτλος και Username αναλαμβάνοντος είναι υποχρεωτικά.", "warning")
-        return redirect(url_for("admin"))
-
-    user = User.query.filter_by(username=assignee_username).first()
-    if not user:
-        flash("Ο χρήστης δεν βρέθηκε.", "danger")
-        return redirect(url_for("admin"))
-
-    try:
-        progress = max(0, min(100, int(progress_raw))) if progress_raw else 0
-    except ValueError:
-        progress = 0
-
-    t = Task(title=title, assignee_id=user.id, status="open", progress=progress)
-    db.session.add(t)
-    db.session.commit()
-    flash("Η εργασία δημιουργήθηκε και ανατέθηκε.", "success")
-    return redirect(url_for("admin"))
-
-
-@app.route("/admin/tasks/<int:task_id>/toggle", methods=["POST"])
-@admin_required
-def admin_toggle_task(task_id):
-    t = Task.query.get_or_404(task_id)
-    t.status = "done" if t.status != "done" else "open"
-    if t.status == "done":
-        t.progress = 100
-    db.session.commit()
-    flash("Η κατάσταση της εργασίας ενημερώθηκε.", "info")
-    return redirect(url_for("admin"))
-
-
-@app.route("/admin/tasks/<int:task_id>/delete", methods=["POST"])
-@admin_required
-def admin_delete_task(task_id):
-    t = Task.query.get_or_404(task_id)
-    db.session.delete(t)
-    db.session.commit()
-    flash("Η εργασία διαγράφηκε.", "info")
-    return redirect(url_for("admin"))
-
 @app.route("/admin/create_user", methods=["POST"])
 @admin_required
 def admin_create_user():
@@ -363,58 +272,83 @@ def admin_create_user():
     email = (request.form.get("email") or "").strip() or None
     color = (request.form.get("color") or "").strip() or "#3273dc"
     team_id = request.form.get("team_id") or None
+    phone = (request.form.get("phone") or "").strip() or None
+    id_card = (request.form.get("id_card") or "").strip() or None
 
     if not username or not password:
         flash("Username & κωδικός υποχρεωτικά.", "warning")
         return redirect(url_for("admin"))
-
     if User.query.filter_by(username=username).first():
         flash("Υπάρχει ήδη αυτό το username.", "danger")
         return redirect(url_for("admin"))
 
     team = Team.query.get(team_id) if team_id else None
-    u = User(username=username, email=email, is_admin=is_admin, color=color, team_id=team.id if team else None)
+    u = User(
+        username=username, email=email, phone=phone, id_card=id_card,
+        is_admin=is_admin, color=color, team_id=team.id if team else None
+    )
     u.set_password(password)
     db.session.add(u)
     db.session.commit()
     flash("Ο χρήστης δημιουργήθηκε.", "success")
     return redirect(url_for("admin"))
 
-@app.route("/admin/teams", methods=["GET", "POST"])
+# ---- Tasks από admin ----
+@app.route("/admin/tasks", methods=["POST"])
 @admin_required
-def admin_teams():
-    if request.method == "POST":
-        name = (request.form.get("name") or "").strip()
-        leader_username = (request.form.get("leader_username") or "").strip()
-        if not name:
-            flash("Όνομα ομάδας υποχρεωτικό.", "warning")
-            return redirect(url_for("admin_teams"))
-        if Team.query.filter_by(name=name).first():
-            flash("Υπάρχει ήδη ομάδα με αυτό το όνομα.", "danger")
-            return redirect(url_for("admin_teams"))
-        team = Team(name=name)
-        if leader_username:
-            leader = User.query.filter_by(username=leader_username).first()
-            if leader:
-                team.leader_id = leader.id
-        db.session.add(team)
-        db.session.commit()
-        flash("Η ομάδα δημιουργήθηκε.", "success")
-        return redirect(url_for("admin_teams"))
+def admin_create_task():
+    title = (request.form.get("title") or "").strip()
+    assignee_username = (request.form.get("assignee_username") or "").strip()
+    progress_raw = (request.form.get("progress") or "").strip()
 
-    teams = Team.query.order_by(Team.name.asc()).all()
-    users = User.query.order_by(User.username.asc()).all()
-    return render_template("admin_teams.html", teams=teams, users=users)
+    if not title or not assignee_username:
+        flash("Τίτλος και Username αναλαμβάνοντος είναι υποχρεωτικά.", "warning")
+        return redirect(url_for("admin"))
 
-# ---------------- ERROR HANDLERS ----------------
-from flask import render_template as _rt
+    user = User.query.filter_by(username=assignee_username).first()
+    if not user:
+        flash("Ο χρήστης δεν βρέθηκε.", "danger")
+        return redirect(url_for("admin"))
+
+    try:
+        progress = max(0, min(100, int(progress_raw))) if progress_raw else 0
+    except ValueError:
+        progress = 0
+
+    t = Task(title=title, assignee_id=user.id, status="open", progress=progress)
+    db.session.add(t)
+    db.session.commit()
+    flash("Η εργασία δημιουργήθηκε και ανατέθηκε.", "success")
+    return redirect(url_for("admin"))
+
+@app.route("/admin/tasks/<int:task_id>/toggle", methods=["POST"])
+@admin_required
+def admin_toggle_task(task_id):
+    t = Task.query.get_or_404(task_id)
+    t.status = "done" if t.status != "done" else "open"
+    if t.status == "done":
+        t.progress = 100
+    db.session.commit()
+    flash("Η κατάσταση της εργασίας ενημερώθηκε.", "info")
+    return redirect(url_for("admin"))
+
+@app.route("/admin/tasks/<int:task_id>/delete", methods=["POST"])
+@admin_required
+def admin_delete_task(task_id):
+    t = Task.query.get_or_404(task_id)
+    db.session.delete(t)
+    db.session.commit()
+    flash("Η εργασία διαγράφηκε.", "info")
+    return redirect(url_for("admin"))
+
+# ---------------- ERRORS ----------------
 @app.errorhandler(404)
 def not_found(e):
-    return _rt("error.html", code=404, message="Δεν βρέθηκε."), 404
+    return render_template("error.html", code=404, message="Δεν βρέθηκε."), 404
 
 @app.errorhandler(500)
 def server_error(e):
-    return _rt("error.html", code=500, message="Σφάλμα server."), 500
+    return render_template("error.html", code=500, message="Σφάλμα server."), 500
 
 # ---------------- ENTRY ----------------
 if __name__ == "__main__":
