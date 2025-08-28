@@ -1,53 +1,57 @@
 <!doctype html>
 <html lang="el">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Task Manager</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  </head>
-  <body>
-    <nav class="topbar">
-      <div class="brand"><a href="{{ url_for('index') }}">Task Manager</a></div>
-      <ul class="menu">
-        {% if session.get('uid') %}
-          <li><a href="{{ url_for('dashboard') }}">Πίνακας</a></li>
-          <li><a href="{{ url_for('progress_view') }}">Πρόοδος</a></li>
-          <li><a href="{{ url_for('board') }}">Κατάλογος</a></li>
-          <li><a href="{{ url_for('help_page') }}">Οδηγίες</a></li>
-          <li><a href="{{ url_for('settings') }}">Ρυθμίσεις</a></li>
-          {% if session.get('is_admin') %}
-            <li><a href="{{ url_for('admin') }}">Admin</a></li>
-            <li><a href="{{ url_for('admin_teams') }}">Διαχείριση Ομάδων</a></li>
-          {% endif %}
-          <li><a href="{{ url_for('logout') }}">Αποσύνδεση</a></li>
-        {% else %}
-          <li><a href="{{ url_for('index') }}">Αρχική</a></li>
-        {% endif %}
-      </ul>
-      <div class="user-pill">
-        {% if session.get('uid') %}
-          Γεια σου, <strong>{{ session.get('username') }}</strong>
-        {% endif %}
-      </div>
-    </nav>
+<head>
+  <meta charset="utf-8">
+  <title>Task Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin:0; }
+    .navbar { background:#111; color:#fff; padding:.6rem 1rem; display:flex; gap:1rem; align-items:center; }
+    .navbar a { color:#eee; text-decoration:none; padding:.35rem .5rem; }
+    .navbar a:hover { color:#fff; text-decoration:underline; }
+    .grow { flex:1; }
+    .container { max-width:1000px; margin:1.25rem auto; padding:0 1rem; }
+    .flash { padding:.7rem 1rem; border-radius:6px; margin:.5rem 0; }
+    .flash.success { background:#e6ffed; color:#065f46; }
+    .flash.info { background:#e5f3ff; color:#1e3a8a; }
+    .flash.warning { background:#fff6e5; color:#92400e; }
+    .flash.danger { background:#ffe5e5; color:#991b1b; }
+    footer { margin:3rem 0 1.5rem; color:#666; font-size:.9rem; text-align:right; }
+    code { background:#f3f3f3; padding:.15rem .35rem; border-radius:4px; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="{{ url_for('dashboard') }}">Task Manager</a>
+    <a href="{{ url_for('catalog') }}">Πίνακας</a>
+    <a href="{{ url_for('progress_view') }}">Πρόοδος</a>
+    <a href="{{ url_for('teams') }}">Ομάδες</a>
+    {% if user and user.is_admin %}
+      <a href="{{ url_for('admin') }}">Admin</a>
+      <a href="{{ url_for('admin_teams') }}">Διαχείριση Ομάδων</a>
+      <a href="{{ url_for('catalog') }}">Κατάλογος</a>
+    {% endif %}
+    <a href="{{ url_for('help_page') }}">Οδηγίες</a>
+    <a href="{{ url_for('settings') }}">Ρυθμίσεις</a>
+    <div class="grow"></div>
+    {% if user %}
+      <span>Γεια σου, {{ user.username }}</span>
+      <a href="{{ url_for('logout') }}">Αποσύνδεση</a>
+    {% endif %}
+  </nav>
 
-    <main class="container">
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          <div class="flashes">
-            {% for category, message in messages %}
-              <div class="flash {{ category }}">{{ category }}: {{ message }}</div>
-            {% endfor %}
-          </div>
-        {% endif %}
-      {% endwith %}
+  <div class="container">
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% if msgs %}
+        {% for cat, msg in msgs %}
+          <div class="flash {{ cat }}">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
 
-      {% block content %}{% endblock %}
-    </main>
-
-    <footer class="footer">
-      <small>status: <code>/healthz → "ok"</code></small>
-    </footer>
-  </body>
+    {% block content %}{% endblock %}
+    <footer>status: <code>/healthz → "ok"</code></footer>
+  </div>
+</body>
 </html>
