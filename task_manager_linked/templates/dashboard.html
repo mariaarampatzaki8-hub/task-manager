@@ -1,42 +1,7 @@
-{% extends "base.html" %}
-{% block content %}
-<h2 class="mb-4">Καλώς ήρθες, {{ user.username }}!</h2>
-
-<div class="row g-4">
-  <div class="col-md-6 col-lg-4">
-    <div class="card h-100 border-0 shadow">
-      <div class="card-body">
-        <h5 class="card-title">Ο ρόλος σου</h5>
-        <p class="card-text">
-          <span class="badge text-bg-{{ 'danger' if user.is_admin else 'secondary' }}">
-            {{ 'Διαχειριστής' if user.is_admin else 'Χρήστης' }}
-          </span>
-        </p>
-        {% if user.is_admin %}
-          <a href="{{ url_for('admin') }}" class="btn btn-outline-primary btn-sm">Πίνακας Διαχειριστή</a>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-
-  <div class="col-md-6 col-lg-4">
-    <div class="card h-100 border-0 shadow">
-      <div class="card-body">
-        <h5 class="card-title">Πρόοδος</h5>
-        <p class="text-secondary">Δες συνοπτικά την πορεία των εργασιών.</p>
-        <a href="{{ url_for('progress_view') }}" class="btn btn-outline-light btn-sm">Μετάβαση</a>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-md-6 col-lg-4">
-    <div class="card h-100 border-0 shadow">
-      <div class="card-body">
-        <h5 class="card-title">Ομάδες</h5>
-        <p class="text-secondary">Προβολή ομάδων και μελών.</p>
-        <a href="{{ url_for('teams') }}" class="btn btn-outline-light btn-sm">Προβολή</a>
-      </div>
-    </div>
-  </div>
-</div>
+{% extends "base.html" %}{% block content %}
+<h1>Dashboard</h1>
+<p>Γεια σου, <strong>{{ user.username }}</strong>! Ο ρόλος σου είναι:
+  <strong>{% if user.is_admin %}Διαχειριστής{% else %}Χρήστης{% endif %}</strong>.
+</p>
+<p>(Mock περιεχόμενο — εδώ αργότερα θα μπουν εργασίες, σημειώσεις κτλ.)</p>
 {% endblock %}
