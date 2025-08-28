@@ -1,10 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Σύνδεση</h1>
-<form method="post" action="{{ url_for('login') }}">
-  <p><label>Username <input name="username" required></label></p>
-  <p><label>Κωδικός <input type="password" name="password" required></label></p>
-  <p><button type="submit">Σύνδεση</button></p>
-  <p style="color:#666">Default admin: <code>admin / admin123</code></p>
-</form>
+  <h2>Σύνδεση</h2>
+  <form method="POST" action="{{ url_for('login') }}">
+    <label for="username">Όνομα χρήστη:</label><br>
+    <input type="text" id="username" name="username" required><br><br>
+
+    <label for="password">Κωδικός:</label><br>
+    <input type="password" id="password" name="password" required><br><br>
+
+    <button type="submit">Σύνδεση</button>
+  </form>
 {% endblock %}
