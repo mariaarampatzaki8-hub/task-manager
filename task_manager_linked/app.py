@@ -237,24 +237,35 @@ def admin_create_user():
 @app.route("/admin/teams", methods=["GET", "POST"])
 @admin_required
 def admin_teams():
+    # POST: δημιουργία ομάδας
     if request.method == "POST":
         name = (request.form.get("name") or "").strip()
         leader_username = (request.form.get("leader_username") or "").strip()
+
         if not name:
             flash("Όνομα ομάδας υποχρεωτικό.", "warning")
             return redirect(url_for("admin_teams"))
+
         if Team.query.filter_by(name=name).first():
             flash("Υπάρχει ήδη ομάδα με αυτό το όνομα.", "danger")
             return redirect(url_for("admin_teams"))
+
         team = Team(name=name)
+
         if leader_username:
             leader = User.query.filter_by(username=leader_username).first()
             if leader:
                 team.leader_id = leader.id
+
         db.session.add(team)
         db.session.commit()
         flash("Η ομάδα δημιουργήθηκε.", "success")
         return redirect(url_for("admin_teams"))
+
+    # GET: φέρε λίστες για το template
+    users = User.query.order_by(User.username.asc()).all()
+    teams = Team.query.order_by(Team.name.asc()).all()
+    return render_template("admin_teams.html", users=users, teams=teams)
 # ---------------- TASKS ----------------
 def is_admin_or_leader(u: User) -> bool:
     return u.is_admin or (u.team and u.team.leader_id == u.id)
