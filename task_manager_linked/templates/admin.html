@@ -1,45 +1,163 @@
 {% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+
 {% block content %}
 <h1>Admin</h1>
 
-<h2>Δημιουργία χρήστη</h2>
-<form method="post" action="{{ url_for('admin_create_user') }}">
-  <p><label>Username<br><input name="username" required></label></p>
-  <p><label>Προσωρινός κωδικός<br><input name="password" placeholder="change-me"></label></p>
-  <p><label>Όνομα<br><input name="name"></label></p>
-  <p><label>Email<br><input type="email" name="email"></label></p>
-  <p><label>Τηλέφωνο<br><input name="phone"></label></p>
-  <p><label>ΑΔΤ<br><input name="id_card"></label></p>
-  <p><label>Χρώμα (hex)<br><input name="color" value="#3273dc"></label></p>
-  <p><label><input type="checkbox" name="is_admin"> Διαχειριστής</label></p>
-  <p>
-    <label>Ομάδα<br>
-      <select name="team_id">
-        <option value="">(Καμία)</option>
-        {% for t in teams %}
-          <option value="{{ t.id }}">{{ t.name }}</option>
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class="flashes">
+      {% for cat, msg in messages %}
+        <li class="flash {{ cat }}">{{ msg }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+<div class="admin-grid">
+  <!-- Χρήστες -->
+  <section class="card">
+    <h2>Χρήστες</h2>
+
+    <form method="post" action="{{ url_for('admin_create_user') }}" class="stack">
+      <div class="row">
+        <label>Username</label>
+        <input name="username" required>
+      </div>
+      <div class="row">
+        <label>Κωδικός</label>
+        <input name="password" type="password" required>
+      </div>
+      <div class="row">
+        <label>Email</label>
+        <input name="email" type="email">
+      </div>
+      <div class="row">
+        <label>Χρώμα</label>
+        <input name="color" type="color" value="#3273dc">
+      </div>
+      <div class="row">
+        <label>Ομάδα</label>
+        <select name="team_id">
+          <option value="">— καμία —</option>
+          {% for t in teams %}
+            <option value="{{ t.id }}">{{ t.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <label class="check"><input type="checkbox" name="is_admin"> Διαχειριστής</label>
+      <div><button type="submit">+ Δημιουργία χρήστη</button></div>
+    </form>
+
+    <h3>Λίστα χρηστών</h3>
+    <table class="table">
+      <thead><tr><th>Username</th><th>Email</th><th>Ομάδα</th><th>Ρόλος</th></tr></thead>
+      <tbody>
+        {% for u in users %}
+          <tr>
+            <td>{{ u.username }}</td>
+            <td>{{ u.email or "—" }}</td>
+            <td>
+              {% set team = teams|selectattr('id','equalto',u.team_id)|first %}
+              {{ team.name if team else "—" }}
+            </td>
+            <td>{{ "Διαχειριστής" if u.is_admin else "Χρήστης" }}</td>
+          </tr>
         {% endfor %}
-      </select>
-    </label>
-  </p>
-  <p><button type="submit">Δημιουργία</button></p>
-</form>
+      </tbody>
+    </table>
+  </section>
 
-<hr>
+  <!-- Ομάδες -->
+  <section class="card">
+    <h2>Ομάδες</h2>
 
-<h2>Χρήστες</h2>
-<table border="1" cellpadding="6">
-  <tr><th>Username</th><th>Όνομα</th><th>Email</th><th>Τηλέφωνο</th><th>ΑΔΤ</th><th>Admin</th><th>Ομάδα</th></tr>
-  {% for u in users %}
-    <tr>
-      <td>{{ u.username }}</td>
-      <td>{{ u.name or '-' }}</td>
-      <td>{{ u.email or '-' }}</td>
-      <td>{{ u.phone or '-' }}</td>
-      <td>{{ u.id_card or '-' }}</td>
-      <td>{{ 'Ναι' if u.is_admin else 'Όχι' }}</td>
-      <td>{% if u.team_id %}#{{ u.team_id }}{% else %}-{% endif %}</td>
-    </tr>
-  {% endfor %}
-</table>
+    <form method="post" action="{{ url_for('admin_teams') }}" class="stack">
+      <div class="row">
+        <label>Όνομα ομάδας</label>
+        <input name="name" required>
+      </div>
+      <div class="row">
+        <label>Leader (username)</label>
+        <input name="leader_username" placeholder="προαιρετικό">
+      </div>
+      <div><button type="submit">+ Δημιουργία ομάδας</button></div>
+    </form>
+
+    <h3>Λίστα ομάδων</h3>
+    <table class="table">
+      <thead><tr><th>Όνομα</th><th>Leader</th></tr></thead>
+      <tbody>
+        {% for t in teams %}
+          <tr>
+            <td>{{ t.name }}</td>
+            <td>{{ user_map.get(t.leader_id, "—") }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Εργασίες -->
+  <section class="card">
+    <h2>Εργασίες (Tasks)</h2>
+
+    <form method="post" action="{{ url_for('admin_create_task') }}" class="stack">
+      <div class="row">
+        <label>Τίτλος</label>
+        <input name="title" required>
+      </div>
+      <div class="row">
+        <label>Αναλαμβάνει (username)</label>
+        <input name="assignee_username" required>
+      </div>
+      <div class="row">
+        <label>Ποσοστό % (0–100)</label>
+        <input name="progress" type="number" min="0" max="100" value="0">
+      </div>
+      <div><button type="submit">+ Δημιουργία & Ανάθεση</button></div>
+    </form>
+
+    <h3>Λίστα εργασιών</h3>
+    <table class="table">
+      <thead>
+        <tr><th>Τίτλος</th><th>Αναλαμβάνει</th><th>Κατάσταση</th><th>Progress</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for t in tasks %}
+          <tr>
+            <td>{{ t.title }}</td>
+            <td>{{ user_map.get(t.assignee_id, "—") }}</td>
+            <td>{{ "Ολοκληρωμένο" if t.status == "done" else "Ανοικτό" }}</td>
+            <td>{{ t.progress }}%</td>
+            <td class="actions">
+              <form method="post" action="{{ url_for('admin_toggle_task', task_id=t.id) }}" style="display:inline">
+                <button type="submit">{{ "Reopen" if t.status == "done" else "Mark done" }}</button>
+              </form>
+              <form method="post" action="{{ url_for('admin_delete_task', task_id=t.id) }}" style="display:inline" onsubmit="return confirm('Διαγραφή;');">
+                <button type="submit">Διαγραφή</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+
+<style>
+  .admin-grid { display:grid; gap:24px; }
+  .card { padding:16px; background:#fff; border:1px solid #ddd; border-radius:8px; }
+  .stack .row { margin:10px 0; display:flex; flex-direction:column; gap:6px; }
+  .table { width:100%; border-collapse:collapse; }
+  .table th, .table td { border-bottom:1px solid #eee; padding:8px; text-align:left; }
+  .check { display:flex; align-items:center; gap:8px; margin:10px 0; }
+  .flashes { list-style:none; padding:0; margin:0 0 16px 0; }
+  .flash { padding:10px 12px; border-radius:6px; margin-bottom:8px; }
+  .flash.success { background:#e6ffed; border:1px solid #a2f3b5; }
+  .flash.warning { background:#fff8e1; border:1px solid #ffe08a; }
+  .flash.danger { background:#ffe6e6; border:1px solid #ffb3b3; }
+  .flash.info { background:#eef5ff; border:1px solid #b7d3ff; }
+  .actions form { margin-right:6px; }
+</style>
 {% endblock %}
