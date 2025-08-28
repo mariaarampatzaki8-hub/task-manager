@@ -1,89 +1,78 @@
 {% extends "base.html" %}
 
-{% block title %}Μέλη Ομάδας · {{ team.name }}{% endblock %}
-
 {% block content %}
-<h1>Μέλη Ομάδας: <strong>{{ team.name }}</strong></h1>
-
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    <div class="flash-container">
-      {% for category, message in messages %}
-        <div class="flash {{ category }}">{{ message }}</div>
-      {% endfor %}
-    </div>
-  {% endif %}
-{% endwith %}
-
-<div class="actions-row">
-  <a href="{{ url_for('admin_teams') }}">← Πίσω στη διαχείριση ομάδων</a>
-</div>
-
-<hr>
-
-<h2>Προσθήκη μέλους</h2>
-<form method="POST" action="{{ url_for('admin_team_members', team_id=team.id) }}" class="form-inline">
-  <label for="username">Username χρήστη:</label>
-  <input type="text" id="username" name="username" placeholder="π.χ. maria" required>
-  <button type="submit">Προσθήκη</button>
-</form>
-
-<p class="hint">
-  * Γράψε το <em>username</em> ακριβώς όπως υπάρχει στον κατάλογο χρηστών.
-</p>
-
-<hr>
-
-<h2>Τρέχοντα μέλη</h2>
-{% if team.members %}
-  <table class="table">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Username</th>
-        <th>Ρόλος</th>
-        <th style="width:140px;">Ενέργειες</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for m in team.members %}
-      <tr>
-        <td>{{ loop.index }}</td>
-        <td>{{ m.username }}</td>
-        <td>
-          {% if m.is_admin %}
-            <span class="badge badge-admin">Διαχειριστής</span>
-          {% elif team.leader_id == m.id %}
-            <span class="badge badge-leader">Leader</span>
-          {% else %}
-            Μέλος
-          {% endif %}
-        </td>
-        <td>
-          <form method="POST" action="{{ url_for('admin_team_members', team_id=team.id) }}" style="display:inline;">
-            <input type="hidden" name="remove_id" value="{{ m.id }}">
-            <button type="submit" onclick="return confirm('Να αφαιρεθεί ο χρήστης {{ m.username }} από την ομάδα;')">
-              Αφαίρεση
-            </button>
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-{% else %}
-  <p>Δεν υπάρχουν μέλη σε αυτή την ομάδα ακόμα.</p>
-{% endif %}
-
 <style>
-  .form-inline { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
-  .form-inline input { min-width:200px; }
-  .badge { padding:.1rem .4rem; border-radius:.3rem; font-size:.85em; }
-  .badge-admin { background:#c62828; color:#fff; }
-  .badge-leader { background:#1565c0; color:#fff; }
-  .table { width:100%; border-collapse:collapse; }
-  .table th, .table td { border-bottom:1px solid #eee; padding:.5rem .4rem; text-align:left; }
-  .actions-row { margin:.5rem 0 1rem; }
-  .hint { color:#666; font-size:.9em; }
+  /* ήπιο, αυτόνομο styling για να μη συγκρουστεί με ό,τι έχεις ήδη */
+  .tm-card{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin:16px 0}
+  .tm-row{display:flex;gap:16px;flex-wrap:wrap}
+  .tm-col{flex:1 1 360px}
+  .tm-h2{margin:0 0 12px;font-size:1.4rem}
+  .tm-muted{color:#6b7280}
+  .tm-table{width:100%;border-collapse:collapse}
+  .tm-table th,.tm-table td{padding:10px 12px;border-bottom:1px solid #eee;text-align:left}
+  .tm-table th{font-weight:600}
+  .tm-input,.tm-select{width:100%;padding:9px 10px;border:1px solid #d1d5db;border-radius:6px}
+  .tm-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .tm-btn{display:inline-block;padding:9px 14px;border-radius:6px;border:1px solid transparent;cursor:pointer;text-decoration:none}
+  .tm-btn-primary{background:#111827;color:#fff}
+  .tm-btn-light{background:#f9fafb;color:#111827;border-color:#e5e7eb}
+  .tm-badge{display:inline-block;padding:3px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:.8rem}
 </style>
+
+<h2 class="tm-h2">Διαχείριση Μελών Ομάδας: <span class="tm-badge">{{ team.name }}</span></h2>
+
+<div class="tm-row">
+  <!-- Λίστα μελών -->
+  <div class="tm-col">
+    <div class="tm-card">
+      <h3 class="tm-h2">Μέλη</h3>
+      {% if members %}
+        <table class="tm-table">
+          <thead>
+            <tr>
+              <th>Χρήστης</th>
+              <th>Ρόλος</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in members %}
+              <tr>
+                <td>{{ m.username }}</td>
+                <td>
+                  {% if m.is_admin %}
+                    Διαχειριστής
+                  {% elif m.id == team.leader_id %}
+                    Leader
+                  {% else %}
+                    Μέλος
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="tm-muted">Δεν υπάρχουν μέλη σε αυτή την ομάδα.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Προσθήκη μέλους -->
+  <div class="tm-col">
+    <div class="tm-card">
+      <h3 class="tm-h2">Προσθήκη μέλους</h3>
+      <form method="POST" class="tm-actions">
+        <label for="username" class="tm-muted" style="width:100%">Επέλεξε χρήστη:</label>
+        <select name="username" id="username" class="tm-select">
+          {% for user in users %}
+            <option value="{{ user.username }}">{{ user.username }}</option>
+          {% endfor %}
+        </select>
+
+        <button type="submit" class="tm-btn tm-btn-primary">Προσθήκη</button>
+        <a href="{{ url_for('admin_teams') }}" class="tm-btn tm-btn-light">Επιστροφή στις Ομάδες</a>
+      </form>
+    </div>
+  </div>
+</div>
 {% endblock %}
