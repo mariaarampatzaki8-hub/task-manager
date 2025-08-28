@@ -1,23 +1,49 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Admin: Ομάδες</h1>
-<form method="post">
-  <p><label>Όνομα ομάδας <input name="name" required></label></p>
-  <p><label>Leader (username) <input name="leader"></label></p>
-  <p><button type="submit">Δημιουργία</button></p>
-</form>
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card border-0 shadow">
+      <div class="card-body">
+        <h4 class="mb-3">Νέα ομάδα</h4>
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label">Όνομα ομάδας</label>
+            <input name="name" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Leader (username)</label>
+            <input name="leader_username" class="form-control" placeholder="π.χ. maria">
+          </div>
+          <button class="btn btn-primary" type="submit">Δημιουργία</button>
+        </form>
+      </div>
+    </div>
+  </div>
 
-<h3>Υπάρχουσες ομάδες</h3>
-<table>
-  <thead><tr><th>#</th><th>Όνομα</th><th>Leader</th></tr></thead>
-  <tbody>
-  {% for t in teams %}
-    <tr>
-      <td>{{ t.id }}</td>
-      <td>{{ t.name }}</td>
-      <td>{% if t.leader_id %}{{ t.members|selectattr('id','equalto',t.leader_id)|map(attribute='username')|list|first }}{% endif %}</td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
+  <div class="col-lg-7">
+    <div class="card border-0 shadow">
+      <div class="card-body">
+        <h4 class="mb-3">Υπάρχουσες ομάδες</h4>
+        <div class="table-responsive">
+          <table class="table table-dark align-middle">
+            <thead><tr><th>#</th><th>Όνομα</th><th>Leader</th><th>Μέλη</th></tr></thead>
+            <tbody>
+              {% for t in teams %}
+                <tr>
+                  <td>{{ t.id }}</td>
+                  <td>{{ t.name }}</td>
+                  <td>
+                    {% set leader = (t.members | selectattr('id','equalto', t.leader_id) | list | first) %}
+                    {{ leader.username if leader else '—' }}
+                  </td>
+                  <td>{{ t.members|length }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
