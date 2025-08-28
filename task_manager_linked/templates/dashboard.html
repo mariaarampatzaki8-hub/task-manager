@@ -1,7 +1,20 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Dashboard</h1>
-<p>Γεια σου, <strong>{{ user.username }}</strong>!
-Ο ρόλος σου είναι: <strong>{{ 'Διαχειριστής' if user.is_admin else 'Χρήστης' }}</strong>.</p>
-<p>(Mock περιεχόμενο — εδώ μπαίνουν εργασίες, σημειώσεις κτλ.)</p>
+  <h1>Dashboard</h1>
+  <p>
+    Γεια σου,
+    {% if user %}
+      <strong>{{ user.username }}</strong>!
+      Ο ρόλος σου είναι:
+      {% if user.is_admin %}
+        <strong>Διαχειριστής</strong>
+      {% else %}
+        <strong>Χρήστης</strong>
+      {% endif %}
+    {% else %}
+      <strong>επισκέπτη</strong>.
+    {% endif %}
+  </p>
+
+  <p>(Mock περιεχόμενο — εδώ θα μπούν οι εργασίες, σημειώσεις κ.λπ.)</p>
 {% endblock %}
