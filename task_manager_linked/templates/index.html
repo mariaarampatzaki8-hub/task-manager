@@ -1,13 +1,24 @@
 {% extends "base.html" %}
 {% block content %}
-  <h2>Σύνδεση</h2>
-  <form method="POST" action="{{ url_for('login') }}">
-    <label for="username">Όνομα χρήστη:</label><br>
-    <input type="text" id="username" name="username" required><br><br>
-
-    <label for="password">Κωδικός:</label><br>
-    <input type="password" id="password" name="password" required><br><br>
-
-    <button type="submit">Σύνδεση</button>
-  </form>
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-5">
+    <div class="card border-0 shadow">
+      <div class="card-body p-4">
+        <h3 class="mb-3">Σύνδεση</h3>
+        <form method="post" action="{{ url_for('login') }}">
+          <div class="mb-3">
+            <label class="form-label">Username</label>
+            <input name="username" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Κωδικός</label>
+            <input name="password" type="password" class="form-control" required>
+          </div>
+          <button class="btn btn-primary w-100" type="submit">Σύνδεση</button>
+        </form>
+        <p class="text-secondary small mt-3">Δοκίμασε: <b>admin / admin123</b></p>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
