@@ -253,9 +253,10 @@ def admin():
     users = User.query.order_by(User.username.asc()).all()
     teams = Team.query.order_by(Team.name.asc()).all()
     tasks = Task.query.order_by(Task.created_at.desc()).all()
-    user_map = {u.id: u.username for u in users}  # για να δείχνουμε όνομα αναλαμβάνοντος
+    user_map = {u.id: u.username for u in users}
     return render_template("admin.html", users=users, teams=teams, tasks=tasks, user_map=user_map)
-    @app.route("/admin/tasks", methods=["POST"])
+    
+@app.route("/admin/tasks", methods=["POST"])
 @admin_required
 def admin_create_task():
     title = (request.form.get("title") or "").strip()
