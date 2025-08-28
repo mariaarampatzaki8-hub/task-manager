@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Σφάλμα {{ code }}</h1>
-<p>{{ message }}</p>
-<p><a href="{{ url_for('dashboard') }}">Πίσω</a></p>
+<div class="text-center">
+  <h1 class="display-5 mb-3">Σφάλμα {{ code }}</h1>
+  <p class="lead">{{ message }}</p>
+  <a class="btn btn-outline-light mt-3" href="{{ url_for('dashboard') }}">Επιστροφή</a>
+</div>
 {% endblock %}
