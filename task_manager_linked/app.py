@@ -266,6 +266,61 @@ def admin_teams():
     users = User.query.order_by(User.username.asc()).all()
     teams = Team.query.order_by(Team.name.asc()).all()
     return render_template("admin_teams.html", users=users, teams=teams)
+    # -------------------- Admin: διαχείριση μελών ομάδας --------------------
+
+@app.route("/admin/teams/<int:team_id>/members", methods=["GET", "POST"])
+@admin_required
+def admin_team_members(team_id):
+    team = Team.query.get_or_404(team_id)
+
+    if request.method == "POST":
+        # Ανάθεση χρήστη στην ομάδα
+        username = (request.form.get("username") or "").strip()
+        if not username:
+            flash("Διάλεξε χρήστη.", "warning")
+            return redirect(url_for("admin_team_members", team_id=team_id))
+
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            flash("Ο χρήστης δεν βρέθηκε.", "danger")
+            return redirect(url_for("admin_team_members", team_id=team_id))
+
+        user.team_id = team.id
+        db.session.add(user)
+        db.session.commit()
+        flash(f"Ο/Η {user.username} προστέθηκε στην ομάδα «{team.name}».", "success")
+        return redirect(url_for("admin_team_members", team_id=team.id))
+
+    # GET: προετοιμασία λίστας
+    members = User.query.filter_by(team_id=team.id).order_by(User.username.asc()).all()
+    # Υποψήφιοι για προσθήκη: όλοι οι μη-μέλη (ή και όλοι, αν θες)
+    candidates = User.query.filter((User.team_id.is_(None)) | (User.team_id != team.id)) \
+                          .order_by(User.username.asc()) \
+                          .all()
+
+    return render_template(
+        "admin_team_members.html",
+        team=team,
+        members=members,
+        candidates=candidates,
+    )
+
+
+@app.route("/admin/teams/<int:team_id>/members/<int:user_id>/remove", methods=["POST"])
+@admin_required
+def admin_team_member_remove(team_id, user_id):
+    team = Team.query.get_or_404(team_id)
+    user = User.query.get_or_404(user_id)
+
+    if user.team_id != team.id:
+        flash("Ο χρήστης δεν ανήκει σε αυτή την ομάδα.", "warning")
+        return redirect(url_for("admin_team_members", team_id=team.id))
+
+    user.team_id = None
+    db.session.add(user)
+    db.session.commit()
+    flash(f"Ο/Η {user.username} αφαιρέθηκε από την ομάδα «{team.name}».", "info")
+    return redirect(url_for("admin_team_members", team_id=team.id))
 # ---------------- TASKS ----------------
 def is_admin_or_leader(u: User) -> bool:
     return u.is_admin or (u.team and u.team.leader_id == u.id)
