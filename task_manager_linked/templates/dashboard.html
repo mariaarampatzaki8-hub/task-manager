@@ -1,7 +1,8 @@
-{% extends "base.html" %}{% block content %}
+{% extends "base.html" %}
+{% block content %}
 <h1>Dashboard</h1>
-<p>Γεια σου, <strong>{{ user.username }}</strong>! Ο ρόλος σου είναι:
-  <strong>{% if user.is_admin %}Διαχειριστής{% else %}Χρήστης{% endif %}</strong>.
+<p>Καλώς ήρθες, <strong>{{ user.username }}</strong>! Ρόλος:
+   <strong>{% if user.is_admin %}Διαχειριστής{% else %}Χρήστης{% endif %}</strong>.
 </p>
-<p>(Mock περιεχόμενο — εδώ αργότερα θα μπουν εργασίες, σημειώσεις κτλ.)</p>
+<p>Συντόμευση: <a href="{{ url_for('catalog') }}">Πίνακας</a> • <a href="{{ url_for('progress_view') }}">Πρόοδος</a> • <a href="{{ url_for('settings') }}">Ρυθμίσεις</a></p>
 {% endblock %}
