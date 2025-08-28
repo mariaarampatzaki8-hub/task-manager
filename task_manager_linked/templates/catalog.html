@@ -1,9 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
-<h3 class="mb-3">Κατάλογος / Board</h3>
-<div class="card border-0 shadow">
-  <div class="card-body">
-    <p class="text-secondary mb-0">Placeholder πίνακας — εδώ θα προστεθούν tasks, kanban κ.λπ.</p>
-  </div>
-</div>
+<h1>Κατάλογος</h1>
+{% if tasks and tasks|length %}
+  <ul>
+  {% for t in tasks %}
+    <li>[#{{ t.id }}] {{ t.title }} — {{ t.status }} ({{ t.progress }}%)</li>
+  {% endfor %}
+  </ul>
+{% else %}
+  <p>Δεν υπάρχουν ακόμα εργασίες.</p>
+{% endif %}
 {% endblock %}
