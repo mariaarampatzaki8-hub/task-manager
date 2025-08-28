@@ -400,7 +400,21 @@ def not_found(e):
 def server_error(e):
     # Μην εμφανίζεις stacktrace στον χρήστη
     return render_template("error.html", code=500, message="Κάτι πήγε στραβά."), 500
-
+# ------------------- Default admin setup -------------------
+@app.before_first_request
+def create_admin():
+    db.create_all()
+    admin = User.query.filter_by(username="admin").first()
+    if not admin:
+        admin = User(
+            username="admin",
+            email="admin@example.com",
+            is_admin=True,
+            color="#3273dc"
+        )
+        admin.set_password("admin")  # προσωρινός κωδικός
+        db.session.add(admin)
+        db.session.commit()
 
 # --------------------------- Local run (προαιρετικό) ---------------------------
 
