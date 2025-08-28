@@ -1,90 +1,30 @@
 {% extends "base.html" %}
-
-{% block title %}Μέλη Ομάδας · {{ team.name }}{% endblock %}
-
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mb-3">
-  <h3 class="mb-0">Μέλη Ομάδας: <span class="badge text-bg-secondary">{{ team.name }}</span></h3>
-  <a class="btn btn-outline-light btn-sm" href="{{ url_for('admin_teams') }}">← Πίσω στις Ομάδες</a>
-</div>
+<h1>Μέλη ομάδας: {{ team.name }}</h1>
 
-<div class="row g-4">
-  <!-- Κάρτα: Προσθήκη μέλους -->
-  <div class="col-lg-5">
-    <div class="card border-0 shadow h-100">
-      <div class="card-body">
-        <h5 class="card-title mb-3">Προσθήκη μέλους</h5>
-        <form method="POST" action="{{ url_for('admin_team_members', team_id=team.id) }}" class="row g-3">
-          <div class="col-12">
-            <label class="form-label">Χρήστης (username)</label>
-            <select name="username" class="form-select" required>
-              <option value="">— επίλεξε χρήστη —</option>
-              {# δείξε πρώτα όσους ΔΕΝ είναι ήδη μέλη της ομάδας #}
-              {% for u in users if u.team_id != team.id %}
-                <option value="{{ u.username }}">{{ u.username }}{% if u.team_id %} — (άλλη ομάδα){% endif %}</option>
-              {% endfor %}
-            </select>
-            <div class="form-text">Εμφανίζονται χρήστες που δεν είναι ήδη σε αυτή την ομάδα.</div>
-          </div>
-          <div class="col-12">
-            <button class="btn btn-primary w-100" type="submit">Προσθήκη</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
+<h2>Προσθήκη μέλους</h2>
+<form method="post" action="{{ url_for('admin_team_members', team_id=team.id) }}">
+  <p>
+    <label>Χρήστης (username)<br>
+      <input name="username" list="userlist" placeholder="πληκτρολόγησε username">
+      <datalist id="userlist">
+        {% for u in users %}
+          <option value="{{ u.username }}">{{ u.username }}</option>
+        {% endfor %}
+      </datalist>
+    </label>
+  </p>
+  <p><button type="submit">Προσθήκη</button></p>
+</form>
 
-  <!-- Κάρτα: Τρέχοντα μέλη -->
-  <div class="col-lg-7">
-    <div class="card border-0 shadow h-100">
-      <div class="card-body">
-        <h5 class="card-title mb-3">Τρέχοντα μέλη</h5>
+<hr>
 
-        {% set members = users | selectattr('team_id','equalto', team.id) | list %}
-        {% if members and members|length > 0 %}
-          <div class="table-responsive">
-            <table class="table table-dark align-middle">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Username</th>
-                  <th>Ρόλος</th>
-                  <th style="width:1%;">Ενέργειες</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for m in members %}
-                  <tr>
-                    <td>{{ loop.index }}</td>
-                    <td>{{ m.username }}</td>
-                    <td>
-                      {% if m.is_admin %}
-                        <span class="badge text-bg-danger">Διαχειριστής</span>
-                      {% elif team.leader_id == m.id %}
-                        <span class="badge text-bg-primary">Leader</span>
-                      {% else %}
-                        <span class="badge text-bg-secondary">Μέλος</span>
-                      {% endif %}
-                    </td>
-                    <td class="text-end">
-                      <form method="POST"
-                            action="{{ url_for('admin_team_members', team_id=team.id) }}"
-                            onsubmit="return confirm('Αφαίρεση {{ m.username }} από την ομάδα;')"
-                            class="d-inline">
-                        <input type="hidden" name="remove_id" value="{{ m.id }}">
-                        <button class="btn btn-sm btn-outline-danger" type="submit">Αφαίρεση</button>
-                      </form>
-                    </td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        {% else %}
-          <p class="text-secondary mb-0">Δεν υπάρχουν μέλη σε αυτή την ομάδα.</p>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-</div>
+<h2>Τρέχοντα μέλη</h2>
+<ul>
+  {% for m in members %}
+    <li>{{ m.username }}</li>
+  {% else %}
+    <li>(Κανένα μέλος)</li>
+  {% endfor %}
+</ul>
 {% endblock %}
