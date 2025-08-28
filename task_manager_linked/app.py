@@ -261,7 +261,61 @@ def admin_teams():
         db.session.commit()
         flash("Η ομάδα δημιουργήθηκε.", "success")
         return redirect(url_for("admin_teams"))
+@app.route("/admin/teams/<int:team_id>/members", methods=["GET", "POST"])
+@admin_required
+def admin_team_members(team_id):
+    team = Team.query.get_or_404(team_id)
 
+    # --- POST: add or remove member ---
+    if request.method == "POST":
+        # 1) Αφαίρεση μέλους (αν υπάρχει remove_id στο form)
+        remove_id = (request.form.get("remove_id") or "").strip()
+        if remove_id:
+            try:
+                uid = int(remove_id)
+            except ValueError:
+                flash("Μη έγκυρο μέλος για αφαίρεση.", "danger")
+                return redirect(url_for("admin_team_members", team_id=team.id))
+
+            user = User.query.get(uid)
+            if not user or user.team_id != team.id:
+                flash("Ο χρήστης δεν είναι μέλος αυτής της ομάδας.", "warning")
+                return redirect(url_for("admin_team_members", team_id=team.id))
+
+            # Αν αφαιρείται ο leader, καθάρισε και το leader_id
+            if team.leader_id == user.id:
+                team.leader_id = None
+
+            user.team_id = None
+            db.session.commit()
+            flash(f"Ο χρήστης «{user.username}» αφαιρέθηκε από την ομάδα.", "info")
+            return redirect(url_for("admin_team_members", team_id=team.id))
+
+        # 2) Προσθήκη μέλους (με username)
+        username = (request.form.get("username") or "").strip()
+        if not username:
+            flash("Διάλεξε χρήστη (username).", "warning")
+            return redirect(url_for("admin_team_members", team_id=team.id))
+
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            flash("Ο χρήστης δεν βρέθηκε.", "danger")
+            return redirect(url_for("admin_team_members", team_id=team.id))
+
+        user.team_id = team.id
+        db.session.commit()
+        flash(f"Ο χρήστης «{user.username}» προστέθηκε στην ομάδα.", "success")
+        return redirect(url_for("admin_team_members", team_id=team.id))
+
+    # --- GET: σελίδα διαχείρισης μελών ---
+    # Προαιρετικά: λίστα χρηστών για auto-complete/βοήθεια
+    users = User.query.order_by(User.username.asc()).all()
+
+    return render_template(
+        "admin_team_members.html",
+        team=team,
+        users=users,
+    )
     # GET: φέρε λίστες για το template
     users = User.query.order_by(User.username.asc()).all()
     teams = Team.query.order_by(Team.name.asc()).all()
