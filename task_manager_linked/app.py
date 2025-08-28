@@ -3,175 +3,206 @@ import secrets
 from datetime import datetime
 
 from flask import (
-    Flask, render_template, request, redirect,
-    url_for, session, flash, abort
+    Flask, render_template, request, redirect, url_for,
+    flash, session, g
 )
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import relationship
 from werkzeug.security import generate_password_hash, check_password_hash
-from functools import wraps
 
 
-# --------------------------------------
-# App factory
-# --------------------------------------
+# ------------------------------------------------------------------------------
+# App / Config
+# ------------------------------------------------------------------------------
 app = Flask(__name__, instance_relative_config=True)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-" + secrets.token_hex(16))
 
-# --- DB config (Render Postgres με pg8000, αλλιώς SQLite fallback) ---
+# DB URL from Render (or fallback to sqlite for local runs)
 os.makedirs(app.instance_path, exist_ok=True)
 db_path = os.path.join(app.instance_path, "app_final.db")
 
-uri = os.environ.get("DATABASE_URL")  # π.χ. postgresql://... από Render
+uri = os.environ.get("DATABASE_URL")  # e.g. postgresql://... from Render
+
 if uri:
-    # 1) postgres:// -> postgresql://
+    # Heroku/Render style -> ensure driver pg8000
     if uri.startswith("postgres://"):
         uri = uri.replace("postgres://", "postgresql://", 1)
-    # 2) Χρήση driver pg8000
     if uri.startswith("postgresql://"):
         uri = uri.replace("postgresql://", "postgresql+pg8000://", 1)
-    # 3) SSL σε Render: ΔΕΝ βάζουμε connect_args sslmode (pg8000 δεν το δέχεται)
-    if "ssl=" not in uri and "sslmode=" not in uri:
-        sep = "&" if "?" in uri else "?"
-        uri = f"{uri}{sep}ssl=true"
-
     app.config["SQLALCHEMY_DATABASE_URI"] = uri
 else:
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + db_path
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-# Connection pool tip για serverless περιβάλλοντα
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_pre_ping": True,
+}
 
 db = SQLAlchemy(app)
 
 
-# --------------------------------------
+# ------------------------------------------------------------------------------
 # Models
-# --------------------------------------
+# ------------------------------------------------------------------------------
 class Team(db.Model):
     __tablename__ = "teams"
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), unique=True, nullable=False)
+
+    # αρχηγός ομάδας (optional)
     leader_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Σημαντικό για να μην είναι ambiguous (δηλώνουμε ποιο FK χρησιμοποιείται)
-    members = db.relationship(
-        "User",
-        back_populates="team",
-        foreign_keys="User.team_id",
-        lazy="dynamic"
-    )
-
-    leader = db.relationship(
-        "User",
-        foreign_keys=[leader_id],
-        uselist=False
-    )
-
-    def __repr__(self):
-        return f"<Team {self.name}>"
+    # μέλη (users.team_id -> teams.id)
+    members = relationship("User", back_populates="team", foreign_keys="User.team_id")
 
 
 class User(db.Model):
     __tablename__ = "users"
+
     id = db.Column(db.Integer, primary_key=True)
 
     username = db.Column(db.String(80), unique=True, nullable=False)
     name = db.Column(db.String(120), nullable=False)
 
-    email = db.Column(db.String(255), nullable=True)
-    phone = db.Column(db.String(40), nullable=True)
-    id_card = db.Column(db.String(40), nullable=True)
+    email = db.Column(db.String(200))
+    phone = db.Column(db.String(50))
+    id_card = db.Column(db.String(50))
 
-    color = db.Column(db.String(16), default="#3273dc")
-
-    password_hash = db.Column(db.String(255), nullable=False)
-    must_change_password = db.Column(db.Boolean, default=True)
-
+    password_hash = db.Column(db.String(255))
     is_admin = db.Column(db.Boolean, default=False)
+    must_change_password = db.Column(db.Boolean, default=False)
+
+    color = db.Column(db.String(20), default="#3273dc")
 
     team_id = db.Column(db.Integer, db.ForeignKey("teams.id"), nullable=True)
-    team = db.relationship(
-        "Team",
-        back_populates="members",
-        foreign_keys=[team_id]
-    )
+    team = relationship("Team", back_populates="members", foreign_keys=[team_id])
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # helpers
-    def set_password(self, raw: str):
-        self.password_hash = generate_password_hash(raw)
+    # helper methods
+    def set_password(self, plain: str) -> None:
+        self.password_hash = generate_password_hash(plain)
 
-    def check_password(self, raw: str) -> bool:
+    def check_password(self, plain: str) -> bool:
         if not self.password_hash:
             return False
-        return check_password_hash(self.password_hash, raw)
-
-    def __repr__(self):
-        return f"<User {self.username}>"
+        return check_password_hash(self.password_hash, plain)
 
 
 class Task(db.Model):
     __tablename__ = "tasks"
+
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
-    status = db.Column(db.String(20), default="open")  # open / done
-    progress = db.Column(db.Integer, default=0)       # 0..100
-    assignee_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+
+    assignee_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    assignee = relationship("User", foreign_keys=[assignee_id])
+
+    status = db.Column(db.String(20), default="open")  # open | done
+    progress = db.Column(db.Integer, default=0)        # 0..100
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 class Note(db.Model):
     __tablename__ = "notes"
+
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.Text, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
-# --------------------------------------
-# Utilities / decorators
-# --------------------------------------
-def current_user():
+# ------------------------------------------------------------------------------
+# Bootstrap DB on import (works on Render)
+# ------------------------------------------------------------------------------
+def bootstrap_db():
+    with app.app_context():
+        db.create_all()
+
+        # φτιάξε default team αν δεν υπάρχει
+        default_team = Team.query.filter_by(name="Default Team").first()
+        if not default_team:
+            default_team = Team(name="Default Team")
+            db.session.add(default_team)
+            db.session.commit()
+
+        # φτιάξε admin αν λείπει
+        admin = User.query.filter_by(username="admin").first()
+        if not admin:
+            admin = User(
+                username="admin",
+                name="Admin",
+                email="admin@example.com",
+                is_admin=True,
+                must_change_password=True,
+                color="#3273dc",
+                team_id=default_team.id,
+            )
+            admin.set_password("change-me")
+            db.session.add(admin)
+            db.session.commit()
+
+        # όρισε αρχηγό ομάδας αν δεν υπάρχει
+        if default_team.leader_id is None:
+            default_team.leader_id = admin.id
+            db.session.commit()
+
+
+bootstrap_db()
+
+
+# ------------------------------------------------------------------------------
+# Helpers & decorators
+# ------------------------------------------------------------------------------
+@app.before_request
+def load_current_user():
+    g.user = None
     uid = session.get("uid")
-    if not uid:
-        return None
-    return User.query.get(uid)
+    if uid:
+        g.user = User.query.get(uid)
 
 
 def login_required(view):
+    from functools import wraps
+
     @wraps(view)
     def wrapper(*args, **kwargs):
-        if not session.get("uid"):
+        if not g.user:
             flash("Χρειάζεται σύνδεση.", "warning")
             return redirect(url_for("index"))
         return view(*args, **kwargs)
+
     return wrapper
 
 
 def admin_required(view):
+    from functools import wraps
+
     @wraps(view)
     def wrapper(*args, **kwargs):
-        u = current_user()
-        if not u or not u.is_admin:
-            flash("Μόνο για διαχειριστές.", "danger")
+        if not g.user or not g.user.is_admin:
+            flash("Πρόσβαση μόνο σε διαχειριστές.", "danger")
             return redirect(url_for("dashboard"))
         return view(*args, **kwargs)
+
     return wrapper
 
 
-# --------------------------------------
-# Health / Home / Auth
-# --------------------------------------
+# ------------------------------------------------------------------------------
+# Health
+# ------------------------------------------------------------------------------
 @app.route("/healthz")
 def healthz():
     return "ok", 200
 
 
-# Αρχική (endpoint = index ώστε να ταιριάζει με τα templates)
+# ------------------------------------------------------------------------------
+# Auth / Home
+# ------------------------------------------------------------------------------
 @app.route("/", methods=["GET"])
 def index():
+    # Αν είναι ήδη logged in -> dashboard
     if session.get("uid"):
         return redirect(url_for("dashboard"))
     return render_template("index.html")
@@ -183,7 +214,7 @@ def login():
     password = (request.form.get("password") or "").strip()
 
     if not username or not password:
-        flash("Συμπλήρωσε username & κωδικό.", "warning")
+        flash("Συμπλήρωσε username και κωδικό.", "warning")
         return redirect(url_for("index"))
 
     user = User.query.filter_by(username=username).first()
@@ -193,11 +224,9 @@ def login():
 
     session["uid"] = user.id
     session["name"] = user.name
-    session["is_admin"] = bool(user.is_admin)
 
-    # Αν πρέπει να αλλάξει προσωρινό κωδικό, στείλ’ τον στις ρυθμίσεις
     if user.must_change_password:
-        flash("Άλλαξε τον προσωρινό κωδικό σου.", "info")
+        flash("Αλλάξε τον προσωρινό κωδικό σου.", "info")
         return redirect(url_for("settings"))
 
     flash("Συνδέθηκες επιτυχώς.", "success")
@@ -211,16 +240,24 @@ def logout():
     return redirect(url_for("index"))
 
 
-# --------------------------------------
+# ------------------------------------------------------------------------------
 # Pages
-# --------------------------------------
-@app.route("/dashboard")
+# ------------------------------------------------------------------------------
+@app.route("/dashboard", methods=["GET"])
 @login_required
 def dashboard():
-    u = current_user()
-    # Απλό status για το footer των σελίδων
-    health = "ok"
-    return render_template("dashboard.html", user=u, health=health)
+    # απλό dashboard — templates/ dashboard.html
+    return render_template("dashboard.html")
+
+
+@app.route("/progress", methods=["GET"], endpoint="progress_view")
+@login_required
+def progress():
+    tasks = Task.query.all()
+    total = len(tasks)
+    done = len([t for t in tasks if t.status == "done"])
+    avg = int(sum(t.progress for t in tasks) / total) if total else 0
+    return render_template("progress.html", total=total, done=done, avg=avg)
 
 
 @app.route("/help")
@@ -232,47 +269,32 @@ def help_page():
 @app.route("/settings", methods=["GET", "POST"])
 @login_required
 def settings():
-    u = current_user()
-
     if request.method == "POST":
-        # αλλαγή κωδικού
-        new_pass = (request.form.get("new_password") or "").strip()
-        if new_pass:
-            if len(new_pass) < 6:
-                flash("Ο κωδικός πρέπει να έχει τουλάχιστον 6 χαρακτήρες.", "warning")
-                return redirect(url_for("settings"))
-            u.set_password(new_pass)
-            u.must_change_password = False
-            db.session.commit()
-            flash("Ο κωδικός άλλαξε.", "success")
-            return redirect(url_for("dashboard"))
+        new_password = (request.form.get("new_password") or "").strip()
+        if not new_password:
+            flash("Βάλε νέο κωδικό.", "warning")
+            return redirect(url_for("settings"))
+        g.user.set_password(new_password)
+        g.user.must_change_password = False
+        db.session.commit()
+        flash("Ο κωδικός άλλαξε.", "success")
+        return redirect(url_for("dashboard"))
 
-    return render_template("settings.html", user=u)
+    return render_template("settings.html")
 
 
-@app.route("/progress", methods=["GET"], endpoint="progress_view")
-@login_required
-def progress():
-    # μια απλή σύνοψη για το template
-    tasks = Task.query.all()
-    total = len(tasks)
-    done = len([t for t in tasks if t.status == "done"])
-    avg = int(sum(t.progress for t in tasks) / total) if total else 0
-    return render_template("progress.html", total=total, done=done, avg=avg)
-
-
-# --------------------------------------
+# ------------------------------------------------------------------------------
 # ADMIN
-# --------------------------------------
+# ------------------------------------------------------------------------------
 @app.route("/admin")
 @admin_required
-def admin():
+def admin_home():
     users = User.query.order_by(User.username.asc()).all()
     teams = Team.query.order_by(Team.name.asc()).all()
     return render_template("admin.html", users=users, teams=teams)
 
 
-# ---- Users (CRUD + reset password) ----
+# -- Users (CRUD + reset password) --------------------------------------------
 @app.route("/admin/users", methods=["POST"])
 @admin_required
 def admin_create_user():
@@ -286,11 +308,11 @@ def admin_create_user():
 
     if not username or not name:
         flash("Username & Όνομα είναι υποχρεωτικά.", "warning")
-        return redirect(url_for("admin"))
+        return redirect(url_for("admin_home"))
 
     if User.query.filter_by(username=username).first():
         flash("Υπάρχει ήδη χρήστης με αυτό το username.", "danger")
-        return redirect(url_for("admin"))
+        return redirect(url_for("admin_home"))
 
     u = User(
         username=username,
@@ -307,20 +329,7 @@ def admin_create_user():
     db.session.commit()
 
     flash("Ο χρήστης δημιουργήθηκε (προσωρινός κωδ.: change-me).", "success")
-    return redirect(url_for("admin"))
-
-
-@app.route("/admin/users/<int:user_id>/delete", methods=["POST"])
-@admin_required
-def admin_delete_user(user_id):
-    if user_id == session.get("uid"):
-        flash("Δεν μπορείς να διαγράψεις τον εαυτό σου.", "warning")
-        return redirect(url_for("admin"))
-    u = User.query.get_or_404(user_id)
-    db.session.delete(u)
-    db.session.commit()
-    flash("Ο χρήστης διαγράφηκε.", "info")
-    return redirect(url_for("admin"))
+    return redirect(url_for("admin_home"))
 
 
 @app.route("/admin/users/<int:user_id>/reset", methods=["POST"])
@@ -330,11 +339,24 @@ def admin_reset_password(user_id):
     u.set_password("change-me")
     u.must_change_password = True
     db.session.commit()
-    flash("Ο κωδικός επανήλθε σε 'change-me'.", "success")
-    return redirect(url_for("admin"))
+    flash("Ο κωδικός επανήλθε σε 'change-me'.", "info")
+    return redirect(url_for("admin_home"))
 
 
-# ---- Teams (CRUD + assign members/leader) ----
+@app.route("/admin/users/<int:user_id>/delete", methods=["POST"])
+@admin_required
+def admin_delete_user(user_id):
+    u = User.query.get_or_404(user_id)
+    if u.username == "admin":
+        flash("Δεν μπορείς να διαγράψεις τον admin.", "danger")
+        return redirect(url_for("admin_home"))
+    db.session.delete(u)
+    db.session.commit()
+    flash("Ο χρήστης διαγράφηκε.", "info")
+    return redirect(url_for("admin_home"))
+
+
+# -- Teams (CRUD + assign members/leader) -------------------------------------
 @app.route("/admin/teams", methods=["GET", "POST"])
 @admin_required
 def admin_teams():
@@ -361,7 +383,7 @@ def admin_teams():
         flash("Η ομάδα δημιουργήθηκε.", "success")
         return redirect(url_for("admin_teams"))
 
-    # GET: φέρε λίστες
+    # GET: λίστες
     users = User.query.order_by(User.username.asc()).all()
     teams = Team.query.order_by(Team.name.asc()).all()
     return render_template("admin_teams.html", users=users, teams=teams)
@@ -386,20 +408,14 @@ def admin_team_members(team_id):
 
         user.team_id = team.id
         db.session.commit()
-        flash("Ο χρήστης ανατέθηκε στην ομάδα.", "success")
+        flash("Ο χρήστης προστέθηκε στην ομάδα.", "success")
         return redirect(url_for("admin_team_members", team_id=team_id))
 
-    # GET: λίστα μελών και διαθέσιμων χρηστών
-    members = team.members.order_by(User.username.asc()).all()
-    available = User.query.filter(
-        (User.team_id.is_(None)) | (User.team_id != team.id)
-    ).order_by(User.username.asc()).all()
-
+    # GET
+    users = User.query.order_by(User.username.asc()).all()
+    members = User.query.filter_by(team_id=team.id).order_by(User.username.asc()).all()
     return render_template(
-        "admin_team_members.html",
-        team=team,
-        members=members,
-        available=available
+        "admin_team_members.html", team=team, users=users, members=members
     )
 
 
@@ -407,19 +423,18 @@ def admin_team_members(team_id):
 @admin_required
 def admin_delete_team(team_id):
     team = Team.query.get_or_404(team_id)
-
-    # βγάλε τα μέλη από την ομάδα πριν τη διαγραφή
-    for m in team.members.all():
-        m.team_id = None
+    # βγάλε τα μέλη από την ομάδα πριν διαγραφή
+    for u in User.query.filter_by(team_id=team.id).all():
+        u.team_id = None
     db.session.delete(team)
     db.session.commit()
     flash("Η ομάδα διαγράφηκε.", "info")
     return redirect(url_for("admin_teams"))
 
 
-# --------------------------------------
+# ------------------------------------------------------------------------------
 # Error handlers
-# --------------------------------------
+# ------------------------------------------------------------------------------
 @app.errorhandler(404)
 def not_found(e):
     return render_template("error.html", code=404, message="Δεν βρέθηκε."), 404
@@ -427,31 +442,12 @@ def not_found(e):
 
 @app.errorhandler(500)
 def server_error(e):
-    # Μην εμφανίζεις stacktrace στον χρήστη
+    # Απόκρυψη stacktrace από τον χρήστη
     return render_template("error.html", code=500, message="Κάτι πήγε στραβά."), 500
 
 
-# --------------------------------------
+# ------------------------------------------------------------------------------
 # Local run (προαιρετικό)
-# --------------------------------------
+# ------------------------------------------------------------------------------
 if __name__ == "__main__":
-    # Δημιούργησε πίνακες αν δεν υπάρχουν (στο Render τρέχει gunicorn)
-    with app.app_context():
-        db.create_all()
-        # seed admin αν λείπει
-        if not User.query.filter_by(username="admin").first():
-            admin_user = User(
-                username="admin",
-                name="Admin",
-                email="admin@example.com",
-                is_admin=True,
-                must_change_password=True,
-                color="#3273dc"
-            )
-            admin_user.set_password("change-me")
-            db.session.add(admin_user)
-            # default team
-            default_team = Team(name="Default Team")
-            db.session.add(default_team)
-            db.session.commit()
     app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
