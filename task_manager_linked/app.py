@@ -294,7 +294,38 @@ def progress():
     avg = int(sum(t.progress for t in tasks) / total) if total else 0
     return render_template("progress.html", total=total, done=done, avg=avg)
 
+# ---------------------- USER ROUTES ----------------------
 
+@app.route("/dashboard")
+@login_required
+def dashboard():
+    u = current_user
+    return render_template("dashboard.html", user=u)
+
+@app.route("/catalog")
+@login_required
+def catalog():
+    return render_template("catalog.html")
+
+@app.route("/directory")
+@login_required
+def directory():
+    u = current_user
+    if u.is_admin:
+        users = User.query.order_by(User.username.asc()).all()
+    else:
+        users = User.query.filter_by(team_id=u.team_id).order_by(User.username.asc()).all()
+    return render_template("directory.html", users=users)
+
+@app.route("/help")
+@login_required
+def help_page():
+    return render_template("help.html")
+
+@app.route("/settings")
+@login_required
+def settings():
+    return render_template("settings.html")
 # --------------------------------------------------------------------------------------
 # ADMIN
 # --------------------------------------------------------------------------------------
