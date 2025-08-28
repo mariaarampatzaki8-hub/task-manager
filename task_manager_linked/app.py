@@ -261,6 +261,8 @@ def admin_teams():
         db.session.commit()
         flash("Η ομάδα δημιουργήθηκε.", "success")
         return redirect(url_for("admin_teams"))
+
+
 @app.route("/admin/teams/<int:team_id>/members", methods=["GET", "POST"])
 @admin_required
 def admin_team_members(team_id):
@@ -307,6 +309,21 @@ def admin_team_members(team_id):
         flash(f"Ο χρήστης «{user.username}» προστέθηκε στην ομάδα.", "success")
         return redirect(url_for("admin_team_members", team_id=team.id))
 
+
+@app.route("/admin/teams/<int:team_id>/delete", methods=["POST"])
+@admin_required
+def delete_team(team_id):
+    team = Team.query.get_or_404(team_id)
+
+    # Αν η ομάδα έχει χρήστες, πρώτα καθάρισε το team_id τους
+    users = User.query.filter_by(team_id=team.id).all()
+    for user in users:
+        user.team_id = None
+
+    db.session.delete(team)
+    db.session.commit()
+    flash("Η ομάδα διαγράφηκε.", "success")
+    return redirect(url_for("admin_teams"))
     # --- GET: σελίδα διαχείρισης μελών ---
     # Προαιρετικά: λίστα χρηστών για auto-complete/βοήθεια
     users = User.query.order_by(User.username.asc()).all()
@@ -320,6 +337,8 @@ def admin_team_members(team_id):
     users = User.query.order_by(User.username.asc()).all()
     teams = Team.query.order_by(Team.name.asc()).all()
     return render_template("admin_teams.html", users=users, teams=teams)
+
+
     # -------------------- Admin: διαχείριση μελών ομάδας --------------------
 
 @app.route("/admin/teams/<int:team_id>/members", methods=["GET", "POST"])
