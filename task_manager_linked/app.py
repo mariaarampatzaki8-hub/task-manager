@@ -252,7 +252,57 @@ def update_password():
 def admin():
     users = User.query.order_by(User.username.asc()).all()
     teams = Team.query.order_by(Team.name.asc()).all()
-    return render_template("admin.html", users=users, teams=teams)
+    tasks = Task.query.order_by(Task.created_at.desc()).all()
+    user_map = {u.id: u.username for u in users}  # για να δείχνουμε όνομα αναλαμβάνοντος
+    return render_template("admin.html", users=users, teams=teams, tasks=tasks, user_map=user_map)
+    @app.route("/admin/tasks", methods=["POST"])
+@admin_required
+def admin_create_task():
+    title = (request.form.get("title") or "").strip()
+    assignee_username = (request.form.get("assignee_username") or "").strip()
+    progress_raw = (request.form.get("progress") or "").strip()
+
+    if not title or not assignee_username:
+        flash("Τίτλος και Username αναλαμβάνοντος είναι υποχρεωτικά.", "warning")
+        return redirect(url_for("admin"))
+
+    user = User.query.filter_by(username=assignee_username).first()
+    if not user:
+        flash("Ο χρήστης δεν βρέθηκε.", "danger")
+        return redirect(url_for("admin"))
+
+    try:
+        progress = max(0, min(100, int(progress_raw))) if progress_raw else 0
+    except ValueError:
+        progress = 0
+
+    t = Task(title=title, assignee_id=user.id, status="open", progress=progress)
+    db.session.add(t)
+    db.session.commit()
+    flash("Η εργασία δημιουργήθηκε και ανατέθηκε.", "success")
+    return redirect(url_for("admin"))
+
+
+@app.route("/admin/tasks/<int:task_id>/toggle", methods=["POST"])
+@admin_required
+def admin_toggle_task(task_id):
+    t = Task.query.get_or_404(task_id)
+    t.status = "done" if t.status != "done" else "open"
+    if t.status == "done":
+        t.progress = 100
+    db.session.commit()
+    flash("Η κατάσταση της εργασίας ενημερώθηκε.", "info")
+    return redirect(url_for("admin"))
+
+
+@app.route("/admin/tasks/<int:task_id>/delete", methods=["POST"])
+@admin_required
+def admin_delete_task(task_id):
+    t = Task.query.get_or_404(task_id)
+    db.session.delete(t)
+    db.session.commit()
+    flash("Η εργασία διαγράφηκε.", "info")
+    return redirect(url_for("admin"))
 
 @app.route("/admin/create_user", methods=["POST"])
 @admin_required
