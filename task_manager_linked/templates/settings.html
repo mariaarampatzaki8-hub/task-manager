@@ -1,50 +1,36 @@
 {% extends "base.html" %}
-{% block title %}Ρυθμίσεις{% endblock %}
-
 {% block content %}
 <h1>Ρυθμίσεις</h1>
 
-<div class="row" style="display:flex; gap:2rem; flex-wrap:wrap;">
-  <!-- Προφίλ -->
-  <section style="flex:1 1 360px; max-width:520px;">
-    <h2>Στοιχεία προφίλ</h2>
-    <form method="post" action="{{ url_for('settings') }}" class="box" style="padding:1rem; border:1px solid #ddd; border-radius:8px;">
-      <div class="field" style="margin-bottom:0.75rem;">
-        <label for="email"><strong>Email</strong></label><br>
-        <input id="email" name="email" type="email" value="{{ user.email or '' }}" style="width:100%; padding:0.5rem;">
-      </div>
+<form method="post" action="{{ url_for('settings') }}">
+  <fieldset style="margin-bottom:1rem;">
+    <legend><strong>Στοιχεία προφίλ</strong></legend>
 
-      <div class="field" style="margin-bottom:0.75rem;">
-        <label for="color"><strong>Χρώμα θέματος</strong></label><br>
-        <input id="color" name="color" type="color" value="{{ user.color or '#3273dc' }}" style="width:60px; height:36px; padding:0; border:none;">
-        <small style="margin-left:0.5rem;">Τρέχον: {{ user.color or '#3273dc' }}</small>
-      </div>
+    <p><label>Όνομα<br>
+      <input name="name" value="{{ user.name or '' }}" style="width:100%"></label></p>
 
-      <button type="submit">Αποθήκευση</button>
-    </form>
-  </section>
+    <p><label>Email<br>
+      <input type="email" name="email" value="{{ user.email or '' }}" style="width:100%"></label></p>
 
-  <!-- Αλλαγή κωδικού -->
-  <section style="flex:1 1 360px; max-width:520px;">
-    <h2>Αλλαγή κωδικού</h2>
-    <form method="post" action="{{ url_for('change_password') }}" class="box" style="padding:1rem; border:1px solid #ddd; border-radius:8px;">
-      <div class="field" style="margin-bottom:0.75rem;">
-        <label for="current_password"><strong>Τωρινός κωδικός</strong></label><br>
-        <input id="current_password" name="current_password" type="password" required style="width:100%; padding:0.5rem;">
-      </div>
+    <p><label>Τηλέφωνο<br>
+      <input name="phone" value="{{ user.phone or '' }}" style="width:100%"></label></p>
 
-      <div class="field" style="margin-bottom:0.75rem;">
-        <label for="new_password"><strong>Νέος κωδικός</strong></label><br>
-        <input id="new_password" name="new_password" type="password" minlength="6" required style="width:100%; padding:0.5rem;">
-      </div>
+    <p><label>ΑΔΤ<br>
+      <input name="id_card" value="{{ user.id_card or '' }}" style="width:100%"></label></p>
 
-      <div class="field" style="margin-bottom:0.75rem;">
-        <label for="confirm_password"><strong>Επιβεβαίωση νέου κωδικού</strong></label><br>
-        <input id="confirm_password" name="confirm_password" type="password" minlength="6" required style="width:100%; padding:0.5rem;">
-      </div>
+    <p><label>Χρώμα (hex)<br>
+      <input name="color" value="{{ user.color or '#3273dc' }}" style="width:12rem"></label></p>
+  </fieldset>
 
-      <button type="submit">Αλλαγή κωδικού</button>
-    </form>
-  </section>
-</div>
+  <fieldset style="margin-bottom:1rem;">
+    <legend><strong>Αλλαγή κωδικού</strong></legend>
+    <p><label>Νέος κωδικός<br>
+      <input type="password" name="new_password" minlength="6" style="width:100%"></label></p>
+    <p><label>Επιβεβαίωση νέου κωδικού<br>
+      <input type="password" name="confirm_password" minlength="6" style="width:100%"></label></p>
+    <small>Άφησέ τα κενά αν δεν θες να αλλάξεις κωδικό.</small>
+  </fieldset>
+
+  <p><button type="submit">Αποθήκευση</button></p>
+</form>
 {% endblock %}
