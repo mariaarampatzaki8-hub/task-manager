@@ -195,10 +195,52 @@ def directory():
 def help_page():
     return render_template("help.html")
 
-@app.route("/settings")
+@app.route("/settings", methods=["GET", "POST"])
 @login_required
 def settings():
+    u = current_user()
+    if request.method == "POST":
+        # Update profile (email, color)
+        email = (request.form.get("email") or "").strip() or None
+        color = (request.form.get("color") or "").strip() or "#3273dc"
+
+        u.email = email
+        u.color = color
+        db.session.commit()
+        flash("Τα στοιχεία σου ενημερώθηκαν.", "success")
+        return redirect(url_for("settings"))
+
     return render_template("settings.html")
+
+
+@app.route("/settings/password", methods=["POST"])
+@login_required
+def change_password():
+    u = current_user()
+    current_pw = (request.form.get("current_password") or "").strip()
+    new_pw     = (request.form.get("new_password") or "").strip()
+    confirm_pw = (request.form.get("confirm_password") or "").strip()
+
+    if not current_pw or not new_pw or not confirm_pw:
+        flash("Συμπλήρωσε όλα τα πεδία για αλλαγή κωδικού.", "warning")
+        return redirect(url_for("settings"))
+
+    if not u.check_password(current_pw):
+        flash("Ο τωρινός κωδικός δεν είναι σωστός.", "danger")
+        return redirect(url_for("settings"))
+
+    if new_pw != confirm_pw:
+        flash("Ο νέος κωδικός και η επιβεβαίωση δεν ταιριάζουν.", "warning")
+        return redirect(url_for("settings"))
+
+    if len(new_pw) < 6:
+        flash("Ο νέος κωδικός πρέπει να έχει τουλάχιστον 6 χαρακτήρες.", "warning")
+        return redirect(url_for("settings"))
+
+    u.set_password(new_pw)
+    db.session.commit()
+    flash("Ο κωδικός σου άλλαξε επιτυχώς.", "success")
+    return redirect(url_for("settings"))
 
 # ---------------- ADMIN ----------------
 @app.route("/admin")
