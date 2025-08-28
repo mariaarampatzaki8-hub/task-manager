@@ -1,49 +1,64 @@
 {% extends "base.html" %}
+
 {% block content %}
-<div class="row g-4">
-  <div class="col-lg-5">
-    <div class="card border-0 shadow">
-      <div class="card-body">
-        <h4 class="mb-3">Νέα ομάδα</h4>
-        <form method="post">
-          <div class="mb-3">
-            <label class="form-label">Όνομα ομάδας</label>
-            <input name="name" class="form-control" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Leader (username)</label>
-            <input name="leader_username" class="form-control" placeholder="π.χ. maria">
-          </div>
-          <button class="btn btn-primary" type="submit">Δημιουργία</button>
-        </form>
-      </div>
-    </div>
+<h2>Διαχείριση Ομάδων</h2>
+
+<!-- Φόρμα για δημιουργία νέας ομάδας -->
+<form method="post" action="{{ url_for('admin_teams') }}">
+  <div>
+    <label for="name">Όνομα Ομάδας:</label>
+    <input type="text" id="name" name="name" required>
   </div>
 
-  <div class="col-lg-7">
-    <div class="card border-0 shadow">
-      <div class="card-body">
-        <h4 class="mb-3">Υπάρχουσες ομάδες</h4>
-        <div class="table-responsive">
-          <table class="table table-dark align-middle">
-            <thead><tr><th>#</th><th>Όνομα</th><th>Leader</th><th>Μέλη</th></tr></thead>
-            <tbody>
-              {% for t in teams %}
-                <tr>
-                  <td>{{ t.id }}</td>
-                  <td>{{ t.name }}</td>
-                  <td>
-                    {% set leader = (t.members | selectattr('id','equalto', t.leader_id) | list | first) %}
-                    {{ leader.username if leader else '—' }}
-                  </td>
-                  <td>{{ t.members|length }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+  <div>
+    <label for="leader_username">Leader (username):</label>
+    <select id="leader_username" name="leader_username">
+      <option value="">-- Κανένας --</option>
+      {% for user in users %}
+        <option value="{{ user.username }}">{{ user.username }}</option>
+      {% endfor %}
+    </select>
   </div>
-</div>
+
+  <button type="submit">Δημιουργία</button>
+</form>
+
+<hr>
+
+<!-- Λίστα με όλες τις ομάδες -->
+<h3>Υπάρχουσες Ομάδες</h3>
+<table border="1" cellpadding="6" cellspacing="0">
+  <thead>
+    <tr>
+      <th>Όνομα</th>
+      <th>Leader</th>
+      <th>Μέλη</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for team in teams %}
+      <tr>
+        <td>{{ team.name }}</td>
+        <td>
+          {% if team.leader %}
+            {{ team.leader.username }}
+          {% else %}
+            (κανένας)
+          {% endif %}
+        </td>
+        <td>
+          {% for member in team.users %}
+            {{ member.username }}{% if not loop.last %}, {% endif %}
+          {% else %}
+            (χωρίς μέλη)
+          {% endfor %}
+        </td>
+      </tr>
+    {% else %}
+      <tr>
+        <td colspan="3">(Δεν υπάρχουν ομάδες ακόμα)</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
 {% endblock %}
