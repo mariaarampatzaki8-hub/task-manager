@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Εργασίες{% endblock %}
+
+{% block content %}
+<h1 class="title">Εργασίες</h1>
+
+<p>
+  <a class="button is-primary" href="{{ url_for('create_task') }}">+ Νέα εργασία</a>
+</p>
+
+{% if tasks %}
+  <table class="table is-fullwidth is-striped">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Τίτλος</th>
+        <th>Περιγραφή</th>
+        <th>Ομάδα</th>
+        <th>Κατάσταση</th>
+        <th style="width: 1%;">Ενέργειες</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for t in tasks %}
+      <tr>
+        <td>{{ t.id }}</td>
+        <td>{{ t.title }}</td>
+        <td>{{ t.description or "-" }}</td>
+        <td>{{ t.team.name if t.team else "-" }}</td>
+        <td>
+          {% if t.status == "done" %}
+            <span class="tag is-success">Ολοκληρωμένη</span>
+          {% else %}
+            <span class="tag is-warning">Ανοιχτή</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if t.status != "done" %}
+          <form method="post" action="{{ url_for('complete_task', task_id=t.id) }}">
+            <button class="button is-small is-success" type="submit">Ολοκλήρωση</button>
+          </form>
+          {% else %}
+            <button class="button is-small" disabled>—</button>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p class="has-text-grey">Δεν υπάρχουν εργασίες ακόμα.</p>
+{% endif %}
+
+{% endblock %}
