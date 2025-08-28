@@ -255,7 +255,62 @@ def admin_teams():
         db.session.commit()
         flash("Η ομάδα δημιουργήθηκε.", "success")
         return redirect(url_for("admin_teams"))
+# ---------------- TASKS ----------------
+def is_admin_or_leader(u: User) -> bool:
+    return u.is_admin or (u.team and u.team.leader_id == u.id)
 
+@app.route("/tasks")
+@login_required
+def list_tasks():
+    u = current_user()
+    if u.is_admin:
+        tasks = Task.query.all()
+    elif u.team:
+        tasks = Task.query.filter_by(team_id=u.team_id).all()
+    else:
+        tasks = []
+    return render_template("tasks.html", tasks=tasks)
+
+@app.route("/tasks/create", methods=["GET", "POST"])
+@login_required
+def create_task():
+    u = current_user()
+    if not is_admin_or_leader(u):
+        flash("Μόνο οι admin ή οι leaders μπορούν να δημιουργούν εργασίες.", "danger")
+        return redirect(url_for("list_tasks"))
+
+    if request.method == "POST":
+        title = (request.form.get("title") or "").strip()
+        description = (request.form.get("description") or "").strip()
+        team_id = request.form.get("team_id")
+
+        if not title:
+            flash("Ο τίτλος είναι υποχρεωτικός.", "warning")
+            return redirect(url_for("create_task"))
+
+        task = Task(title=title, description=description, team_id=team_id)
+        db.session.add(task)
+        db.session.commit()
+        flash("Η εργασία δημιουργήθηκε!", "success")
+        return redirect(url_for("list_tasks"))
+
+    teams = Team.query.all()
+    return render_template("create_task.html", teams=teams)
+
+@app.route("/tasks/<int:task_id>/complete", methods=["POST"])
+@login_required
+def complete_task(task_id):
+    u = current_user()
+    task = Task.query.get_or_404(task_id)
+
+    if not (u.is_admin or (u.team_id == task.team_id)):
+        flash("Δεν έχετε δικαίωμα να ολοκληρώσετε αυτήν την εργασία.", "danger")
+        return redirect(url_for("list_tasks"))
+
+    task.status = "done"
+    db.session.commit()
+    flash("Η εργασία ολοκληρώθηκε!", "success")
+    return redirect(url_for("list_tasks"))
     teams = Team.query.order_by(Team.name.asc()).all()
     users = User.query.order_by(User.username.asc()).all()
     return render_template("admin_teams.html", teams=teams, users=users)
