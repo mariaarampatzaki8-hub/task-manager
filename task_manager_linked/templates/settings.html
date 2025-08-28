@@ -1,9 +1,30 @@
 {% extends "base.html" %}
 {% block content %}
-<h3 class="mb-3">Ρυθμίσεις</h3>
-<div class="card border-0 shadow">
-  <div class="card-body">
-    <p class="text-secondary mb-0">Placeholder ρυθμίσεων (αλλαγή κωδικού, χρώματος, κ.λπ.).</p>
-  </div>
-</div>
+  <h1>Ρυθμίσεις</h1>
+
+  <section>
+    <h2>Αλλαγή κωδικού</h2>
+    <form method="post" action="{{ url_for('settings') }}">
+      <input type="hidden" name="action" value="change_password">
+      <div>
+        <label>Νέος κωδικός</label>
+        <input type="password" name="new_password" required>
+      </div>
+      <button type="submit">Αποθήκευση</button>
+    </form>
+  </section>
+
+  <hr>
+
+  <section>
+    <h2>Χρώμα χρήστη</h2>
+    <form method="post" action="{{ url_for('settings') }}">
+      <input type="hidden" name="action" value="change_color">
+      <div>
+        <label>HEX χρώμα (π.χ. #3273dc)</label>
+        <input type="text" name="color" value="{{ current_user.color or '#3273dc' }}">
+      </div>
+      <button type="submit">Αποθήκευση</button>
+    </form>
+  </section>
 {% endblock %}
