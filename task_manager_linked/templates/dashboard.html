@@ -1,7 +1,18 @@
-<!doctype html><html lang="el"><body>
-<p>Καλώς ήρθες, {{ user.username }} —
-<a href="{{ url_for('admin') }}">Admin</a> |
-<a href="{{ url_for('logout') }}">Αποσύνδεση</a></p>
-<h2>Tasks (demo)</h2>
-<ul>{% for t in tasks %}<li>{{ t.title }} — {{ t.status }} ({{ t.progress }}%)</li>{% endfor %}</ul>
-</body></html>
+<!doctype html>
+<html lang="el">
+  <head><meta charset="utf-8"><title>Dashboard</title></head>
+  <body>
+    <p>Καλώς ήρθες, {{ user.username }} —
+      {% if user.is_admin %}<a href="{{ url_for('admin') }}">Admin</a> |{% endif %}
+      <a href="{{ url_for('logout') }}">Αποσύνδεση</a>
+    </p>
+    <h2>Tasks (demo)</h2>
+    <ul>
+      {% for t in tasks %}
+        <li>{{ t.title }} — {{ t.status }} ({{ t.progress }}%)</li>
+      {% else %}
+        <li>Δεν υπάρχουν εργασίες.</li>
+      {% endfor %}
+    </ul>
+  </body>
+</html>
