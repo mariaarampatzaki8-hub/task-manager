@@ -41,18 +41,19 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(120), unique=True, nullable=False)
     email = db.Column(db.String(200))
-    # extra πεδία (αν δεν τα θες, άστα κενά)
     phone = db.Column(db.String(50))
     id_card = db.Column(db.String(50))
-
     password_hash = db.Column(db.String(255), nullable=False)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     color = db.Column(db.String(20), default="#3273dc")
     team_id = db.Column(db.Integer, db.ForeignKey("tm_teams.id"), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
-    def set_password(self, raw: str): self.password_hash = generate_password_hash(raw)
-    def check_password(self, raw: str) -> bool: return check_password_hash(self.password_hash, raw)
+    def set_password(self, raw: str):
+        self.password_hash = generate_password_hash(raw)
+
+    def check_password(self, raw: str) -> bool:
+        return check_password_hash(self.password_hash, raw)
 
 class Task(db.Model):
     __tablename__ = "tm_tasks"
@@ -75,7 +76,8 @@ def bootstrap_db():
 
     admin = User.query.filter_by(username="admin").first()
     if not admin:
-        admin = User(username="admin", email="admin@example.com", is_admin=True, color="#ff4444", team_id=team.id)
+        admin = User(username="admin", email="admin@example.com",
+                     is_admin=True, color="#ff4444", team_id=team.id)
         admin.set_password("admin123")
         db.session.add(admin)
         db.session.commit()
@@ -116,7 +118,6 @@ def inject_user():
 def healthz():
     return "ok", 200
 
-# γρήγορο διαγνωστικό (προαιρετικό)
 from sqlalchemy import inspect
 @app.route("/__diag")
 def __diag():
@@ -169,16 +170,11 @@ def progress_view():
     avg = int(sum(t.progress for t in tasks) / total) if total else 0
     return render_template("progress.html", total=total, done=done, avg=avg)
 
-@app.route("/progress", endpoint="progress")  # alias
+# alias για τυχόν παλιά links
+@app.route("/progress", endpoint="progress")
 @login_required
 def progress_alias():
     return redirect(url_for("progress_view"))
-
-@app.route("/teams")
-@login_required
-def teams():
-    teams = Team.query.order_by(Team.name.asc()).all()
-    return render_template("teams.html", teams=teams)
 
 @app.route("/catalog")
 @login_required
@@ -190,20 +186,25 @@ def catalog():
 @login_required
 def tasks_list():
     u = current_user()
-    # Δείξε πρώτα τις δικές μου εργασίες. Αν είσαι admin, δείξε όλες.
     tasks = (
         Task.query.order_by(Task.created_at.desc()).all()
         if (u and u.is_admin)
         else Task.query.filter_by(assignee_id=u.id).order_by(Task.created_at.desc()).all()
     )
-    # Χρήσιμο map για εμφάνιση αναθέτη/χρήστη στο template
     users = User.query.all()
     user_map = {usr.id: usr.username for usr in users}
     return render_template("tasks.html", tasks=tasks, user_map=user_map)
 
+@app.route("/teams")
+@login_required
+def teams():
+    teams = Team.query.order_by(Team.name.asc()).all()
+    return render_template("teams.html", teams=teams)
+
 @app.route("/board")
 @login_required
 def board():
+    # Αν έχεις ξεχωριστό board template, βάλε το εδώ.
     return render_template("catalog.html")
 
 @app.route("/directory")
@@ -235,7 +236,6 @@ def update_profile():
     u = current_user()
     u.email = (request.form.get("email") or "").strip() or None
     u.color = (request.form.get("color") or "").strip() or "#3273dc"
-    # αν έχεις και phone/id_card στο template:
     u.phone = (request.form.get("phone") or "").strip() or None
     u.id_card = (request.form.get("id_card") or "").strip() or None
     db.session.commit()
@@ -308,7 +308,7 @@ def admin_create_user():
     flash("Ο χρήστης δημιουργήθηκε.", "success")
     return redirect(url_for("admin"))
 
-# ---- Tasks από admin ----
+# ---- TASKS από admin ----
 @app.route("/admin/tasks", methods=["POST"])
 @admin_required
 def admin_create_task():
@@ -356,15 +356,17 @@ def admin_delete_task(task_id):
     flash("Η εργασία διαγράφηκε.", "info")
     return redirect(url_for("admin"))
 
-# ---------------- ERRORS ----------------
+# ---------------- ERROR HANDLERS ----------------
 @app.errorhandler(404)
 def not_found(e):
     return render_template("error.html", code=404, message="Δεν βρέθηκε."), 404
 
 @app.errorhandler(500)
 def server_error(e):
+    # Μην κάνεις url_for εδώ, κράτα το απλό για να μην «σκάει» το error page.
     return render_template("error.html", code=500, message="Σφάλμα server."), 500
 
 # ---------------- ENTRY ----------------
 if __name__ == "__main__":
+    # Το Render τρέχει με gunicorn app:app — εδώ μόνο για τοπικό debug.
     app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
