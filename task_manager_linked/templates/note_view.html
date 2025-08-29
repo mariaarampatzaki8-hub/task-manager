@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Σημείωση #{{ note.id }}</h1>
+
+<p class="muted">
+  Από: <strong>{{ author.name or author.username }}</strong> •
+  Δημ.: {{ note.created_at.strftime('%Y-%m-%d %H:%M') }} •
+  Τελευταία ενημ.: {{ note.updated_at.strftime('%Y-%m-%d %H:%M') }}
+</p>
+
+<form action="" method="post" class="form-grid">
+  <label>Τίτλος
+    <input type="text" name="title" value="{{ note.title }}" {% if user.id != note.author_id %}readonly{% endif %}>
+  </label>
+
+  <label>Κείμενο
+    <textarea name="body" rows="6" {% if user.id != note.author_id %}readonly{% endif %}>{{ note.body }}</textarea>
+  </label>
+
+  {% if user.is_admin %}
+  <label>Απάντηση admin
+    <textarea name="reply" rows="6" placeholder="Η απάντησή σου...">{{ note.reply or '' }}</textarea>
+  </label>
+
+  <label>Status
+    <select name="status">
+      <option value="open"     {% if note.status=='open' %}selected{% endif %}>open</option>
+      <option value="answered" {% if note.status=='answered' %}selected{% endif %}>answered</option>
+      <option value="closed"   {% if note.status=='closed' %}selected{% endif %}>closed</option>
+    </select>
+  </label>
+  {% else %}
+    {% if note.reply %}
+      <div class="card" style="padding:12px; margin:8px 0;">
+        <strong>Απάντηση admin:</strong>
+        <p style="white-space:pre-wrap">{{ note.reply }}</p>
+      </div>
+    {% endif %}
+  {% endif %}
+
+  <button type="submit">Αποθήκευση</button>
+</form>
+{% endblock %}
