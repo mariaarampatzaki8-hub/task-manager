@@ -26,7 +26,8 @@
       </thead>
       <tbody>
         {% for t in items %}
-          <tr class="{% if t.status == 'done' %}is-done{% endif %}">
+          <tr class="{% if t.status == 'done' %}is-done{% endif %}"
+    style="background-color: {{ user_colors.get(t.assignee_id, '#f9f9f9') }}20">
             <td>{{ t.id }}</td>
             <td>{{ t.title }}</td>
             <td>{{ t.status }}</td>
