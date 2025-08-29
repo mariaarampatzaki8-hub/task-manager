@@ -112,6 +112,18 @@ def bootstrap_db():
         conn.execute(text("ALTER TABLE tm_users ADD COLUMN IF NOT EXISTS name VARCHAR(200)"))
         conn.execute(text("ALTER TABLE tm_users ADD COLUMN IF NOT EXISTS phone VARCHAR(50)"))
         conn.execute(text("ALTER TABLE tm_users ADD COLUMN IF NOT EXISTS id_card VARCHAR(50)"))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS tm_notes (
+              id SERIAL PRIMARY KEY,
+              title VARCHAR(200) NOT NULL,
+              body TEXT NOT NULL,
+              reply TEXT,
+              author_id INTEGER NOT NULL REFERENCES tm_users(id),
+              status VARCHAR(20) NOT NULL DEFAULT 'open',
+              created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+              updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+            );
+        """))
 
     # default team
     team = Team.query.filter_by(name="Default Team").first()
