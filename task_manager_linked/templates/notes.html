@@ -1,27 +1,45 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="grid grid-2">
-  <div class="card">
-    <h2 style="margin-top:0">Οι σημειώσεις μου</h2>
-    {% if notes %}
-      <ul style="padding-left:18px;line-height:1.7">
-        {% for n in notes %}
-          <li>{{ n.content }} <span style="color:#94a3b8">· {{ n.created_at.strftime('%d/%m/%Y %H:%M') }}</span></li>
-        {% endfor %}
-      </ul>
+<h1>Σημειώσεις</h1>
+
+<form action="{{ url_for('notes') }}" method="post" class="form-grid" style="margin-bottom:16px">
+  <label>Τίτλος
+    <input type="text" name="title" required>
+  </label>
+  <label>Κείμενο
+    <textarea name="body" rows="3" required></textarea>
+  </label>
+  <button type="submit">+ Δημιουργία</button>
+</form>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Τίτλος</th>
+      <th>Από</th>
+      <th>Status</th>
+      <th>Τελευταία ενημέρωση</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for n in notes %}
+      <tr>
+        <td>{{ n.id }}</td>
+        <td><a href="{{ url_for('note_view', note_id=n.id) }}">{{ n.title }}</a></td>
+        <td>{{ user_map[n.author_id].name or user_map[n.author_id].username }}</td>
+        <td>{{ n.status }}</td>
+        <td>{{ n.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td>
+          <form action="{{ url_for('note_delete', note_id=n.id) }}" method="post" onsubmit="return confirm('Διαγραφή;')">
+            <button type="submit">Διαγραφή</button>
+          </form>
+        </td>
+      </tr>
     {% else %}
-      <p style="color:#94a3b8">Δεν υπάρχουν σημειώσεις ακόμα.</p>
-    {% endif %}
-  </div>
-  <div class="card">
-    <h3 style="margin-top:0">Νέα σημείωση</h3>
-    <form method="post">
-      <label>Κείμενο</label>
-      <textarea name="content" rows="4" required placeholder="Γράψε την ερώτηση/παρατήρηση..."></textarea>
-      <div style="margin-top:12px">
-        <button class="btn" type="submit">Αποθήκευση</button>
-      </div>
-    </form>
-  </div>
-</div>
+      <tr><td colspan="6" class="muted">Δεν υπάρχουν σημειώσεις.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
 {% endblock %}
