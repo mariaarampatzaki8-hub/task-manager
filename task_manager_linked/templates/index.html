@@ -1,14 +1,13 @@
-<!doctype html>
-<html lang="el">
-  <head><meta charset="utf-8"><title>Σύνδεση</title></head>
-  <body>
-    <h1>Σύνδεση</h1>
-    <form method="post" action="{{ url_for('login') }}">
-      <label>Username</label><br>
-      <input name="username" placeholder="admin" autofocus><br>
-      <label>Κωδικός</label><br>
-      <input name="password" type="password" placeholder="admin123"><br><br>
-      <button type="submit">Σύνδεση</button>
-    </form>
-  </body>
-</html>
+{% extends "base.html" %}
+{% block content %}
+<h1>Σύνδεση</h1>
+<form method="post" action="{{ url_for('login') }}" class="card">
+  <label>Username</label>
+  <input name="username" placeholder="admin" autocomplete="username" required autofocus>
+
+  <label>Κωδικός</label>
+  <input name="password" type="password" placeholder="admin123" autocomplete="current-password" required>
+
+  <button type="submit">Σύνδεση</button>
+</form>
+{% endblock %}
