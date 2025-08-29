@@ -3,55 +3,56 @@
 <head>
   <meta charset="utf-8">
   <title>Task Manager</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
-  <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0}
-    .navbar{background:#111;color:#fff;padding:.6rem 1rem;display:flex;gap:.75rem;align-items:center;flex-wrap:wrap}
-    .navbar a{color:#eee;text-decoration:none;padding:.35rem .5rem}
-    .navbar a:hover{text-decoration:underline;color:#fff}
-    .grow{flex:1}
-    .container{max-width:1000px;margin:1.25rem auto;padding:0 1rem}
-    .flash{padding:.7rem 1rem;border-radius:6px;margin:.5rem 0}
-    .flash.success{background:#e6ffed;color:#065f46}
-    .flash.info{background:#e5f3ff;color:#1e3a8a}
-    .flash.warning{background:#fff6e5;color:#92400e}
-    .flash.danger{background:#ffe5e5;color:#991b1b}
-    footer{margin:3rem 0 1.5rem;color:#666;font-size:.9rem;text-align:right}
-    code{background:#f3f3f3;padding:.15rem .35rem;border-radius:4px}
-  </style>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <nav class="navbar">
-    <a href="{{ url_for('dashboard') }}">Task Manager</a>
-    <a href="{{ url_for('catalog') }}">Πίνακας</a>
-    <a href="{{ url_for('progress_view') }}">Πρόοδος</a>
-    <a href="{{ url_for('teams') }}">Ομάδες</a>
-    <a href="{{ url_for('directory') }}">Κατάλογος</a>
-    {% if user and user.is_admin %}
-      <a href="{{ url_for('admin') }}">Admin</a>
-      <a href="{{ url_for('admin_teams') }}">Διαχείριση Ομάδων</a>
-    {% endif %}
-    <a href="{{ url_for('help_page') }}">Οδηγίες</a>
-    <a href="{{ url_for('settings') }}">Ρυθμίσεις</a>
-    <div class="grow"></div>
+<header class="topbar">
+  <nav class="nav">
+    <a class="brand" href="{{ url_for('dashboard') }}">Task Manager</a>
+
     {% if user %}
-      <span>Γεια σου, {{ user.username }}</span>
-      <a href="{{ url_for('logout') }}">Αποσύνδεση</a>
+      <a href="{{ url_for('dashboard') }}">Αρχική</a>
+      <a href="{{ url_for('catalog') }}">Πίνακας</a>
+      <a href="{{ url_for('progress_view') }}">Πρόοδος</a>
+      <a href="{{ url_for('teams') }}">Ομάδες</a>
+      <a href="{{ url_for('directory') }}">Κατάλογος</a>
+      <a href="{{ url_for('help_page') }}">Οδηγίες</a>
+      <a href="{{ url_for('settings') }}">Ρυθμίσεις</a>
+
+      {% if user.is_admin %}
+        <a href="{{ url_for('admin') }}">Admin</a>
+        <a href="{{ url_for('admin_teams') }}">Διαχείριση Ομάδων</a>
+      {% endif %}
+
+      <span class="right">
+        <small>Γεια σου, {{ user.username }}</small>
+        <a href="{{ url_for('logout') }}">Αποσύνδεση</a>
+      </span>
+    {% else %}
+      <span class="right">
+        <a href="{{ url_for('index') }}">Σύνδεση</a>
+      </span>
     {% endif %}
   </nav>
+</header>
 
-  <div class="container">
-    {% with msgs = get_flashed_messages(with_categories=true) %}
-      {% if msgs %}
+<main class="container">
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% if msgs %}
+      <div class="flashes">
         {% for cat, msg in msgs %}
           <div class="flash {{ cat }}">{{ msg }}</div>
         {% endfor %}
-      {% endif %}
-    {% endwith %}
+      </div>
+    {% endif %}
+  {% endwith %}
 
-    {% block content %}{% endblock %}
-    <footer>status: <code>/healthz → "ok"</code></footer>
-  </div>
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+  <small>status: <code>/healthz → "ok"</code></small>
+</footer>
 </body>
 </html>
