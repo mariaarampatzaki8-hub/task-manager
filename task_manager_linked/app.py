@@ -485,7 +485,23 @@ def task_toggle(task_id):
 @login_required
 def teams():
     teams = Team.query.order_by(Team.name.asc()).all()
-    return render_template("teams.html", teams=teams)
+
+    # users grouped by team
+    users = User.query.order_by(User.username.asc()).all()
+    users_by_team = {t.id: [] for t in teams}
+    no_team = []
+    for u in users:
+        if u.team_id and u.team_id in users_by_team:
+            users_by_team[u.team_id].append(u)
+        else:
+            no_team.append(u)
+
+    return render_template(
+        "teams.html",
+        teams=teams,
+        users_by_team=users_by_team,
+        no_team=no_team,
+    )
 
 @app.route("/directory")
 @login_required
