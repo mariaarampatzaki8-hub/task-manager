@@ -53,18 +53,28 @@ class Team(db.Model):
 
 class User(db.Model):
     __tablename__ = "tm_users"
+
     id            = db.Column(db.Integer, primary_key=True)
+    # Ονοματεπώνυμο
+    name          = db.Column(db.String(200), nullable=False)  
+    # Μοναδικό username (login)
     username      = db.Column(db.String(120), unique=True, nullable=False)
-    name          = db.Column(db.String(200))                      # Ονοματεπώνυμο
+    # Email, Τηλέφωνο, ΑΔΤ
     email         = db.Column(db.String(200))
     phone         = db.Column(db.String(50))
     id_card       = db.Column(db.String(50))
+    # Κωδικός (hashed)
     password_hash = db.Column(db.String(255), nullable=False)
+    # Σημαία admin
     is_admin      = db.Column(db.Boolean, default=False, nullable=False)
+    # Προσωπικό χρώμα
     color         = db.Column(db.String(20), default="#3273dc")
+    # Ομάδα
     team_id       = db.Column(db.Integer, db.ForeignKey("tm_teams.id"), nullable=True)
+    # Ημερομηνία δημιουργίας
     created_at    = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
+    # -------- Helpers για password --------
     def set_password(self, raw: str):
         self.password_hash = generate_password_hash(raw)
 
