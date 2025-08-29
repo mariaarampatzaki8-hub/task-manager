@@ -558,10 +558,21 @@ def help_page():
 def instructions():
     return render_template("instructions.html")
 
-@app.route("/notes")
+@app.route("/notes", methods=["GET", "POST"])
 @login_required
 def notes():
-    return render_template("notes.html")
+    u = current_user()
+    if request.method == "POST":
+        title = request.form.get("title") or "Χωρίς τίτλο"
+        body = request.form.get("body") or ""
+        note = Note(title=title, body=body, author_id=u.id)
+        db.session.add(note)
+        db.session.commit()
+        flash("Η σημείωση καταχωρήθηκε.", "success")
+        return redirect(url_for("notes"))
+
+    notes = Note.query.order_by(Note.created_at.desc()).all()
+    return render_template("notes.html", notes=notes, user=u)
 
 # -------------------------------------------------
 # Settings
