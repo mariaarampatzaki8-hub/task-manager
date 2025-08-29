@@ -1,31 +1,124 @@
-<!doctype html>
-<html lang="el">
-  <head><meta charset="utf-8"><title>Admin</title></head>
-  <body>
-    <p><a href="{{ url_for('dashboard') }}">Dashboard</a> |
-       <a href="{{ url_for('logout') }}">Αποσύνδεση</a></p>
+{% extends "base.html" %}
+{% block content %}
+<h1>Πίνακας Διαχειριστή</h1>
 
-    <h1>Admin</h1>
+<div class="grid-3">
+  <section class="card">
+    <h2>Δημιουργία Χρήστη</h2>
+    <form method="post" action="{{ url_for('admin_create_user') }}">
+      <label>Username</label>
+      <input name="username" required>
 
-    <h2>Χρήστες</h2>
-    <ul>
-      {% for u in users %}
-        <li>{{ u.username }}{% if u.is_admin %} (admin){% endif %}</li>
-      {% endfor %}
-    </ul>
+      <label>Κωδικός (προσωρινός)</label>
+      <input name="password" required>
 
-    <h2>Ομάδες</h2>
-    <ul>
+      <label>Email</label>
+      <input name="email" type="email">
+
+      <label>Τηλέφωνο</label>
+      <input name="phone">
+
+      <label>ΑΔΤ</label>
+      <input name="id_card">
+
+      <label>Admin;</label>
+      <input name="is_admin" type="checkbox">
+
+      <label>Χρώμα</label>
+      <input name="color" type="color" value="#3273dc">
+
+      <label>Ομάδα</label>
+      <select name="team_id">
+        <option value="">— Καμία —</option>
+        {% for g in teams %}
+          <option value="{{ g.id }}">{{ g.name }}</option>
+        {% endfor %}
+      </select>
+
+      <button type="submit">Δημιουργία</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Δημιουργία Ομάδας</h2>
+    <form method="post" action="{{ url_for('admin_create_team') }}">
+      <label>Όνομα ομάδας</label>
+      <input name="name" required>
+      <button type="submit">Προσθήκη</button>
+    </form>
+
+    <h3>Υπάρχουσες Ομάδες</h3>
+    <ul class="list">
       {% for g in teams %}
-        <li>{{ g.name }}</li>
+        <li>#{{ g.id }} — {{ g.name }}</li>
+      {% else %}
+        <li class="muted">Καμία ομάδα.</li>
       {% endfor %}
     </ul>
+  </section>
 
-    <h2>Tasks</h2>
-    <ul>
-      {% for t in tasks %}
-        <li>{{ t.title }} — {{ t.status }} ({{ t.progress }}%)</li>
-      {% endfor %}
-    </ul>
-  </body>
-</html>
+  <section class="card">
+    <h2>Ανάθεση Task</h2>
+    <form method="post" action="{{ url_for('admin_create_task') }}">
+      <label>Τίτλος</label>
+      <input name="title" required>
+
+      <label>Ανατέθηκε σε (username)</label>
+      <input name="assignee_username" placeholder="π.χ. user1" required>
+
+      <button type="submit">Ανάθεση</button>
+    </form>
+
+    <h3>Όλες οι Εργασίες</h3>
+    <table class="table">
+      <thead>
+        <tr><th>#</th><th>Τίτλος</th><th>Σε</th><th>Κατάσταση</th><th>Progress</th><th>Ενέργειες</th></tr>
+      </thead>
+      <tbody>
+        {% for t in tasks %}
+          <tr>
+            <td>{{ t.id }}</td>
+            <td>{{ t.title }}</td>
+            <td>{{ user_map.get(t.assignee_id, '—') }}</td>
+            <td>{{ t.status }}</td>
+            <td>{{ t.progress }}%</td>
+            <td class="actions">
+              <form method="post" action="{{ url_for('admin_toggle_task', task_id=t.id) }}" style="display:inline">
+                <button type="submit">{% if t.status == 'done' %}↩︎ Άνοιγμα{% else %}✓ Ολοκλήρωση{% endif %}</button>
+              </form>
+              <form method="post" action="{{ url_for('admin_delete_task', task_id=t.id) }}" style="display:inline" onsubmit="return confirm('Σίγουρα διαγραφή;')">
+                <button type="submit" class="danger">Διαγραφή</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="muted">Δεν υπάρχουν εργασίες.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+
+<h2>Χρήστες</h2>
+<table class="table">
+  <thead>
+    <tr><th>#</th><th>Username</th><th>Email</th><th>Τηλέφωνο</th><th>ΑΔΤ</th><th>Ομάδα ID</th><th>Ρόλος</th><th>Χρώμα</th></tr>
+  </thead>
+  <tbody>
+    {% for u in users %}
+      <tr>
+        <td>{{ u.id }}</td>
+        <td>{{ u.username }}</td>
+        <td>{{ u.email or '—' }}</td>
+        <td>{{ u.phone or '—' }}</td>
+        <td>{{ u.id_card or '—' }}</td>
+        <td>{{ u.team_id or '—' }}</td>
+        <td>{% if u.is_admin %}Admin{% else %}User{% endif %}</td>
+        <td><span class="color" style="background: {{ u.color or '#3273dc' }};"></span> {{ u.color or '—' }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8" class="muted">Δεν υπάρχουν χρήστες.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
