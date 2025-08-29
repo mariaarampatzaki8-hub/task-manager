@@ -3,11 +3,9 @@
 <h1>Dashboard</h1>
 
 <p class="muted">
-  {% if user.is_admin %}
-    Βλέπεις όλες τις εργασίες όλων των χρηστών.
-  {% else %}
-    Βλέπεις τις δικές σου εργασίες.
-  {% endif %}
+  {{ now.strftime('%d/%m/%Y %H:%M') }} —
+  {% if user.is_admin %}Βλέπεις όλες τις εργασίες όλων των χρηστών.
+  {% else %}Βλέπεις τις δικές σου εργασίες.{% endif %}
 </p>
 
 <p>
@@ -16,40 +14,31 @@
   <strong>Μέσο progress:</strong> {{ avg }}%
 </p>
 
-<table class="table">
-  <thead>
-    <tr>
-      <th>#</th>
-      <th>Τίτλος</th>
-      <th>Κατάσταση</th>
-      <th>Progress</th>
-      <th>Ανατέθηκε σε</th>
-      <th>Ημ/νία</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for t in tasks %}
-      <tr class="{% if t.status == 'done' %}is-done{% endif %}">
-        <td>{{ t.id }}</td>
-        <td>{{ t.title }}</td>
-        <td>{{ t.status }}</td>
-        <td>
-          <div class="progress-bar">
-            <div class="progress-fill
-                 {% if t.progress < 30 %}low
-                 {% elif t.progress < 70 %}medium
-                 {% else %}high{% endif %}"
-                 style="width: {{ t.progress }}%">
-            </div>
-          </div>
-          <small>{{ t.progress }}%</small>
-        </td>
-        <td>{{ user_map.get(t.assignee_id, '—') }}</td>
-        <td>{{ t.created_at.strftime('%Y-%m-%d %H:%M') if t.created_at else '—' }}</td>
-      </tr>
-    {% else %}
-      <tr><td colspan="6" class="muted">Δεν υπάρχουν εργασίες.</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
+{% if grouped and grouped|length %}
+  {% for gname, items in grouped|dictsort %}
+    <h2 style="margin-top:24px">{{ gname }}</h2>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>#</th><th>Τίτλος</th><th>Κατάσταση</th>
+          <th>Progress</th><th>Ανατέθηκε σε</th><th>Ημ/νία</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in items %}
+          <tr class="{% if t.status == 'done' %}is-done{% endif %}">
+            <td>{{ t.id }}</td>
+            <td>{{ t.title }}</td>
+            <td>{{ t.status }}</td>
+            <td>{{ t.progress }}%</td>
+            <td>{{ user_map.get(t.assignee_id, '—') }}</td>
+            <td>{{ t.created_at and t.created_at.strftime('%Y-%m-%d %H:%M') or '—' }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endfor %}
+{% else %}
+  <p class="muted">Δεν υπάρχουν εργασίες.</p>
+{% endif %}
 {% endblock %}
