@@ -152,10 +152,18 @@ def admin_required(fn):
             return redirect(url_for("dashboard"))
         return fn(*a, **k)
     return wrapper
+def is_leader(user: "User") -> bool:
+    if not user:
+        return False
+    return db.session.query(Team.id).filter(Team.leader_id == user.id).first() is not None
 
 @app.context_processor
 def inject_user():
-    return {"user": current_user()}
+    u = current_user()
+    return {
+        "user": u,
+        "is_leader": is_leader(u) if u else False,
+    }
 
 # -------------------------------------------------
 # Health / Diag
@@ -402,13 +410,20 @@ def teams():
 @login_required
 def directory():
     u = current_user()
-    users = (
-        User.query.order_by(User.username.asc()).all()
-        if (u and u.is_admin)
-        else User.query.filter_by(team_id=u.team_id).order_by(User.username.asc()).all()
-        if u and u.team_id else []
-    )
-    return render_template("directory.html", users=users)
+    # Admin: βλέπει όλους
+    if u and u.is_admin:
+        users = User.query.order_by(User.username.asc()).all()
+        return render_template("directory.html", users=users)
+
+    # Leader: βλέπει μόνο τα μέλη της/των ομάδων του
+    if u and is_leader(u):
+        team_ids = [t.id for t in Team.query.filter_by(leader_id=u.id).all()]
+        users = User.query.filter(User.team_id.in_(team_ids)).order_by(User.username.asc()).all()
+        return render_template("directory.html", users=users)
+
+    # Άλλοι χρήστες: δεν επιτρέπεται
+    flash("Πρόσβαση μόνο για διαχειριστές ή leaders.", "warning")
+    return redirect(url_for("dashboard"))
 
 @app.route("/help")
 @login_required
