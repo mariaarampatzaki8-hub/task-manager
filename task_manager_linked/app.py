@@ -225,8 +225,7 @@ def catalog():
 @app.route("/board")
 @login_required
 def board():
-    # ιστορικά ο "πίνακας" έδειχνε τον κατάλογο
-    return render_template("catalog.html")
+    return redirect(url_for("catalog"))
 
 @app.route("/tasks", methods=["GET"], endpoint="tasks")
 @login_required
