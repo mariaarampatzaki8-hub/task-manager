@@ -164,7 +164,14 @@ def inject_user():
         "user": u,
         "is_leader": is_leader(u) if u else False,
     }
-
+# κοινό helper (βάλε το ψηλά, δίπλα στα άλλα helpers)
+def build_user_maps():
+    users = User.query.all()
+    user_map    = {u.id: (u.name or u.username or f"user#{u.id}") for u in users}
+    user_colors = {u.id: (u.color or "#3273dc") for u in users}
+    user_objs   = {u.id: u for u in users}
+    return user_map, user_colors, user_objs
+    
 # -------------------------------------------------
 # Health / Diag
 # -------------------------------------------------
