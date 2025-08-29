@@ -1,9 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Σύνδεση</h1>
-<form method="post" action="{{ url_for('login') }}">
-  <p><label>Username<br><input name="username" required></label></p>
-  <p><label>Κωδικός<br><input type="password" name="password" required></label></p>
-  <p><button type="submit">Σύνδεση</button></p>
+<form method="post" action="{{ url_for('login') }}" class="card">
+  <label>Username
+    <input type="text" name="username" autofocus>
+  </label>
+  <label>Κωδικός
+    <input type="password" name="password">
+  </label>
+  <button type="submit">Σύνδεση</button>
 </form>
 {% endblock %}
