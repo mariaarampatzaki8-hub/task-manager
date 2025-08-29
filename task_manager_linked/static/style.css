@@ -35,3 +35,13 @@ th, td { padding:10px 12px; border-bottom:1px solid #e5e7eb; text-align:left; }
 th { background:#f1f5f9; font-weight:600; }
 /* ---- Footer ---- */
 .footer { color:#64748b; font-size:12px; text-align:center; padding:24px 12px; }
+/* Dashboard / Tasks table extra styling */
+.table tr.is-done td {
+  opacity: 0.75;
+  text-decoration: line-through;
+}
+
+.muted {
+  color: #667085;
+  font-style: italic;
+}
