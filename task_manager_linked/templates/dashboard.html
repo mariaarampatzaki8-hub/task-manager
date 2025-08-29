@@ -4,5 +4,10 @@
 <p>Καλώς ήρθες, <strong>{{ user.username }}</strong>! Ρόλος:
    <strong>{% if user.is_admin %}Διαχειριστής{% else %}Χρήστης{% endif %}</strong>.
 </p>
-<p>Συντόμευση: <a href="{{ url_for('catalog') }}">Πίνακας</a> • <a href="{{ url_for('progress_view') }}">Πρόοδος</a> • <a href="{{ url_for('settings') }}">Ρυθμίσεις</a></p>
+<p>
+  Συντόμευση:
+  <a href="{{ url_for('catalog') }}">Πίνακας</a> •
+  <a href="{{ url_for('progress_view') }}">Πρόοδος</a> •
+  <a href="{{ url_for('settings') }}">Ρυθμίσεις</a>
+</p>
 {% endblock %}
