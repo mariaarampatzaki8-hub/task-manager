@@ -341,62 +341,65 @@ def catalog():
         user_map=user_map,
         total=total_all, done=done_all, avg=avg_all,
     )
-
 @app.route("/board")
 @login_required
 def board():
-    # Φέρνουμε όλες τις ομάδες με τα μέλη τους
+    from datetime import datetime
+
+    # όλες οι ομάδες
     teams = Team.query.order_by(Team.name.asc()).all()
 
-    # Για γρήγορη πρόσβαση χρηστών με id->object
+    # map χρηστών {id: user_obj} για εμφάνιση ονομάτων
     users = {u.id: u for u in User.query.all()}
 
-    # Ομαδοποίηση tasks ανά ομάδα (με βάση το team_id του assignee)
     team_buckets = []
 
-for team in teams:
-    member_ids = [u.id for u in User.query.filter_by(team_id=team.id).all()]
-    if member_ids:
-        tasks = Task.query.filter(Task.assignee_id.in_(member_ids)).order_by(Task.created_at.desc()).all()
-    else:
-        tasks = []
+    # 1) κάδος για κάθε ομάδα
+    for team in teams:
+        member_ids = [u.id for u in User.query.filter_by(team_id=team.id).all()]
+        if member_ids:
+            tasks = (
+                Task.query.filter(Task.assignee_id.in_(member_ids))
+                .order_by(Task.created_at.desc())
+                .all()
+            )
+        else:
+            tasks = []
 
-    total = len(tasks)
-    done = sum(1 for t in tasks if t.status == "done")
-    avg = int(sum(t.progress for t in tasks) / total) if total else 0
+        total = len(tasks)
+        done  = sum(1 for t in tasks if t.status == "done")
+        avg   = int(sum(t.progress for t in tasks) / total) if total else 0
 
-    team_buckets.append({
-        "team": team,
-        "tasks": tasks,
-        "stats": {"total": total, "done": done, "avg": avg}
-    })
+        team_buckets.append({
+            "team": team,
+            "tasks": tasks,
+            "stats": {"total": total, "done": done, "avg": avg},
+        })
 
-now = datetime.utcnow()
-
-return render_template(
-    "board.html",
-    now=now,
-    team_blocks=team_buckets,
-    user_map=users
-)
-
-
-    # Ειδικά tasks χωρίς ομάδα (assignee χωρίς team_id)
+    # 2) κάδος "Χωρίς Ομάδα" (users με team_id=None)
     no_team_member_ids = [u.id for u in User.query.filter_by(team_id=None).all()]
     if no_team_member_ids:
-        no_team_tasks = Task.query.filter(Task.assignee_id.in_(no_team_member_ids)).order_by(Task.created_at.desc()).all()
-    else:
-        no_team_tasks = []
-    nt_total = len(no_team_tasks)
-    nt_done  = sum(1 for t in no_team_tasks if t.status == "done")
-    nt_avg   = int(sum(t.progress for t in no_team_tasks) / nt_total) if nt_total else 0
+        tasks = (
+            Task.query.filter(Task.assignee_id.in_(no_team_member_ids))
+            .order_by(Task.created_at.desc())
+            .all()
+        )
+        total = len(tasks)
+        done  = sum(1 for t in tasks if t.status == "done")
+        avg   = int(sum(t.progress for t in tasks) / total) if total else 0
 
+        team_buckets.append({
+            "team": None,
+            "tasks": tasks,
+            "stats": {"total": total, "done": done, "avg": avg},
+        })
+
+    # ΠΡΟΣΟΧΗ: τίποτα μετά από εδώ — το return είναι το τελευταίο!
     return render_template(
         "board.html",
-        team_buckets=team_buckets,
-        users=users,                 # map id->User για εμφάνιση ονομάτων
-        no_team_tasks=no_team_tasks,
-        no_team_stats={"total": nt_total, "done": nt_done, "avg": nt_avg},
+        now=datetime.utcnow(),
+        team_blocks=team_buckets,
+        user_map=users,
     )
 
 @app.route("/tasks", methods=["GET"], endpoint="tasks_list")
