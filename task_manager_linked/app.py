@@ -228,7 +228,7 @@ def board():
     # ιστορικά ο "πίνακας" έδειχνε τον κατάλογο
     return render_template("catalog.html")
 
-@app.route("/tasks", methods=["GET"], endpoint="tasks_list")
+@app.route("/tasks", methods=["GET"], endpoint="tasks")
 @login_required
 def tasks_list():
     u = current_user()
