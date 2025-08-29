@@ -35,13 +35,67 @@ th, td { padding:10px 12px; border-bottom:1px solid #e5e7eb; text-align:left; }
 th { background:#f1f5f9; font-weight:600; }
 /* ---- Footer ---- */
 .footer { color:#64748b; font-size:12px; text-align:center; padding:24px 12px; }
-/* Dashboard / Tasks table extra styling */
+/* ==============================
+   Dashboard / Tasks styling
+   ============================== */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  font-size: 15px;
+}
+
+.table th, .table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+.table th {
+  background: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+}
+
+.table tr:hover {
+  background: #f3f4f6;
+}
+
 .table tr.is-done td {
-  opacity: 0.75;
+  opacity: 0.7;
   text-decoration: line-through;
 }
 
+/* Progress bar cell */
+.progress-bar {
+  height: 10px;
+  border-radius: 5px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  transition: width 0.3s ease-in-out;
+}
+
+.progress-fill.low { background: #ef4444; }     /* κόκκινο 0–30% */
+.progress-fill.medium { background: #f59e0b; }  /* πορτοκαλί 30–70% */
+.progress-fill.high { background: #10b981; }    /* πράσινο 70–100% */
+
+/* Muted text */
 .muted {
-  color: #667085;
+  color: #6b7280;
   font-style: italic;
+}
+
+/* Responsive small screens */
+@media (max-width: 600px) {
+  .table th:nth-child(1),
+  .table td:nth-child(1),
+  .table th:nth-child(6),
+  .table td:nth-child(6) {
+    display: none; /* κρύβει # και ημερομηνία στα κινητά */
+  }
 }
