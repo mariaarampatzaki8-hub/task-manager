@@ -5,25 +5,22 @@ from flask import (
     url_for, session, flash
 )
 
-# ---------------- App ----------------
-app = Flask(__name__)
+app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-" + secrets.token_hex(16))
 
-# ---------------- FAKE DATA ----------------
+# --------- FAKE DATA (στη μνήμη) ---------
 users = [
-    {"id": 1, "username": "admin", "password": "admin123", "is_admin": True, "color": "#ff4444"},
-    {"id": 2, "username": "user1", "password": "user123", "is_admin": False, "color": "#3273dc"},
+    {"id": 1, "username": "admin", "password": "admin123", "is_admin": True,  "color": "#ff4444"},
+    {"id": 2, "username": "user1", "password": "user123",  "is_admin": False, "color": "#3273dc"},
 ]
-
 teams = [
     {"id": 1, "name": "Default Team", "leader_id": 1},
 ]
-
 tasks = [
     {"id": 1, "title": "Δοκιμαστικό Task", "status": "open", "assignee_id": 2, "progress": 0}
 ]
 
-# ---------------- HELPERS ----------------
+# --------- Helpers ---------
 def current_user():
     uid = session.get("uid")
     return next((u for u in users if u["id"] == uid), None)
@@ -51,7 +48,7 @@ def admin_required(fn):
 def inject_user():
     return {"user": current_user()}
 
-# ---------------- ROUTES ----------------
+# --------- Routes ---------
 @app.route("/")
 def index():
     if session.get("uid"):
@@ -60,13 +57,13 @@ def index():
 
 @app.route("/login", methods=["POST"])
 def login():
-    username = request.form.get("username", "").strip()
-    password = request.form.get("password", "").strip()
-    user = next((u for u in users if u["username"] == username and u["password"] == password), None)
-    if not user:
+    username = (request.form.get("username") or "").strip()
+    password = (request.form.get("password") or "").strip()
+    u = next((u for u in users if u["username"] == username and u["password"] == password), None)
+    if not u:
         flash("Λάθος στοιχεία.", "danger")
         return redirect(url_for("index"))
-    session["uid"] = user["id"]
+    session["uid"] = u["id"]
     flash("Συνδέθηκες επιτυχώς.", "success")
     return redirect(url_for("dashboard"))
 
@@ -86,7 +83,7 @@ def dashboard():
 def admin():
     return render_template("admin.html", users=users, teams=teams, tasks=tasks)
 
-# ---------------- ERROR HANDLERS ----------------
+# --------- Error handlers ---------
 @app.errorhandler(404)
 def not_found(e):
     return render_template("error.html", code=404, message="Δεν βρέθηκε."), 404
@@ -95,6 +92,6 @@ def not_found(e):
 def server_error(e):
     return render_template("error.html", code=500, message="Σφάλμα server."), 500
 
-# ---------------- ENTRY ----------------
+# --------- Local run ---------
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
