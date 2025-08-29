@@ -28,27 +28,31 @@
       </tr>
     </thead>
     <tbody>
-      {% for n in notes %}
-      <tr>
-        <td>{{ n.id }}</td>
-        <td>{{ n.title }}</td>
-        <td style="white-space:pre-wrap">{{ n.body }}</td>
-        <td>{{ n.author.name or n.author.username }}</td>
-        <td>{{ n.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-        <td style="white-space:pre-wrap">
-          {% if user.is_admin %}
-            <form action="{{ url_for('admin_reply_note', note_id=n.id) }}" method="post">
-              <textarea name="reply" rows="2" placeholder="Απάντηση admin...">{{ n.reply or '' }}</textarea>
-              <button type="submit">Αποθήκευση</button>
-            </form>
-          {% else %}
-            {{ n.reply or '—' }}
-          {% endif %}
-        </td>
-        <td class="actions">
-          {% if user.is_admin or user.id == n.user_id %}
-            <form action="{{ url_for('delete_note', note_id=n.id) }}" method="post"
-                  onsubmit="return confirm('Διαγραφή σημείωσης #{{ n.id }};');">
-              <button type="submit">Διαγραφή</button>
-            </form>
-          {%
+  {% for n in notes %}
+    <tr>
+      <td>{{ n.id }}</td>
+      <td>{{ n.title }}</td>
+      <td style="white-space:pre-wrap">{{ n.body }}</td>
+      <td>{{ n.author.name or n.author.username }}</td>
+      <td>{{ n.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+      <td style="white-space:pre-wrap">
+        {% if user.is_admin %}
+          <form action="{{ url_for('admin_reply_note', note_id=n.id) }}" method="post">
+            <textarea name="reply" rows="2" placeholder="Απάντηση admin...">{{ n.reply or '' }}</textarea>
+            <button type="submit">Αποθήκευση</button>
+          </form>
+        {% else %}
+          {{ n.reply or '—' }}
+        {% endif %}
+      </td>
+      <td class="actions">
+        {% if user.is_admin or user.id == n.user_id %}
+          <form action="{{ url_for('delete_note', note_id=n.id) }}" method="post"
+                onsubmit="return confirm('Διαγραφή σημείωσης #{{ n.id }};');">
+            <button type="submit">Διαγραφή</button>
+          </form>
+        {% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+</tbody>
