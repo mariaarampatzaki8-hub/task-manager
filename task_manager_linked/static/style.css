@@ -149,3 +149,13 @@ input:not([type="color"]), select, button {
 /* αν κάποιο overlay/label το καλύπτει κατά λάθος */
 label { position: relative; }
 input[type="color"] { position: relative; z-index: 1; }
+
+.color-dot{
+  display:inline-block;
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  vertical-align:middle;
+  margin-right:6px;
+  border:1px solid #0001; /* λεπτό περίγραμμα για να φαίνεται σε ανοιχτά χρώματα */
+}
