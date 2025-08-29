@@ -2,51 +2,53 @@
 {% block content %}
 <h1>Σημειώσεις</h1>
 
-<!-- Φόρμα δημιουργίας νέας σημείωσης -->
-<section class="note-form">
-  <form action="{{ url_for('notes') }}" method="post" class="form-grid">
-    <label>Τίτλος
-      <input type="text" name="title" placeholder="π.χ. Αίτημα για βοήθεια">
-    </label>
-
-    <label>Περιεχόμενο
-      <textarea name="body" rows="4" placeholder="Γράψε τη σημείωση σου εδώ..."></textarea>
-    </label>
-
-    <button type="submit">Αποθήκευση</button>
-  </form>
-</section>
+<form action="{{ url_for('notes') }}" method="post" class="form-grid" style="max-width:720px;">
+  <label>Τίτλος
+    <input type="text" name="title" required>
+  </label>
+  <label>Κείμενο
+    <textarea name="body" rows="3" required></textarea>
+  </label>
+  <button type="submit">Προσθήκη</button>
+</form>
 
 <hr>
 
-<!-- Λίστα σημειώσεων -->
-<section class="notes-list">
-  {% if notes and notes|length %}
-    {% for note in notes %}
-      {% if user.is_admin or note.author_id == user.id %}
-        <article class="note-card">
-          <header>
-            <h3>{{ note.title }}</h3>
-            <small>
-              Από: {{ note.author.name or note.author.username }}
-              στις {{ note.created_at.strftime("%Y-%m-%d %H:%M") if note.created_at else "—" }}
-            </small>
-          </header>
-          <p>{{ note.body|safe }}</p>
-
+{% if notes %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Τίτλος</th>
+        <th>Κείμενο</th>
+        <th>Από</th>
+        <th>Ημ/νία</th>
+        <th>Απάντηση (admin)</th>
+        <th>Ενέργειες</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for n in notes %}
+      <tr>
+        <td>{{ n.id }}</td>
+        <td>{{ n.title }}</td>
+        <td style="white-space:pre-wrap">{{ n.body }}</td>
+        <td>{{ n.author.name or n.author.username }}</td>
+        <td>{{ n.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td style="white-space:pre-wrap">
           {% if user.is_admin %}
-            <form action="{{ url_for('edit_note', note_id=note.id) }}" method="post" style="margin-top:10px;">
-              <textarea name="reply" rows="2" placeholder="Απάντηση..."></textarea>
-              <button type="submit">Απάντηση</button>
+            <form action="{{ url_for('admin_reply_note', note_id=n.id) }}" method="post">
+              <textarea name="reply" rows="2" placeholder="Απάντηση admin...">{{ n.reply or '' }}</textarea>
+              <button type="submit">Αποθήκευση</button>
             </form>
+          {% else %}
+            {{ n.reply or '—' }}
           {% endif %}
-        </article>
-        <hr>
-      {% endif %}
-    {% endfor %}
-  {% else %}
-    <p class="muted">Δεν υπάρχουν σημειώσεις.</p>
-  {% endif %}
-</section>
-
-{% endblock %}
+        </td>
+        <td class="actions">
+          {% if user.is_admin or user.id == n.user_id %}
+            <form action="{{ url_for('delete_note', note_id=n.id) }}" method="post"
+                  onsubmit="return confirm('Διαγραφή σημείωσης #{{ n.id }};');">
+              <button type="submit">Διαγραφή</button>
+            </form>
+          {%
