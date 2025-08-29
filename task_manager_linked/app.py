@@ -352,25 +352,34 @@ def board():
     users = {u.id: u for u in User.query.all()}
 
     # Ομαδοποίηση tasks ανά ομάδα (με βάση το team_id του assignee)
-    team_buckets = []  # list από dict: {"team": Team, "tasks": [Task], "stats": {...}}
+    team_buckets = []
 
-    for team in teams:
-        # όλοι οι χρήστες αυτής της ομάδας
-        member_ids = [u.id for u in User.query.filter_by(team_id=team.id).all()]
-        if member_ids:
-            tasks = Task.query.filter(Task.assignee_id.in_(member_ids)).order_by(Task.created_at.desc()).all()
-        else:
-            tasks = []
+for team in teams:
+    member_ids = [u.id for u in User.query.filter_by(team_id=team.id).all()]
+    if member_ids:
+        tasks = Task.query.filter(Task.assignee_id.in_(member_ids)).order_by(Task.created_at.desc()).all()
+    else:
+        tasks = []
 
-        total = len(tasks)
-        done = sum(1 for t in tasks if t.status == "done")
-        avg  = int(sum(t.progress for t in tasks) / total) if total else 0
+    total = len(tasks)
+    done = sum(1 for t in tasks if t.status == "done")
+    avg = int(sum(t.progress for t in tasks) / total) if total else 0
 
-        team_buckets.append({
-            "team": team,
-            "tasks": tasks,
-            "stats": {"total": total, "done": done, "avg": avg},
-        })
+    team_buckets.append({
+        "team": team,
+        "tasks": tasks,
+        "stats": {"total": total, "done": done, "avg": avg}
+    })
+
+now = datetime.utcnow()
+
+return render_template(
+    "board.html",
+    now=now,
+    team_blocks=team_buckets,
+    user_map=users
+)
+
 
     # Ειδικά tasks χωρίς ομάδα (assignee χωρίς team_id)
     no_team_member_ids = [u.id for u in User.query.filter_by(team_id=None).all()]
