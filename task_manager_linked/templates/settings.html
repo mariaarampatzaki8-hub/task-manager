@@ -2,40 +2,50 @@
 {% block content %}
 <h1>Ρυθμίσεις</h1>
 
-<div class="grid-2">
-  <section class="card">
-    <h2>Στοιχεία Προφίλ</h2>
-    <form method="post" action="{{ url_for('update_profile') }}">
-      <label>Email</label>
-      <input name="email" type="email" value="{{ user.email or '' }}">
+<h2>Στοιχεία Προφίλ</h2>
+<form action="{{ url_for('update_profile') }}" method="post" style="max-width:640px;">
+  <div class="field">
+    <label>Email</label>
+    <input type="email" name="email" value="{{ user.email or '' }}">
+  </div>
 
-      <label>Τηλέφωνο</label>
-      <input name="phone" value="{{ user.phone or '' }}">
+  <div class="field">
+    <label>Τηλέφωνο</label>
+    <input type="text" name="phone" value="{{ user.phone or '' }}">
+  </div>
 
-      <label>ΑΔΤ</label>
-      <input name="id_card" value="{{ user.id_card or '' }}">
+  <div class="field">
+    <label>ΑΔΤ</label>
+    <input type="text" name="id_card" value="{{ user.id_card or '' }}">
+  </div>
 
-      <label>Χρώμα</label>
-      <input name="color" type="color" value="{{ user.color or '#3273dc' }}">
+  <div class="field">
+    <label>Χρώμα</label>
+    <input type="color" name="color" value="{{ user.color or '#3273dc' }}">
+  </div>
 
-      <button type="submit">Αποθήκευση</button>
-    </form>
-  </section>
+  <button type="submit">Αποθήκευση</button>
+</form>
 
-  <section class="card">
-    <h2>Αλλαγή Κωδικού</h2>
-    <form method="post" action="{{ url_for('update_password') }}">
-      <label>Τρέχων κωδικός</label>
-      <input name="current_password" type="password" required>
+<hr>
 
-      <label>Νέος κωδικός</label>
-      <input name="new_password" type="password" required>
+<h2>Αλλαγή Κωδικού</h2>
+<form action="{{ url_for('update_password') }}" method="post" style="max-width:640px;">
+  <div class="field">
+    <label>Τρέχων κωδικός</label>
+    <input type="password" name="current_password" autocomplete="current-password" required>
+  </div>
 
-      <label>Επιβεβαίωση νέου</label>
-      <input name="confirm_password" type="password" required>
+  <div class="field">
+    <label>Νέος κωδικός</label>
+    <input type="password" name="new_password" autocomplete="new-password" required>
+  </div>
 
-      <button type="submit">Αλλαγή</button>
-    </form>
-  </section>
-</div>
+  <div class="field">
+    <label>Επιβεβαίωση</label>
+    <input type="password" name="confirm_password" autocomplete="new-password" required>
+  </div>
+
+  <button type="submit">Αλλαγή</button>
+</form>
 {% endblock %}
