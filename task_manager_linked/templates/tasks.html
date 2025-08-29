@@ -1,14 +1,16 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Tasks</h1>
-<p><a href="{{ url_for('create_task') }}">+ Νέα εργασία</a></p>
-{% if tasks and tasks|length %}
-  <ul>
-    {% for t in tasks %}
-      <li>[#{{ t.id }}] {{ t.title }} — {{ t.status }} ({{ t.progress }}%)</li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p>Δεν υπάρχουν εργασίες.</p>
-{% endif %}
+<h1>Τα Tasks μου</h1>
+<table class="table">
+  <tr><th>ID</th><th>Τίτλος</th><th>Σε</th><th>Status</th><th>Progress</th></tr>
+  {% for t in tasks %}
+  <tr>
+    <td>{{ t.id }}</td>
+    <td>{{ t.title }}</td>
+    <td>{{ user_map.get(t.assignee_id, "—") }}</td>
+    <td>{{ t.status }}</td>
+    <td>{{ t.progress }}%</td>
+  </tr>
+  {% endfor %}
+</table>
 {% endblock %}
