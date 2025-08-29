@@ -1,25 +1,59 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Κατάλογος Εργασιών</h1>
-<table class="table">
-  <thead>
-    <tr>
-      <th>#</th><th>Τίτλος</th><th>Κατάσταση</th><th>Progress</th><th>Ανατέθηκε σε (ID)</th><th>Ημ/νία</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for t in tasks %}
-      <tr>
-        <td>{{ t.id }}</td>
-        <td>{{ t.title }}</td>
-        <td>{{ t.status }}</td>
-        <td>{{ t.progress }}%</td>
-        <td>{{ t.assignee_id or '—' }}</td>
-        <td>{{ t.created_at.strftime('%Y-%m-%d %H:%M') if t.created_at else '—' }}</td>
-      </tr>
-    {% else %}
-      <tr><td colspan="6" class="muted">Δεν υπάρχουν εργασίες.</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
+<h1>Πίνακας Εργασιών ανά Ομάδα</h1>
+
+<p class="muted">Ημερομηνία/Ώρα: <strong>{{ now_str }}</strong></p>
+<p>
+  <strong>Σύνολο:</strong> {{ total }}
+  · <strong>Ολοκληρωμένες:</strong> {{ done }}
+  · <strong>Μέσο progress:</strong> {{ avg }}%
+</p>
+
+{% if groups and groups|length > 0 %}
+  {% for team_name, items in groups %}
+    <section class="card" style="margin-bottom:24px;">
+      <h2 style="margin:0 0 8px 0;">
+        Ομάδα: {{ team_name }}
+        <small class="muted">
+          — σύνολο {{ team_stats[team_name].total }},
+          ολοκληρωμένες {{ team_stats[team_name].done }},
+          μ.ό. {{ team_stats[team_name].avg }}%
+        </small>
+      </h2>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Τίτλος</th>
+            <th>Κατάσταση</th>
+            <th>Progress</th>
+            <th>Ανατέθηκε σε</th>
+            <th>Ημ/νία</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in items %}
+            <tr class="{% if t.status == 'done' %}is-done{% endif %}">
+              <td>{{ t.id }}</td>
+              <td>{{ t.title }}</td>
+              <td>{{ 'Ολοκληρωμένο' if t.status == 'done' else 'Ανοιχτό' }}</td>
+              <td>
+                {{ t.progress }}%
+                <div class="progress">
+                  <div class="bar" style="width: {{ t.progress }}%"></div>
+                </div>
+              </td>
+              <td>{{ user_map.get(t.assignee_id, '—') }}</td>
+              <td>{{ t.created_at.strftime('%Y-%m-%d %H:%M') if t.created_at else '—' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  {% endfor %}
+{% else %}
+  <p class="muted">Δεν υπάρχουν εργασίες.</p>
+{% endif %}
+
 {% endblock %}
