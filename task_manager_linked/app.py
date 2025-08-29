@@ -563,17 +563,42 @@ def instructions():
 @login_required
 def notes():
     u = current_user()
+
+    # Δημιουργία νέας σημείωσης
     if request.method == "POST":
-        title = request.form.get("title") or "Χωρίς τίτλο"
-        body = request.form.get("body") or ""
-        note = Note(title=title, body=body, author_id=u.id)
-        db.session.add(note)
+        title = (request.form.get("title") or "").strip()
+        body  = (request.form.get("body") or "").strip()
+        if not title or not body:
+            flash("Συμπλήρωσε τίτλο και κείμενο.", "warning")
+            return redirect(url_for("notes"))
+
+        n = Note(title=title, body=body, user_id=u.id)
+        db.session.add(n)
         db.session.commit()
-        flash("Η σημείωση καταχωρήθηκε.", "success")
+        flash("Η σημείωση δημιουργήθηκε.", "success")
         return redirect(url_for("notes"))
 
-    notes = Note.query.order_by(Note.created_at.desc()).all()
-    return render_template("notes.html", notes=notes, user=u)
+    # Λίστα σημειώσεων:
+    # admin βλέπει όλες, αλλιώς μόνο τις δικές του
+    qs = Note.query.order_by(Note.created_at.desc())
+    notes = qs.all() if (u and u.is_admin) else qs.filter_by(user_id=u.id).all()
+
+    return render_template("notes.html", notes=notes)
+
+@app.route("/notes/<int:note_id>/delete", methods=["POST"])
+@login_required
+def delete_note(note_id):
+    u = current_user()
+    n = Note.query.get_or_404(note_id)
+
+    if not (u.is_admin or n.user_id == u.id):
+        flash("Δεν έχεις δικαίωμα διαγραφής.", "danger")
+        return redirect(url_for("notes"))
+
+    db.session.delete(n)
+    db.session.commit()
+    flash("Η σημείωση διαγράφηκε.", "info")
+    return redirect(url_for("notes"))
 
 # -------------------------------------------------
 # Settings
@@ -894,20 +919,6 @@ def admin_delete_task(task_id):
     flash("Η εργασία διαγράφηκε.", "info")
     return redirect(url_for("admin"))
 
-@app.route("/notes/<int:note_id>/delete", methods=["POST"])
-@login_required
-def delete_note(note_id):
-    u = current_user()
-    n = Note.query.get_or_404(note_id)
-
-    if not (u.is_admin or n.user_id == u.id):
-        flash("Δεν έχεις δικαίωμα διαγραφής.", "danger")
-        return redirect(url_for("notes"))
-
-    db.session.delete(n)
-    db.session.commit()
-    flash("Η σημείωση διαγράφηκε.", "info")
-    return redirect(url_for("notes"))
 
 # -------------------------------------------------
 # Error handlers
