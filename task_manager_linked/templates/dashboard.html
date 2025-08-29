@@ -1,17 +1,45 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Dashboard</h1>
-<p>Καλώς ήρθες, <strong>{{ user.username }}</strong> —
-  {% if user.is_admin %}Ρόλος: Διαχειριστής{% else %}Ρόλος: Χρήστης{% endif %}
+
+<p class="muted">
+  {% if user.is_admin %}
+    Βλέπεις όλες τις εργασίες όλων των χρηστών.
+  {% else %}
+    Βλέπεις τις δικές σου εργασίες.
+  {% endif %}
 </p>
 
-<div class="grid">
-  <a class="tile" href="{{ url_for('tasks_list') }}">Tasks μου</a>
-  <a class="tile" href="{{ url_for('progress_view') }}">Συνολική Πρόοδος</a>
-  <a class="tile" href="{{ url_for('catalog') }}">Κατάλογος Εργασιών</a>
-  <a class="tile" href="{{ url_for('teams') }}">Ομάδες</a>
-  <a class="tile" href="{{ url_for('directory') }}">Χρήστες</a>
-  <a class="tile" href="{{ url_for('settings') }}">Ρυθμίσεις</a>
-  {% if user.is_admin %}<a class="tile accent" href="{{ url_for('admin') }}">Πίνακας Διαχειριστή</a>{% endif %}
-</div>
+<p>
+  <strong>Σύνολο:</strong> {{ total }} ·
+  <strong>Ολοκληρωμένες:</strong> {{ done }} ·
+  <strong>Μέσο progress:</strong> {{ avg }}%
+</p>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Τίτλος</th>
+      <th>Κατάσταση</th>
+      <th>Progress</th>
+      <th>Ανατέθηκε σε</th>
+      <th>Ημ/νία</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for t in tasks %}
+      <tr class="{% if t.status == 'done' %}is-done{% endif %}">
+        <td>{{ t.id }}</td>
+        <td>{{ t.title }}</td>
+        <td>{{ t.status }}</td>
+        <td>{{ t.progress }}%</td>
+        <td>{{ user_map.get(t.assignee_id, '—') }}</td>
+        <td>{{ t.created_at.strftime('%Y-%m-%d %H:%M') if t.created_at else '—' }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="muted">Δεν υπάρχουν εργασίες.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
 {% endblock %}
