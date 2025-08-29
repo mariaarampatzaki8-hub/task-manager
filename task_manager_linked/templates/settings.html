@@ -2,20 +2,40 @@
 {% block content %}
 <h1>Ρυθμίσεις</h1>
 
-<h2>Προφίλ</h2>
-<form method="post" action="{{ url_for('update_profile') }}" class="card grid">
-  <label>Email <input type="email" name="email" value="{{ user.email or '' }}"></label>
-  <label>Τηλέφωνο <input name="phone" value="{{ user.phone or '' }}"></label>
-  <label>ΑΔΤ <input name="id_card" value="{{ user.id_card or '' }}"></label>
-  <label>Χρώμα <input type="color" name="color" value="{{ user.color or '#3273dc' }}"></label>
-  <button>Αποθήκευση</button>
-</form>
+<div class="grid-2">
+  <section class="card">
+    <h2>Στοιχεία Προφίλ</h2>
+    <form method="post" action="{{ url_for('update_profile') }}">
+      <label>Email</label>
+      <input name="email" type="email" value="{{ user.email or '' }}">
 
-<h2>Κωδικός</h2>
-<form method="post" action="{{ url_for('update_password') }}" class="card grid">
-  <label>Τρέχων <input type="password" name="current_password" required></label>
-  <label>Νέος <input type="password" name="new_password" required></label>
-  <label>Επιβεβαίωση <input type="password" name="confirm_password" required></label>
-  <button>Αλλαγή κωδικού</button>
-</form>
+      <label>Τηλέφωνο</label>
+      <input name="phone" value="{{ user.phone or '' }}">
+
+      <label>ΑΔΤ</label>
+      <input name="id_card" value="{{ user.id_card or '' }}">
+
+      <label>Χρώμα</label>
+      <input name="color" type="color" value="{{ user.color or '#3273dc' }}">
+
+      <button type="submit">Αποθήκευση</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Αλλαγή Κωδικού</h2>
+    <form method="post" action="{{ url_for('update_password') }}">
+      <label>Τρέχων κωδικός</label>
+      <input name="current_password" type="password" required>
+
+      <label>Νέος κωδικός</label>
+      <input name="new_password" type="password" required>
+
+      <label>Επιβεβαίωση νέου</label>
+      <input name="confirm_password" type="password" required>
+
+      <button type="submit">Αλλαγή</button>
+    </form>
+  </section>
+</div>
 {% endblock %}
