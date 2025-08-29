@@ -1,30 +1,56 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Μέλη ομάδας: {{ team.name }}</h1>
+<h1>Μέλη Ομάδας: {{ team.name }}</h1>
 
-<h2>Προσθήκη μέλους</h2>
-<form method="post" action="{{ url_for('admin_team_members', team_id=team.id) }}">
-  <p>
-    <label>Χρήστης (username)<br>
-      <input name="username" list="userlist" placeholder="πληκτρολόγησε username">
-      <datalist id="userlist">
-        {% for u in users %}
-          <option value="{{ u.username }}">{{ u.username }}</option>
-        {% endfor %}
-      </datalist>
-    </label>
-  </p>
-  <p><button type="submit">Προσθήκη</button></p>
+<!-- Προσθήκη μέλους -->
+<form action="{{ url_for('admin_team_members', team_id=team.id) }}" method="post" class="form-grid" style="margin-bottom:18px">
+  <label>Προσθήκη χρήστη
+    <select name="username">
+      {% for u in users %}
+        <option value="{{ u.username }}" {% if u.team_id == team.id %}disabled{% endif %}>
+          {{ u.username }}{% if u.name %} — {{ u.name }}{% endif %}
+          {% if u.team_id == team.id %} (ήδη μέλος){% endif %}
+        </option>
+      {% endfor %}
+    </select>
+  </label>
+  <button type="submit">Προσθήκη</button>
 </form>
 
-<hr>
+{% if members and members|length %}
+<table class="table">
+  <thead>
+    <tr>
+      <th>Username</th>
+      <th>Ονοματεπώνυμο</th>
+      <th>Email</th>
+      <th>Τηλέφωνο</th>
+      <th>Ενέργειες</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for m in members %}
+    <tr>
+      <td>{{ m.username }}</td>
+      <td>{{ m.name or '—' }}</td>
+      <td>{{ m.email or '—' }}</td>
+      <td>{{ m.phone or '—' }}</td>
+      <td class="actions">
+        <form action="{{ url_for('admin_team_member_remove', team_id=team.id, user_id=m.id) }}"
+              method="post" style="display:inline"
+              onsubmit="return confirm('Αφαίρεση του {{ m.username }} από την ομάδα;')">
+          <button type="submit">Αφαίρεση</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+  <p class="muted">Δεν υπάρχουν μέλη.</p>
+{% endif %}
 
-<h2>Τρέχοντα μέλη</h2>
-<ul>
-  {% for m in members %}
-    <li>{{ m.username }}</li>
-  {% else %}
-    <li>(Κανένα μέλος)</li>
-  {% endfor %}
-</ul>
+<p style="margin-top:16px">
+  <a href="{{ url_for('admin_teams') }}">← Πίσω στις ομάδες</a>
+</p>
 {% endblock %}
