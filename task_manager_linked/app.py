@@ -29,9 +29,7 @@ os.makedirs(app.instance_path, exist_ok=True)
 def build_db_uri() -> str:
     uri = (os.environ.get("DATABASE_URL") or "").strip()
     if not uri:
-        # local fallback
         return "sqlite:///" + os.path.join(app.instance_path, "site.db")
-    # Μετατροπή για SQLAlchemy + pg8000
     if uri.startswith("postgres://"):
         uri = uri.replace("postgres://", "postgresql+pg8000://", 1)
     elif uri.startswith("postgresql://") and "+pg8000" not in uri:
@@ -47,8 +45,8 @@ db = SQLAlchemy(app)
 # -------------------------------------------------
 class Team(db.Model):
     __tablename__ = "tm_teams"
-    id       = db.Column(db.Integer, primary_key=True)
-    name     = db.Column(db.String(200), unique=True, nullable=False)
+    id        = db.Column(db.Integer, primary_key=True)
+    name      = db.Column(db.String(200), unique=True, nullable=False)
     leader_id = db.Column(db.Integer, db.ForeignKey("tm_users.id"), nullable=True)
 
 class User(db.Model):
@@ -85,14 +83,12 @@ class Task(db.Model):
 def bootstrap_db():
     db.create_all()
 
-    # default team
     team = Team.query.filter_by(name="Default Team").first()
     if not team:
         team = Team(name="Default Team")
         db.session.add(team)
         db.session.commit()
 
-    # admin user
     admin = User.query.filter_by(username="admin").first()
     if not admin:
         admin = User(
@@ -110,7 +106,7 @@ with app.app_context():
     bootstrap_db()
 
 # -------------------------------------------------
-# Helpers
+# Helpers / decorators
 # -------------------------------------------------
 def current_user():
     uid = session.get("uid")
@@ -155,11 +151,6 @@ def __diag():
         "tasks": db.session.query(Task).count(),
     }
     return (str(data), 200, {"Content-Type": "text/plain"})
-
-# Προαιρετικό ping
-@app.route("/_ping")
-def _ping():
-    return "pong", 200
 
 # -------------------------------------------------
 # Auth
@@ -210,7 +201,6 @@ def progress_view():
     avg = int(sum(t.progress for t in tasks) / total) if total else 0
     return render_template("progress.html", total=total, done=done, avg=avg)
 
-# alias για παλιά links
 @app.route("/progress", endpoint="progress")
 @login_required
 def progress_alias():
@@ -225,19 +215,20 @@ def catalog():
 @app.route("/board")
 @login_required
 def board():
-    return redirect(url_for("catalog"))
+    return render_template("catalog.html")
 
-@app.route("/tasks", methods=["GET"], endpoint="tasks")
+# 🔧 ΣΗΜΑΝΤΙΚΟ: το όνομα endpoint είναι "tasks" (ταιριάζει με base.html)
+@app.route("/tasks", methods=["GET"])
 @login_required
-def tasks_list():
+def tasks():
     u = current_user()
     if u and u.is_admin:
-        tasks = Task.query.order_by(Task.created_at.desc()).all()
+        items = Task.query.order_by(Task.created_at.desc()).all()
     else:
-        tasks = Task.query.filter_by(assignee_id=u.id).order_by(Task.created_at.desc()).all()
+        items = Task.query.filter_by(assignee_id=u.id).order_by(Task.created_at.desc()).all()
     users = User.query.all()
     user_map = {usr.id: usr.username for usr in users}
-    return render_template("tasks.html", tasks=tasks, user_map=user_map)
+    return render_template("tasks.html", tasks=items, user_map=user_map)
 
 @app.route("/teams")
 @login_required
@@ -262,7 +253,6 @@ def directory():
 def help_page():
     return render_template("help.html")
 
-# (προαιρετικά αν έχεις έτοιμα αρχεία)
 @app.route("/instructions")
 @login_required
 def instructions():
@@ -285,10 +275,10 @@ def settings():
 @login_required
 def update_profile():
     u = current_user()
-    u.email  = (request.form.get("email") or "").strip() or None
-    u.phone  = (request.form.get("phone") or "").strip() or None
+    u.email   = (request.form.get("email") or "").strip() or None
+    u.phone   = (request.form.get("phone") or "").strip() or None
     u.id_card = (request.form.get("id_card") or "").strip() or None
-    u.color  = (request.form.get("color") or "").strip() or "#3273dc"
+    u.color   = (request.form.get("color") or "").strip() or "#3273dc"
     db.session.commit()
     flash("Το προφίλ ενημερώθηκε.", "success")
     return redirect(url_for("settings"))
@@ -331,7 +321,6 @@ def admin():
     user_map = {u.id: u.username for u in users}
     return render_template("admin.html", users=users, teams=teams, tasks=tasks, user_map=user_map)
 
-# Users (create)
 @app.route("/admin/create_user", methods=["POST"])
 @admin_required
 def admin_create_user():
@@ -362,7 +351,6 @@ def admin_create_user():
     flash("Ο χρήστης δημιουργήθηκε.", "success")
     return redirect(url_for("admin"))
 
-# Teams (list/create form page)
 @app.route("/admin/teams", methods=["GET", "POST"])
 @admin_required
 def admin_teams():
@@ -390,7 +378,6 @@ def admin_teams():
     users = User.query.order_by(User.username.asc()).all()
     return render_template("admin_teams.html", teams=teams, users=users)
 
-# Διαχείριση μελών ομάδας (προβολή + προσθήκη/αφαίρεση)
 @app.route("/admin/teams/<int:team_id>/members", methods=["GET", "POST"])
 @admin_required
 def admin_team_members(team_id):
@@ -451,7 +438,6 @@ def admin_create_task():
     flash("Η εργασία δημιουργήθηκε και ανατέθηκε.", "success")
     return redirect(url_for("admin"))
 
-# Προαιρετική φόρμα δημιουργίας task σε δική της σελίδα (ταιριάζει με create_task.html)
 @app.route("/create-task", methods=["GET"])
 @admin_required
 def create_task_form():
@@ -487,7 +473,6 @@ def not_found(e):
 
 @app.errorhandler(500)
 def server_error(e):
-    # Απόφυγε infinite loops σε περίπτωση που λείπει το template error.html
     try:
         return render_template("error.html", code=500, message="Σφάλμα server."), 500
     except Exception:
@@ -497,5 +482,4 @@ def server_error(e):
 # Entry
 # -------------------------------------------------
 if __name__ == "__main__":
-    # Το Render τρέχει με gunicorn app:app — αυτό εδώ είναι μόνο για local debug
     app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
