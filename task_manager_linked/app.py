@@ -73,6 +73,8 @@ class User(db.Model):
     team_id       = db.Column(db.Integer, db.ForeignKey("tm_teams.id"), nullable=True)
     # Ημερομηνία δημιουργίας
     created_at    = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    # Σχέση με τις σημειώσεις
+    notes = db.relationship("Note", backref="author", lazy=True)
 
     # -------- Helpers για password --------
     def set_password(self, raw: str):
@@ -93,13 +95,12 @@ class Task(db.Model):
 class Note(db.Model):
     __tablename__ = "tm_notes"
     id         = db.Column(db.Integer, primary_key=True)
-    title      = db.Column(db.String(200), nullable=False)
-    body       = db.Column(db.Text, nullable=False)           # κείμενο χρήστη
-    reply      = db.Column(db.Text)                           # απάντηση admin
+    title      = db.Column(db.String(200), nullable=True)
+    body       = db.Column(db.Text, nullable=False)          # περιεχόμενο χρήστη
+    reply      = db.Column(db.Text, nullable=True)           # απάντηση admin
     author_id  = db.Column(db.Integer, db.ForeignKey("tm_users.id"), nullable=False)
-    status     = db.Column(db.String(20), default="open")     # open|answered|closed
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
 # -------------------------------------------------
 # Bootstrap / Seed + ασφαλές auto-migration
