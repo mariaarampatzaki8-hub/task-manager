@@ -127,3 +127,25 @@ input:focus,select:focus{outline:2px solid rgba(47,111,236,.25); border-color:va
 
 /* Footer */
 .footer{color:var(--muted); font-size:12px; text-align:center; padding:24px 0}
+/* κάνε το color input κλικαμπλ και “κανονικό” */
+input[type="color"]{
+  appearance: auto;
+  -webkit-appearance: auto;
+  display: inline-block;
+  width: 48px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+/* αν έχεις γενικό κανόνα για όλα τα inputs, εξαιρέσε το color */
+input:not([type="color"]), select, button {
+  /* οι ήδη υπάρχοντες κανόνες σου εδώ (padding, border κλπ) */
+}
+
+/* αν κάποιο overlay/label το καλύπτει κατά λάθος */
+label { position: relative; }
+input[type="color"] { position: relative; z-index: 1; }
