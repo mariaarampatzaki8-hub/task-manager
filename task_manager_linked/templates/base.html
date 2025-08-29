@@ -28,10 +28,10 @@
       <a class="{{ 'active' if request.endpoint == 'teams' else '' }}"
          href="{{ url_for('teams') }}">Ομάδες</a>
 
-      {% if user.is_admin %}
-        <a class="{{ 'active' if request.endpoint == 'directory' else '' }}"
-           href="{{ url_for('directory') }}">Κατάλογος Χρηστών</a>
-      {% endif %}
+      {% if user and (user.is_admin or is_leader) %}
+  <a class="{{ 'active' if request.endpoint == 'directory' else '' }}"
+     href="{{ url_for('directory') }}">Κατάλογος Χρηστών</a>
+{% endif %}
 
       <a class="{{ 'active' if request.endpoint == 'help_page' else '' }}"
          href="{{ url_for('help_page') }}">Βοήθεια</a>
