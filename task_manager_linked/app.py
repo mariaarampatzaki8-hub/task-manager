@@ -491,20 +491,18 @@ def teams():
 @login_required
 def directory():
     u = current_user()
-    if not u:
-        return redirect(url_for("index"))
 
-    # admin ή leader -> βλέπουν όλους
-    if u.is_admin or is_leader(u):
+    # Πρόσβαση μόνο για admin ή leader
+    if u and u.is_admin:
         users = User.query.order_by(User.username.asc()).all()
+    elif u and is_leader(u):
+        users = User.query.filter_by(team_id=u.team_id).order_by(User.username.asc()).all()
     else:
-        users = (
-            User.query.filter_by(team_id=u.team_id)
-            .order_by(User.username.asc())
-            .all()
-            if u.team_id else []
-        )
-    return render_template("directory.html", users=users)
+        flash("Δεν έχεις πρόσβαση στον κατάλογο χρηστών.", "warning")
+        return redirect(url_for("dashboard"))
+
+    teams_map = {t.id: t.name for t in Team.query.all()}
+    return render_template("directory.html", users=users, teams_map=teams_map)
     
 @app.route("/help")
 @login_required
