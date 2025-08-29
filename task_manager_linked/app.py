@@ -8,7 +8,7 @@ from flask import (
     url_for, session, flash
 )
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import inspect
+from sqlalchemy import inspect, text, inspect as sa_inspect
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # -------------------------------------------------
@@ -47,14 +47,15 @@ db = SQLAlchemy(app)
 # -------------------------------------------------
 class Team(db.Model):
     __tablename__ = "tm_teams"
-    id       = db.Column(db.Integer, primary_key=True)
-    name     = db.Column(db.String(200), unique=True, nullable=False)
+    id        = db.Column(db.Integer, primary_key=True)
+    name      = db.Column(db.String(200), unique=True, nullable=False)
     leader_id = db.Column(db.Integer, db.ForeignKey("tm_users.id"), nullable=True)
 
 class User(db.Model):
     __tablename__ = "tm_users"
     id            = db.Column(db.Integer, primary_key=True)
     username      = db.Column(db.String(120), unique=True, nullable=False)
+    name          = db.Column(db.String(200))                # Ονοματεπώνυμο (ΝΕΟ)
     email         = db.Column(db.String(200))
     phone         = db.Column(db.String(50))
     id_card       = db.Column(db.String(50))
@@ -97,6 +98,7 @@ def bootstrap_db():
     if not admin:
         admin = User(
             username="admin",
+            name="Διαχειριστής",
             email="admin@example.com",
             is_admin=True,
             color="#ff4444",
@@ -106,8 +108,20 @@ def bootstrap_db():
         db.session.add(admin)
         db.session.commit()
 
+def ensure_user_name_column():
+    """Πρόσθεσε τη στήλη name αν λείπει (για υπάρχουσες βάσεις χωρίς Alembic)."""
+    try:
+        insp = sa_inspect(db.engine)
+        cols = [c["name"] for c in insp.get_columns("tm_users")]
+        if "name" not in cols:
+            with db.engine.begin() as conn:
+                conn.execute(text("ALTER TABLE tm_users ADD COLUMN name VARCHAR(200)"))
+    except Exception as ex:
+        app.logger.warning(f"Could not ensure 'name' column: {ex}")
+
 with app.app_context():
     bootstrap_db()
+    ensure_user_name_column()
 
 # -------------------------------------------------
 # Helpers
@@ -156,7 +170,6 @@ def __diag():
     }
     return (str(data), 200, {"Content-Type": "text/plain"})
 
-# Προαιρετικό ping
 @app.route("/_ping")
 def _ping():
     return "pong", 200
@@ -190,7 +203,7 @@ def login():
 @app.route("/logout")
 def logout():
     session.clear()
-    flash("Αποσυνδέθηκες.", "info")
+    flash("Αποσύνδεθηκες.", "info")
     return redirect(url_for("index"))
 
 # -------------------------------------------------
@@ -201,15 +214,14 @@ def logout():
 def dashboard():
     u = current_user()
 
-    # Αν είναι admin → όλα τα tasks, αλλιώς μόνο τα δικά του
+    # Admin → όλα τα tasks, αλλιώς μόνο τα δικά μου
     if u and u.is_admin:
         tasks = Task.query.order_by(Task.created_at.desc()).all()
     else:
         tasks = Task.query.filter_by(assignee_id=u.id).order_by(Task.created_at.desc()).all()
 
-    # map για να γράφουμε ονόματα αντί για ids
     users = User.query.all()
-    user_map = {usr.id: usr.username for usr in users}
+    user_map = {usr.id: (usr.name or usr.username) for usr in users}
 
     total = len(tasks)
     done = len([t for t in tasks if t.status == "done"])
@@ -231,7 +243,6 @@ def progress_view():
     avg = int(sum(t.progress for t in tasks) / total) if total else 0
     return render_template("progress.html", total=total, done=done, avg=avg)
 
-# alias για παλιά links
 @app.route("/progress", endpoint="progress")
 @login_required
 def progress_alias():
@@ -258,7 +269,7 @@ def tasks_list():
     else:
         tasks = Task.query.filter_by(assignee_id=u.id).order_by(Task.created_at.desc()).all()
     users = User.query.all()
-    user_map = {usr.id: usr.username for usr in users}
+    user_map = {usr.id: (usr.name or usr.username) for usr in users}
     return render_template("tasks.html", tasks=tasks, user_map=user_map)
 
 @app.route("/teams")
@@ -271,20 +282,33 @@ def teams():
 @login_required
 def directory():
     u = current_user()
-    users = (
-        User.query.order_by(User.username.asc()).all()
-        if (u and u.is_admin)
-        else User.query.filter_by(team_id=u.team_id).order_by(User.username.asc()).all()
-        if u and u.team_id else []
-    )
-    return render_template("directory.html", users=users)
+    if not u:
+        return redirect(url_for("index"))
+
+    # Είναι leader;
+    is_leader = False
+    if u.team_id:
+        team = Team.query.get(u.team_id)
+        if team and team.leader_id == u.id:
+            is_leader = True
+
+    if not (u.is_admin or is_leader):
+        return render_template("error.html", code=403, message="Μη εξουσιοδοτημένη πρόσβαση."), 403
+
+    # Admin βλέπει όλους, Leader μόνο τη δική του ομάδα
+    if u.is_admin:
+        users = User.query.order_by(User.username.asc()).all()
+    else:
+        users = User.query.filter_by(team_id=u.team_id).order_by(User.username.asc()).all()
+
+    teams = {t.id: t.name for t in Team.query.all()}
+    return render_template("directory.html", users=users, teams=teams, is_leader=is_leader)
 
 @app.route("/help")
 @login_required
 def help_page():
     return render_template("help.html")
 
-# (προαιρετικά αν έχεις έτοιμα αρχεία)
 @app.route("/instructions")
 @login_required
 def instructions():
@@ -307,10 +331,10 @@ def settings():
 @login_required
 def update_profile():
     u = current_user()
-    u.email  = (request.form.get("email") or "").strip() or None
-    u.phone  = (request.form.get("phone") or "").strip() or None
+    u.email   = (request.form.get("email") or "").strip() or None
+    u.phone   = (request.form.get("phone") or "").strip() or None
     u.id_card = (request.form.get("id_card") or "").strip() or None
-    u.color  = (request.form.get("color") or "").strip() or "#3273dc"
+    u.color   = (request.form.get("color") or "").strip() or "#3273dc"
     db.session.commit()
     flash("Το προφίλ ενημερώθηκε.", "success")
     return redirect(url_for("settings"))
@@ -350,7 +374,7 @@ def admin():
     users = User.query.order_by(User.username.asc()).all()
     teams = Team.query.order_by(Team.name.asc()).all()
     tasks = Task.query.order_by(Task.created_at.desc()).all()
-    user_map = {u.id: u.username for u in users}
+    user_map = {u.id: (u.name or u.username) for u in users}
     return render_template("admin.html", users=users, teams=teams, tasks=tasks, user_map=user_map)
 
 # Users (create)
@@ -358,16 +382,17 @@ def admin():
 @admin_required
 def admin_create_user():
     username = (request.form.get("username") or "").strip()
-    password = (request.form.get("password") or "").strip()
+    name     = (request.form.get("name") or "").strip()
     email    = (request.form.get("email") or "").strip() or None
     phone    = (request.form.get("phone") or "").strip() or None
     id_card  = (request.form.get("id_card") or "").strip() or None
     color    = (request.form.get("color") or "").strip() or "#3273dc"
+    password = (request.form.get("password") or "").strip()
     is_admin = True if request.form.get("is_admin") == "on" else False
     team_id  = request.form.get("team_id") or None
 
-    if not username or not password:
-        flash("Username & κωδικός υποχρεωτικά.", "warning")
+    if not username or not password or not name:
+        flash("Username, Ονοματεπώνυμο και προσωρινός κωδικός είναι υποχρεωτικά.", "warning")
         return redirect(url_for("admin"))
     if User.query.filter_by(username=username).first():
         flash("Υπάρχει ήδη αυτό το username.", "danger")
@@ -375,8 +400,14 @@ def admin_create_user():
 
     team = Team.query.get(team_id) if team_id else None
     u = User(
-        username=username, email=email, phone=phone, id_card=id_card,
-        is_admin=is_admin, color=color, team_id=(team.id if team else None)
+        username=username,
+        name=name,
+        email=email,
+        phone=phone,
+        id_card=id_card,
+        is_admin=is_admin,
+        color=color,
+        team_id=(team.id if team else None),
     )
     u.set_password(password)
     db.session.add(u)
@@ -473,7 +504,6 @@ def admin_create_task():
     flash("Η εργασία δημιουργήθηκε και ανατέθηκε.", "success")
     return redirect(url_for("admin"))
 
-# Προαιρετική φόρμα δημιουργίας task σε δική της σελίδα (ταιριάζει με create_task.html)
 @app.route("/create-task", methods=["GET"])
 @admin_required
 def create_task_form():
