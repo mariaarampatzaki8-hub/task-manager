@@ -31,7 +31,9 @@
 
       <a class="{{ 'active' if request.endpoint == 'teams' else '' }}"
          href="{{ url_for('teams') }}">Ομάδες</a>
-
+      <a class="{{ 'active' if request.endpoint in ['notes','note_view'] else '' }}"
+         href="{{ url_for('notes') }}">Σημειώσεις</a>
+      
       <a class="{{ 'active' if request.endpoint == 'directory' else '' }}"
    href="{{ url_for('directory') }}">Κατάλογος Χρηστών</a>
 
