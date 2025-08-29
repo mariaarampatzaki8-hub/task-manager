@@ -236,21 +236,32 @@ from datetime import datetime
 def dashboard():
     u = current_user()
 
-    tasks = (
-        Task.query.order_by(Task.created_at.desc()).all()
-        if (u and u.is_admin) else
-        Task.query.filter_by(assignee_id=u.id).order_by(Task.created_at.desc()).all()
-    )
+    # Admin βλέπει όλα, αλλιώς μόνο τα δικά του
+    if u and u.is_admin:
+        tasks = Task.query.order_by(Task.created_at.desc()).all()
+    else:
+        tasks = (
+            Task.query.filter_by(assignee_id=u.id)
+            .order_by(Task.created_at.desc())
+            .all()
+        )
 
-    users = User.query.all()
-    user_map = {usr.id: usr.username for usr in users}
-    user_colors = {usr.id: (usr.color or "#3273dc") for usr in users}
-    
+    # ---- Χρήστες/χρώματα από helper ----
+    # πρέπει να έχεις ορίσει πιο πάνω:
+    # def build_user_maps():
+    #     users = User.query.all()
+    #     user_map    = {usr.id: usr.username for usr in users}
+    #     user_colors = {usr.id: (usr.color or "#3273dc") for usr in users}
+    #     user_objs   = {usr.id: usr for usr in users}
+    #     return user_map, user_colors, user_objs
+    user_map, user_colors, user_objs = build_user_maps()
+
+    # Ομάδες + grouping ανά ομάδα
     teams = Team.query.all()
     team_map = {t.id: t.name for t in teams}
 
     def team_name_for(task):
-        assignee = next((x for x in users if x.id == task.assignee_id), None)
+        assignee = user_objs.get(task.assignee_id)
         if assignee and assignee.team_id:
             return team_map.get(assignee.team_id, "Χωρίς Ομάδα")
         return "Χωρίς Ομάδα"
