@@ -2,23 +2,57 @@
 {% block content %}
 <h1>Διαχείριση Ομάδων</h1>
 
-<form method="post" action="{{ url_for('admin_teams') }}" class="card grid">
-  <label>Όνομα ομάδας <input name="name" required></label>
-  <label>Leader (username) <input name="leader_username" placeholder="προαιρετικό"></label>
-  <button>Δημιουργία ομάδας</button>
+<!-- Δημιουργία ομάδας -->
+<form action="{{ url_for('admin_teams') }}" method="post" class="form-grid" style="margin-bottom:20px">
+  <label>Όνομα ομάδας
+    <input type="text" name="name" required>
+  </label>
+  <label>Leader (username)
+    <input type="text" name="leader_username" placeholder="π.χ. jdoe">
+  </label>
+  <button type="submit">Δημιουργία ομάδας</button>
 </form>
 
+{% if teams and teams|length %}
 <table class="table">
-  <tr><th>ID</th><th>Όνομα</th><th>Leader</th></tr>
-  {% for t in teams %}
-  <tr>
-    <td>{{ t.id }}</td>
-    <td>{{ t.name }}</td>
-    <td>
-      {% set leader = users|selectattr('id','equalto', t.leader_id)|first %}
-      {{ leader.username if leader else "—" }}
-    </td>
-  </tr>
-  {% endfor %}
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Όνομα</th>
+      <th>Leader</th>
+      <th>Μέλη</th>
+      <th>Ενέργειες</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for t in teams %}
+      {% set leader = (users | selectattr('id','equalto',t.leader_id) | list | first) %}
+      {% set member_count = (users | selectattr('team_id','equalto',t.id) | list | length) %}
+      <tr>
+        <td>{{ t.id }}</td>
+        <td><strong>{{ t.name }}</strong></td>
+        <td>
+          <form action="{{ url_for('admin_set_leader', team_id=t.id) }}" method="post" style="display:flex; gap:8px; align-items:center">
+            <input type="text" name="leader_username" value="{{ leader.username if leader else '' }}" placeholder="username" style="min-width:160px">
+            <button type="submit">Αποθήκευση</button>
+          </form>
+          {% if leader %}
+            <small class="muted">({{ leader.name or leader.username }})</small>
+          {% endif %}
+        </td>
+        <td>{{ member_count }}</td>
+        <td class="actions">
+          <a href="{{ url_for('admin_team_members', team_id=t.id) }}">Μέλη</a>
+          <form action="{{ url_for('admin_delete_team', team_id=t.id) }}" method="post" style="display:inline"
+                onsubmit="return confirm('Διαγραφή της ομάδας «{{ t.name }}»; Τα μέλη θα μείνουν χωρίς ομάδα.')">
+            <button type="submit">Διαγραφή</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
 </table>
+{% else %}
+  <p class="muted">Δεν υπάρχουν ομάδες.</p>
+{% endif %}
 {% endblock %}
