@@ -1,15 +1,28 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Χρήστες</h1>
+<h1>Κατάλογος Χρηστών</h1>
 <table class="table">
-  <tr><th>ID</th><th>Username</th><th>Email</th><th>Ομάδα</th></tr>
-  {% for u in users %}
-  <tr>
-    <td>{{ u.id }}</td>
-    <td>{{ u.username }}</td>
-    <td>{{ u.email or "—" }}</td>
-    <td>{{ u.team_id or "—" }}</td>
-  </tr>
-  {% endfor %}
+  <thead>
+    <tr>
+      <th>#</th><th>Username</th><th>Email</th><th>Τηλέφωνο</th><th>ΑΔΤ</th><th>Ομάδα ID</th><th>Ρόλος</th><th>Χρώμα</th><th>Δημιουργία</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for u in users %}
+      <tr>
+        <td>{{ u.id }}</td>
+        <td>{{ u.username }}</td>
+        <td>{{ u.email or '—' }}</td>
+        <td>{{ u.phone or '—' }}</td>
+        <td>{{ u.id_card or '—' }}</td>
+        <td>{{ u.team_id or '—' }}</td>
+        <td>{% if u.is_admin %}Admin{% else %}User{% endif %}</td>
+        <td><span class="color" style="background: {{ u.color or '#3273dc' }};"></span> {{ u.color or '—' }}</td>
+        <td>{{ u.created_at.strftime('%Y-%m-%d %H:%M') if u.created_at else '—' }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="9" class="muted">Δεν υπάρχουν χρήστες.</td></tr>
+    {% endfor %}
+  </tbody>
 </table>
 {% endblock %}
