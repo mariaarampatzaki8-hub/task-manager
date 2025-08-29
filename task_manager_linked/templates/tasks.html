@@ -4,7 +4,13 @@
 <table class="table">
   <thead>
     <tr>
-      <th>#</th><th>Τίτλος</th><th>Κατάσταση</th><th>Progress</th><th>Ανατέθηκε σε</th><th>Ημ/νία</th>
+      <th>#</th>
+      <th>Τίτλος</th>
+      <th>Κατάσταση</th>
+      <th>Progress</th>
+      <th>Ανατέθηκε σε</th>
+      <th>Ημ/νία</th>
+      {% if user.is_admin %}<th>Ενέργειες</th>{% endif %}
     </tr>
   </thead>
   <tbody>
@@ -14,11 +20,11 @@
         <td>{{ t.title }}</td>
         <td>{{ t.status }}</td>
         <td>
-  <form action="{{ url_for('task_update_progress', task_id=t.id) }}" method="post" style="display:flex; gap:4px">
-    <input type="number" name="progress" value="{{ t.progress }}" min="0" max="100" style="width:60px">
-    <button type="submit">OK</button>
-  </form>
-</td>
+          <form action="{{ url_for('task_update_progress', task_id=t.id) }}" method="post" style="display:inline">
+            <input type="number" name="progress" value="{{ t.progress }}" min="0" max="100" style="width:60px">
+            <button type="submit">OK</button>
+          </form>
+        </td>
         <td>
           {% if user_map and t.assignee_id in user_map %}
             {{ user_map[t.assignee_id] }}
@@ -27,9 +33,17 @@
           {% endif %}
         </td>
         <td>{{ t.created_at.strftime('%Y-%m-%d %H:%M') if t.created_at else '—' }}</td>
+
+        {% if user.is_admin %}
+        <td>
+          <form action="{{ url_for('admin_delete_task', task_id=t.id) }}" method="post" style="display:inline" onsubmit="return confirm('Διαγραφή task #{{ t.id }};');">
+            <button type="submit">Διαγραφή</button>
+          </form>
+        </td>
+        {% endif %}
       </tr>
     {% else %}
-      <tr><td colspan="6" class="muted">Δεν υπάρχουν εργασίες.</td></tr>
+      <tr><td colspan="7" class="muted">Δεν υπάρχουν εργασίες.</td></tr>
     {% endfor %}
   </tbody>
 </table>
