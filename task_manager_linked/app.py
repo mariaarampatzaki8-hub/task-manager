@@ -531,7 +531,39 @@ def admin_create_user():
 
     flash("Ο χρήστης δημιουργήθηκε.", "success")
     return redirect(url_for("admin"))
+# ------- Admin: ενημέρωση στοιχείων χρήστη -------
+@app.route("/admin/users/<int:user_id>/update", methods=["POST"])
+@admin_required
+def admin_update_user(user_id):
+    u = User.query.get_or_404(user_id)
 
+    u.email   = (request.form.get("email") or "").strip() or None
+    u.phone   = (request.form.get("phone") or "").strip() or None
+    u.id_card = (request.form.get("id_card") or "").strip() or None
+    u.color   = (request.form.get("color") or "").strip() or "#3273dc"
+    u.is_admin = True if request.form.get("is_admin") == "on" else False
+
+    team_id = (request.form.get("team_id") or "").strip()
+    u.team_id = int(team_id) if team_id.isdigit() else None
+
+    db.session.commit()
+    flash(f"Το προφίλ του χρήστη «{u.username}» ενημερώθηκε.", "success")
+    return redirect(url_for("admin"))
+
+
+# ------- Admin: reset password -------
+@app.route("/admin/users/<int:user_id>/reset_password", methods=["POST"])
+@admin_required
+def admin_reset_password(user_id):
+    u = User.query.get_or_404(user_id)
+
+    temp_pw = secrets.token_urlsafe(8)[:10]
+    u.set_password(temp_pw)
+    db.session.commit()
+
+    flash(f"Προσωρινός κωδικός για {u.username}: {temp_pw}", "info")
+    return redirect(url_for("admin"))
+    
 # Ομάδες (λίστα/δημιουργία)
 @app.route("/admin/teams", methods=["GET", "POST"])
 @admin_required
