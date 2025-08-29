@@ -1,171 +1,129 @@
-/* ---- Base Reset ---- */
-* { box-sizing: border-box; }
-html, body { height: 100%; }
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-  color: #1f2937;
-  background: #f8fafc;
-}
-/* ---- Topbar ---- */
-.topbar { background:#0f172a; color:#fff; padding:12px 16px; display:flex; align-items:center; gap:16px; }
-.topbar .brand { color:#fff; font-weight:700; text-decoration:none; margin-right:16px; }
-.topbar .menu a { color:#e2e8f0; text-decoration:none; margin-right:12px; }
-.topbar .menu a:hover { text-decoration: underline; }
-/* ---- Container ---- */
-.container { max-width: 980px; margin: 24px auto; padding: 0 16px; }
-/* ---- Headings & links ---- */
-h1, h2, h3 { color: #0f172a; margin: 0 0 12px; }
-a { color: #2563eb; }
-/* ---- Flash messages ---- */
-.flashes { margin: 12px 0; }
-.flash { padding: 10px 12px; border-radius: 6px; margin-bottom: 8px; }
-.flash.success { background: #ecfdf5; color: #065f46; border: 1px solid #34d399; }
-.flash.info    { background: #eff6ff; color: #1e40af; border: 1px solid #60a5fa; }
-.flash.warning { background: #fff7ed; color: #9a3412; border: 1px solid #fdba74; }
-.flash.danger  { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
-/* ---- Forms ---- */
-form { display: grid; gap: 10px; }
-input, select, button { padding:10px 12px; border:1px solid #cbd5e1; border-radius:6px; font-size:14px; }
-button, .btn { background:#2563eb; border:none; color:#fff; cursor:pointer; }
-button:hover, .btn:hover { background:#1d4ed8; }
-/* ---- Tables ---- */
-table { width:100%; border-collapse:collapse; margin:12px 0; background:#fff; }
-th, td { padding:10px 12px; border-bottom:1px solid #e5e7eb; text-align:left; }
-th { background:#f1f5f9; font-weight:600; }
-/* ---- Footer ---- */
-.footer { color:#64748b; font-size:12px; text-align:center; padding:24px 12px; }
-/* ==============================
-   Dashboard / Tasks styling
-   ============================== */
+/* ===========================
+   Task Manager – Clean UI
+   =========================== */
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-  font-size: 15px;
+/* CSS variables */
+:root{
+  --bg:#f7f8fb;
+  --panel:#ffffff;
+  --ink:#1b2430;
+  --muted:#64748b;
+  --primary:#2f6fec;
+  --primary-ink:#fff;
+  --border:#e5e7eb;
+  --success:#16a34a;
+  --warning:#f59e0b;
+  --danger:#ef4444;
 }
 
-.table th, .table td {
-  padding: 10px 14px;
-  border-bottom: 1px solid #e5e7eb;
-  text-align: left;
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial;
+  color:var(--ink);
+  background:var(--bg);
 }
 
-.table th {
-  background: #f9fafb;
-  font-weight: 600;
-  color: #374151;
+/* Topbar */
+.topbar{
+  position:sticky; top:0; z-index:10;
+  display:flex; align-items:center; gap:16px;
+  padding:12px 18px;
+  background:#0b1220;
+  border-bottom:1px solid #0f1a30;
+}
+.topbar .brand{
+  color:#fff; font-weight:700; letter-spacing:.2px; text-decoration:none;
+}
+.topbar .menu{display:flex; flex-wrap:wrap; gap:10px; margin-left:auto}
+.topbar .menu a{
+  color:#cdd3e1; text-decoration:none; padding:6px 10px; border-radius:6px;
+}
+.topbar .menu a:hover{background:#131d33; color:#fff}
+.topbar .menu a.active{background:var(--primary); color:var(--primary-ink)}
+
+/* Layout */
+.container{
+  max-width:1100px; margin:28px auto; padding:0 16px;
 }
 
-.table tr:hover {
-  background: #f3f4f6;
-}
+/* Headings */
+h1{margin:.2em 0 .6em; font-size:28px}
+h2{margin:1.4em 0 .6em; font-size:20px}
 
-.table tr.is-done td {
-  opacity: 0.7;
-  text-decoration: line-through;
+/* Tables */
+.table{
+  width:100%; border-collapse:separate; border-spacing:0;
+  background:var(--panel); border:1px solid var(--border); border-radius:10px; overflow:hidden;
 }
-
-/* Progress bar cell */
-.progress-bar {
-  height: 10px;
-  border-radius: 5px;
-  background: #e5e7eb;
-  overflow: hidden;
+.table thead th{
+  text-align:left; font-size:13px; letter-spacing:.3px; color:var(--muted);
+  padding:12px 14px; background:#f3f5f9; border-bottom:1px solid var(--border);
 }
-
-.progress-fill {
-  height: 100%;
-  transition: width 0.3s ease-in-out;
+.table tbody td{
+  padding:12px 14px; border-bottom:1px solid var(--border); vertical-align:middle;
 }
+.table tbody tr:hover{background:#fafbfe}
+.table .actions{white-space:nowrap; display:flex; gap:8px}
 
-.progress-fill.low { background: #ef4444; }     /* κόκκινο 0–30% */
-.progress-fill.medium { background: #f59e0b; }  /* πορτοκαλί 30–70% */
-.progress-fill.high { background: #10b981; }    /* πράσινο 70–100% */
+/* Done rows */
+.is-done{opacity:.8}
+.is-done td:nth-child(2){text-decoration:line-through}
 
-/* Muted text */
-.muted {
-  color: #6b7280;
-  font-style: italic;
+/* Buttons */
+button, .btn{
+  border:0; border-radius:8px; padding:8px 14px; cursor:pointer;
+  background:var(--primary); color:var(--primary-ink); font-weight:600;
 }
+button:hover,.btn:hover{filter:brightness(0.95)}
+.btn--ghost{background:transparent; color:var(--primary); border:1px solid var(--primary)}
+.btn--danger{background:var(--danger); color:#fff}
+.btn--warning{background:var(--warning); color:#000}
+.btn--success{background:var(--success); color:#fff}
 
-/* Responsive small screens */
-@media (max-width: 600px) {
-  .table th:nth-child(1),
-  .table td:nth-child(1),
-  .table th:nth-child(6),
-  .table td:nth-child(6) {
-    display: none; /* κρύβει # και ημερομηνία στα κινητά */
-  }
+/* Forms */
+input, select{
+  width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:8px;
+  background:#fff; color:var(--ink);
 }
-/* Πίνακας: ομάδα/κάρτα */
-.team-card {
-  background: #fff;
-  border: 1px solid #e9e9ef;
-  border-radius: 10px;
-  padding: 16px;
-  margin: 18px 0;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+input:focus,select:focus{outline:2px solid rgba(47,111,236,.25); border-color:var(--primary)}
+.form-grid{
+  display:grid; gap:12px; grid-template-columns:repeat(2,minmax(0,1fr));
 }
+.form-grid label{font-size:12px; color:var(--muted); display:grid; gap:6px}
+@media (max-width:720px){ .form-grid{grid-template-columns:1fr} }
 
-.team-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-.team-header h2 { margin: 0; }
-.team-stats span { margin-right: 12px; color: #555; }
+/* Flash messages */
+.flashes{display:grid; gap:8px; margin:12px 0}
+.flash{padding:10px 12px; border-radius:8px; background:#eef2ff; color:#1e3a8a}
+.flash.success{background:#ecfdf5; color:#065f46}
+.flash.warning{background:#fffbeb; color:#854d0e}
+.flash.danger{background:#fef2f2; color:#991b1b}
+.flash.info{background:#eff6ff; color:#1e40af}
 
-/* Μπάρες προόδου */
-.progress-rail {
-  height: 10px;
-  background: #f2f4f8;
-  border-radius: 6px;
-  overflow: hidden;
-  margin: 8px 0 14px;
+/* Cards (teams/board) */
+.team-card{
+  background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px;
+  margin:18px 0;
 }
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #4db6ff, #3e8ef7);
-  width: 0%;
+.team-header{
+  display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  margin-bottom:10px;
 }
+.team-stats{display:flex; gap:16px; color:var(--muted); font-size:14px}
 
-.progress-mini {
-  position: relative;
-  height: 8px;
-  width: 140px;
-  background: #f2f4f8;
-  border-radius: 6px;
-  overflow: hidden;
-  display: inline-block;
-  vertical-align: middle;
-  margin-right: 6px;
+/* Progress bars */
+.progress-rail{
+  position:relative; height:10px; background:#eef2f7; border-radius:999px; overflow:hidden; margin:6px 0 14px;
 }
-.progress-mini-fill {
-  height: 100%;
-  width: 0%;
-  background: #51cf66;
-}
+.progress-fill{position:absolute; inset:0 auto 0 0; width:0; background:var(--primary); border-radius:999px}
+.progress-mini{height:8px; width:120px; background:#eef2f7; border-radius:999px; overflow:hidden; display:inline-block; vertical-align:middle; margin-right:8px}
+.progress-mini-fill{height:100%; width:0; background:var(--primary)}
 
-/* Ζωντανή ημερομηνία/ώρα */
-.datetime {
-  display: flex;
-  gap: 10px;
-  font-weight: 600;
-  color: #333;
-  margin: 10px 0 18px;
-}
+/* Utility */
+.muted{color:var(--muted)}
+.badge{display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; background:#eef2ff; color:#1e3a8a}
 
-/* Στυλ completed γραμμών */
-tr.is-done td { color: #6c757d; }
-tr.is-done td:nth-child(2) { text-decoration: line-through; }
-
-/* Βοηθητικά */
-.muted { color: #888; }
-
-.progressbar { width: 100%; height: 8px; background:#eee; border-radius: 6px; overflow: hidden; }
-.progressbar-fill { height: 100%; background: #3b82f6; }
-tr.is-done td { opacity: .75; }
+/* Footer */
+.footer{color:var(--muted); font-size:12px; text-align:center; padding:24px 0}
