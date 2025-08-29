@@ -199,7 +199,28 @@ def logout():
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    return render_template("dashboard.html")
+    u = current_user()
+
+    # Αν είναι admin → όλα τα tasks, αλλιώς μόνο τα δικά του
+    if u and u.is_admin:
+        tasks = Task.query.order_by(Task.created_at.desc()).all()
+    else:
+        tasks = Task.query.filter_by(assignee_id=u.id).order_by(Task.created_at.desc()).all()
+
+    # map για να γράφουμε ονόματα αντί για ids
+    users = User.query.all()
+    user_map = {usr.id: usr.username for usr in users}
+
+    total = len(tasks)
+    done = len([t for t in tasks if t.status == "done"])
+    avg = int(sum(t.progress for t in tasks) / total) if total else 0
+
+    return render_template(
+        "dashboard.html",
+        tasks=tasks,
+        user_map=user_map,
+        total=total, done=done, avg=avg
+    )
 
 @app.route("/progress-view")
 @login_required
