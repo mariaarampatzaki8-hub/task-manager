@@ -13,7 +13,12 @@
         <td>{{ t.id }}</td>
         <td>{{ t.title }}</td>
         <td>{{ t.status }}</td>
-        <td>{{ t.progress }}%</td>
+        <td>
+  <form action="{{ url_for('task_update_progress', task_id=t.id) }}" method="post" style="display:flex; gap:4px">
+    <input type="number" name="progress" value="{{ t.progress }}" min="0" max="100" style="width:60px">
+    <button type="submit">OK</button>
+  </form>
+</td>
         <td>
           {% if user_map and t.assignee_id in user_map %}
             {{ user_map[t.assignee_id] }}
