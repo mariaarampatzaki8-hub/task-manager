@@ -1,9 +1,5 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Πρόοδος</h1>
-<ul>
-  <li>Σύνολο εργασιών: <strong>{{ total }}</strong></li>
-  <li>Ολοκληρωμένες: <strong>{{ done }}</strong></li>
-  <li>Μέσος όρος προόδου: <strong>{{ avg }}%</strong></li>
-</ul>
+<p>Σύνολο: {{ total }} • Ολοκληρωμένα: {{ done }} • Μέσο progress: {{ avg }}%</p>
 {% endblock %}
