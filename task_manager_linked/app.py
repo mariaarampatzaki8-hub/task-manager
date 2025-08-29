@@ -359,9 +359,10 @@ def admin():
 @app.route("/admin/create_user", methods=["POST"])
 @admin_required
 def admin_create_user():
+    # πεδία από τη φόρμα
+    name     = (request.form.get("name") or "").strip()
     username = (request.form.get("username") or "").strip()
-    name     = (request.form.get("name") or "").strip() or None
-    password = (request.form.get("password") or "").strip()
+    password = (request.form.get("password") or "").strip()  # προσωρινός κωδικός
     email    = (request.form.get("email") or "").strip() or None
     phone    = (request.form.get("phone") or "").strip() or None
     id_card  = (request.form.get("id_card") or "").strip() or None
@@ -369,21 +370,34 @@ def admin_create_user():
     is_admin = True if request.form.get("is_admin") == "on" else False
     team_id  = request.form.get("team_id") or None
 
-    if not username or not password:
-        flash("Username & κωδικός υποχρεωτικά.", "warning")
+    # βασικοί έλεγχοι
+    if not name or not username or not password:
+        flash("Ονοματεπώνυμο, username και προσωρινός κωδικός είναι υποχρεωτικά.", "warning")
         return redirect(url_for("admin"))
+
     if User.query.filter_by(username=username).first():
         flash("Υπάρχει ήδη αυτό το username.", "danger")
         return redirect(url_for("admin"))
 
+    # εύρεση ομάδας (αν έχει δοθεί)
     team = Team.query.get(team_id) if team_id else None
+
+    # δημιουργία χρήστη
     u = User(
-        username=username, name=name, email=email, phone=phone, id_card=id_card,
-        is_admin=is_admin, color=color, team_id=(team.id if team else None)
+        name=name,
+        username=username,
+        email=email,
+        phone=phone,
+        id_card=id_card,
+        is_admin=is_admin,
+        color=color,
+        team_id=(team.id if team else None),
     )
-    u.set_password(password)
+    u.set_password(password)  # hash του προσωρινού κωδικού
+
     db.session.add(u)
     db.session.commit()
+
     flash("Ο χρήστης δημιουργήθηκε.", "success")
     return redirect(url_for("admin"))
 
