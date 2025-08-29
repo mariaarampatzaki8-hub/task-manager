@@ -13,8 +13,12 @@
 
   {% if user %}
     <nav class="menu">
+    
       <a class="{{ 'active' if request.endpoint == 'dashboard' else '' }}"
-         href="{{ url_for('dashboard') }}">Πίνακας</a>
+   href="{{ url_for('dashboard') }}">Dashboard</a>
+
+      <a class="{{ 'active' if request.endpoint == 'board' else '' }}"
+   href="{{ url_for('board') }}">Πίνακας</a>
 
       <a class="{{ 'active' if request.endpoint == 'tasks_list' else '' }}"
          href="{{ url_for('tasks_list') }}">Tasks</a>
