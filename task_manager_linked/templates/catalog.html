@@ -1,13 +1,5 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Κατάλογος</h1>
-{% if tasks and tasks|length %}
-  <ul>
-  {% for t in tasks %}
-    <li>[#{{ t.id }}] {{ t.title }} — {{ t.status }} ({{ t.progress }}%)</li>
-  {% endfor %}
-  </ul>
-{% else %}
-  <p>Δεν υπάρχουν ακόμα εργασίες.</p>
-{% endif %}
+<p>Placeholder καταλόγου (χρησιμοποιεί τον ίδιο πίνακα με το tasks).</p>
 {% endblock %}
