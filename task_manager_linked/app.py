@@ -829,7 +829,17 @@ def admin_delete_team(team_id):
     db.session.commit()
     flash("Η ομάδα διαγράφηκε.", "info")
     return redirect(url_for("admin_teams"))
-
+    
+@app.route("/admin/notes/<int:note_id>/reply", methods=["POST"])
+@admin_required
+def admin_reply_note(note_id):
+    n = Note.query.get_or_404(note_id)
+    reply = (request.form.get("reply") or "").strip()
+    n.reply = reply if reply else None
+    db.session.commit()
+    flash("Η απάντηση αποθηκεύτηκε.", "success")
+    return redirect(url_for("notes"))
+    
 # Tasks από admin
 @app.route("/admin/tasks", methods=["POST"])
 @admin_required
