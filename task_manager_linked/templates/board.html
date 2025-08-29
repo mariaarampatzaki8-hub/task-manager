@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Πίνακας</h1>
+
+<!-- Ζωντανή ημερομηνία/ώρα -->
+<div class="datetime">
+  <span id="live-date"></span>
+  <span id="live-time"></span>
+</div>
+
+<script>
+  function pad(n){return n<10?'0'+n:n}
+  function tick(){
+    const now = new Date();
+    const date = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate());
+    const time = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+    document.getElementById('live-date').textContent = date;
+    document.getElementById('live-time').textContent = time;
+  }
+  tick();
+  setInterval(tick, 1000);
+</script>
+
+{% for bucket in team_buckets %}
+  <section class="team-card">
+    <header class="team-header">
+      <h2>{{ bucket.team.name }}</h2>
+      <div class="team-stats">
+        <span>Σύνολο: <strong>{{ bucket.stats.total }}</strong></span>
+        <span>Ολοκληρωμένες: <strong>{{ bucket.stats.done }}</strong></span>
+        <span>Μέσο progress: <strong>{{ bucket.stats.avg }}%</strong></span>
+      </div>
+    </header>
+
+    <div class="progress-rail">
+      <div class="progress-fill" style="width: {{ bucket.stats.avg }}%"></div>
+    </div>
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Τίτλος</th>
+          <th>Κατάσταση</th>
+          <th>Progress</th>
+          <th>Ανατέθηκε σε</th>
+          <th>Ημ/νία</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in bucket.tasks %}
+          <tr class="{% if t.status == 'done' %}is-done{% endif %}">
+            <td>{{ t.id }}</td>
+            <td>{{ t.title }}</td>
+            <td>{{ 'Ολοκληρωμένο' if t.status == 'done' else 'Ανοιχτό' }}</td>
+            <td>
+              <div class="progress-mini">
+                <div class="progress-mini-fill" style="width: {{ t.progress }}%"></div>
+              </div>
+              <small>{{ t.progress }}%</small>
+            </td>
+            <td>{{ users[t.assignee_id].username if t.assignee_id in users else '—' }}</td>
+            <td>{{ t.created_at.strftime('%Y-%m-%d %H:%M') if t.created_at else '—' }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="muted">Δεν υπάρχουν εργασίες για αυτή την ομάδα.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+{% endfor %}
+
+<!-- Tasks χωρίς ομάδα -->
+<section class="team-card">
+  <header class="team-header">
+    <h2>Χωρίς Ομάδα</h2>
+    <div class="team-stats">
+      <span>Σύνολο: <strong>{{ no_team_stats.total }}</strong></span>
+      <span>Ολοκληρωμένες: <strong>{{ no_team_stats.done }}</strong></span>
+      <span>Μέσο progress: <strong>{{ no_team_stats.avg }}%</strong></span>
+    </div>
+  </header>
+
+  <div class="progress-rail">
+    <div class="progress-fill" style="width: {{ no_team_stats.avg }}%"></div>
+  </div>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Τίτλος</th>
+        <th>Κατάσταση</th>
+        <th>Progress</th>
+        <th>Ανατέθηκε σε</th>
+        <th>Ημ/νία</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in no_team_tasks %}
+        <tr class="{% if t.status == 'done' %}is-done{% endif %}">
+          <td>{{ t.id }}</td>
+          <td>{{ t.title }}</td>
+          <td>{{ 'Ολοκληρωμένο' if t.status == 'done' else 'Ανοιχτό' }}</td>
+          <td>
+            <div class="progress-mini">
+              <div class="progress-mini-fill" style="width: {{ t.progress }}%"></div>
+            </div>
+            <small>{{ t.progress }}%</small>
+          </td>
+          <td>{{ users[t.assignee_id].username if t.assignee_id in users else '—' }}</td>
+          <td>{{ t.created_at.strftime('%Y-%m-%d %H:%M') if t.created_at else '—' }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="muted">Δεν υπάρχουν εργασίες.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
