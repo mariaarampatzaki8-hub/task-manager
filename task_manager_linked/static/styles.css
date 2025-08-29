@@ -7,40 +7,16 @@ body {
   color: #1f2937;
   background: #f8fafc;
 }
-
 /* ---- Topbar ---- */
-.topbar {
-  background: #0f172a;
-  color: #fff;
-  padding: 12px 16px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.topbar .brand {
-  color: #fff;
-  font-weight: 700;
-  text-decoration: none;
-  margin-right: 16px;
-}
-.topbar .menu a {
-  color: #e2e8f0;
-  text-decoration: none;
-  margin-right: 12px;
-}
+.topbar { background:#0f172a; color:#fff; padding:12px 16px; display:flex; align-items:center; gap:16px; }
+.topbar .brand { color:#fff; font-weight:700; text-decoration:none; margin-right:16px; }
+.topbar .menu a { color:#e2e8f0; text-decoration:none; margin-right:12px; }
 .topbar .menu a:hover { text-decoration: underline; }
-
 /* ---- Container ---- */
-.container {
-  max-width: 980px;
-  margin: 24px auto;
-  padding: 0 16px;
-}
-
+.container { max-width: 980px; margin: 24px auto; padding: 0 16px; }
 /* ---- Headings & links ---- */
 h1, h2, h3 { color: #0f172a; margin: 0 0 12px; }
 a { color: #2563eb; }
-
 /* ---- Flash messages ---- */
 .flashes { margin: 12px 0; }
 .flash { padding: 10px 12px; border-radius: 6px; margin-bottom: 8px; }
@@ -48,27 +24,14 @@ a { color: #2563eb; }
 .flash.info    { background: #eff6ff; color: #1e40af; border: 1px solid #60a5fa; }
 .flash.warning { background: #fff7ed; color: #9a3412; border: 1px solid #fdba74; }
 .flash.danger  { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
-
 /* ---- Forms ---- */
 form { display: grid; gap: 10px; }
-input, select, button {
-  padding: 10px 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font-size: 14px;
-}
-button, .btn {
-  background: #2563eb;
-  border: none;
-  color: #fff;
-  cursor: pointer;
-}
-button:hover, .btn:hover { background: #1d4ed8; }
-
+input, select, button { padding:10px 12px; border:1px solid #cbd5e1; border-radius:6px; font-size:14px; }
+button, .btn { background:#2563eb; border:none; color:#fff; cursor:pointer; }
+button:hover, .btn:hover { background:#1d4ed8; }
 /* ---- Tables ---- */
-table { width: 100%; border-collapse: collapse; margin: 12px 0; background: #fff; }
-th, td { padding: 10px 12px; border-bottom: 1px solid #e5e7eb; text-align: left; }
-th { background: #f1f5f9; font-weight: 600; }
-
+table { width:100%; border-collapse:collapse; margin:12px 0; background:#fff; }
+th, td { padding:10px 12px; border-bottom:1px solid #e5e7eb; text-align:left; }
+th { background:#f1f5f9; font-weight:600; }
 /* ---- Footer ---- */
-.footer { color: #64748b; font-size: 12px; text-align: center; padding: 24px 12px; }
+.footer { color:#64748b; font-size:12px; text-align:center; padding:24px 12px; }
