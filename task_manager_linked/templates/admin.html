@@ -122,7 +122,6 @@
 <hr>
 
 <section>
-<section>
   <h2>Χρήστες</h2>
 
   {% if users and users|length %}
@@ -142,48 +141,42 @@
     <tbody>
       {% for u in users %}
       <tr>
-        <form action="{{ url_for('admin_update_user', user_id=u.id) }}" method="post">
-          <td><strong>{{ u.username }}</strong></td>
+        <td><strong>{{ u.username }}</strong></td>
 
-          <td>
-            <input type="email" name="email" value="{{ u.email or '' }}" placeholder="name@example.com">
-          </td>
+        <td><input type="email" name="email" value="{{ u.email or '' }}" form="f{{u.id}}" placeholder="name@example.com"></td>
+        <td><input type="tel"   name="phone" value="{{ u.phone or '' }}" form="f{{u.id}}" placeholder="69xxxxxxxx"></td>
+        <td><input type="text"  name="id_card" value="{{ u.id_card or '' }}" form="f{{u.id}}" placeholder="ΑΒ123456"></td>
+        <td><input type="color" name="color" value="{{ u.color or '#3273dc' }}" form="f{{u.id}}"></td>
 
-          <td>
-            <input type="tel" name="phone" value="{{ u.phone or '' }}" placeholder="69xxxxxxxx">
-          </td>
+        <td>
+          <select name="team_id" form="f{{u.id}}">
+            <option value="">— καμία —</option>
+            {% for g in teams %}
+              <option value="{{ g.id }}" {% if u.team_id == g.id %}selected{% endif %}>{{ g.name }}</option>
+            {% endfor %}
+          </select>
+        </td>
 
-          <td>
-            <input type="text" name="id_card" value="{{ u.id_card or '' }}" placeholder="ΑΒ123456">
-          </td>
+        <td style="text-align:center">
+          <input type="checkbox" name="is_admin" form="f{{u.id}}" {% if u.is_admin %}checked{% endif %}>
+        </td>
 
-          <td>
-            <input type="color" name="color" value="{{ u.color or '#3273dc' }}">
-          </td>
-
-          <td>
-            <select name="team_id">
-              <option value="">— καμία —</option>
-              {% for g in teams %}
-                <option value="{{ g.id }}" {% if u.team_id == g.id %}selected{% endif %}>{{ g.name }}</option>
-              {% endfor %}
-            </select>
-          </td>
-
-          <td style="text-align:center">
-            <input type="checkbox" name="is_admin" {% if u.is_admin %}checked{% endif %}>
-          </td>
-
-          <td class="actions">
+        <td class="actions">
+          <!-- Φόρμα ενημέρωσης προφίλ (χρησιμοποιούμε form attribute) -->
+          <form id="f{{u.id}}" action="{{ url_for('admin_update_user', user_id=u.id) }}" method="post" style="display:inline">
             <button type="submit">Αποθήκευση</button>
-        </form>
+          </form>
 
-        <form action="{{ url_for('admin_reset_password', user_id=u.id) }}"
-              method="post" style="display:inline"
-              onsubmit="return confirm('Reset κωδικού για {{ u.username }};');">
-          <button type="submit">Reset κωδικού</button>
-        </form>
-          </td>
+          <!-- Reset κωδικού -->
+          <form action="{{ url_for('admin_reset_password', user_id=u.id) }}" method="post" style="display:inline" onsubmit="return confirm('Reset κωδικού για {{ u.username }};');">
+            <button type="submit">Reset κωδικού</button>
+          </form>
+
+          <!-- Διαγραφή χρήστη -->
+          <form action="{{ url_for('admin_delete_user', user_id=u.id) }}" method="post" style="display:inline" onsubmit="return confirm('Σίγουρα θέλεις να διαγράψεις τον {{ u.username }};');">
+            <button type="submit" class="danger">Διαγραφή</button>
+          </form>
+        </td>
       </tr>
       {% endfor %}
     </tbody>
