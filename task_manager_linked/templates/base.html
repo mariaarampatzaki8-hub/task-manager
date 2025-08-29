@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <title>Task Manager</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- πρόσεξε το s -->
+  <!-- προσοχή: styles.css -->
   <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
 </head>
 <body>
@@ -28,7 +28,6 @@
       <a class="{{ 'active' if request.endpoint == 'teams' else '' }}"
          href="{{ url_for('teams') }}">Ομάδες</a>
 
-      {# Κατάλογος Χρηστών (προς το παρόν για admin· αν θες και leaders, θα το φτιάξουμε μετά) #}
       {% if user.is_admin %}
         <a class="{{ 'active' if request.endpoint == 'directory' else '' }}"
            href="{{ url_for('directory') }}">Κατάλογος Χρηστών</a>
