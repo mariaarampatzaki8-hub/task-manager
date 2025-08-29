@@ -564,7 +564,30 @@ def admin_update_user(user_id):
     db.session.commit()
     flash(f"Το προφίλ του χρήστη «{u.username}» ενημερώθηκε.", "success")
     return redirect(url_for("admin"))
+    
+# ------- Admin: delete user -------
+@app.route("/admin/users/<int:user_id>/delete", methods=["POST"])
+@admin_required
+def admin_delete_user(user_id):
+    me = current_user()
+    u = User.query.get_or_404(user_id)
 
+    # Ασφάλεια: μην σβήσεις τον εαυτό σου
+    if me.id == u.id:
+        flash("Δεν μπορείς να διαγράψεις τον εαυτό σου.", "warning")
+        return redirect(url_for("admin"))
+
+    # Ασφάλεια: μην μείνει το σύστημα χωρίς admin
+    if u.is_admin:
+        other_admin = User.query.filter(User.id != u.id, User.is_admin == True).first()
+        if not other_admin:
+            flash("Δεν γίνεται να διαγράψεις τον τελευταίο admin.", "danger")
+            return redirect(url_for("admin"))
+
+    db.session.delete(u)
+    db.session.commit()
+    flash(f"Ο χρήστης «{u.username}» διαγράφηκε.", "info")
+    return redirect(url_for("admin"))
 
 # ------- Admin: reset password -------
 @app.route("/admin/users/<int:user_id>/reset_password", methods=["POST"])
