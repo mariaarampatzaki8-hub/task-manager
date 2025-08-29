@@ -741,6 +741,38 @@ def admin_team_member_remove(team_id, user_id):
         db.session.commit()
         flash("Ο χρήστης αφαιρέθηκε από την ομάδα.", "info")
     return redirect(url_for("admin_team_members", team_id=team_id))
+# ---------- Admin: ορισμός leader ομάδας ----------
+@app.route("/admin/teams/<int:team_id>/leader", methods=["POST"])
+@admin_required
+def admin_set_leader(team_id):
+    team = Team.query.get_or_404(team_id)
+    leader_username = (request.form.get("leader_username") or "").strip()
+    if not leader_username:
+        flash("Δώσε username leader.", "warning")
+        return redirect(url_for("admin_teams"))
+    leader = User.query.filter_by(username=leader_username).first()
+    if not leader:
+        flash("Ο χρήστης δεν βρέθηκε.", "danger")
+        return redirect(url_for("admin_teams"))
+    team.leader_id = leader.id
+    db.session.commit()
+    flash("Ο leader ενημερώθηκε.", "success")
+    return redirect(url_for("admin_teams"))
+
+# ---------- Admin: διαγραφή ομάδας ----------
+@app.route("/admin/teams/<int:team_id>/delete", methods=["POST"])
+@admin_required
+def admin_delete_team(team_id):
+    team = Team.query.get_or_404(team_id)
+
+    # Αποσύνδεση μελών από την ομάδα
+    for m in User.query.filter_by(team_id=team.id).all():
+        m.team_id = None
+
+    db.session.delete(team)
+    db.session.commit()
+    flash("Η ομάδα διαγράφηκε.", "info")
+    return redirect(url_for("admin_teams"))
 
 # Tasks από admin
 @app.route("/admin/tasks", methods=["POST"])
