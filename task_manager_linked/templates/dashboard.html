@@ -1,13 +1,7 @@
-{% extends "base.html" %}
-{% block content %}
-<h1>Dashboard</h1>
-<p>Καλώς ήρθες, <strong>{{ user.username }}</strong>! Ρόλος:
-   <strong>{% if user.is_admin %}Διαχειριστής{% else %}Χρήστης{% endif %}</strong>.
-</p>
-<p>
-  Συντόμευση:
-  <a href="{{ url_for('catalog') }}">Πίνακας</a> •
-  <a href="{{ url_for('progress_view') }}">Πρόοδος</a> •
-  <a href="{{ url_for('settings') }}">Ρυθμίσεις</a>
-</p>
-{% endblock %}
+<!doctype html><html lang="el"><body>
+<p>Καλώς ήρθες, {{ user.username }} —
+<a href="{{ url_for('admin') }}">Admin</a> |
+<a href="{{ url_for('logout') }}">Αποσύνδεση</a></p>
+<h2>Tasks (demo)</h2>
+<ul>{% for t in tasks %}<li>{{ t.title }} — {{ t.status }} ({{ t.progress }}%)</li>{% endfor %}</ul>
+</body></html>
