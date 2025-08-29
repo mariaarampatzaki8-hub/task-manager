@@ -1,61 +1,11 @@
-{% extends "base.html" %}
-{% block content %}
+<!doctype html><html lang="el"><body>
+<p><a href="{{ url_for('dashboard') }}">Dashboard</a> |
+<a href="{{ url_for('logout') }}">Αποσύνδεση</a></p>
 <h1>Admin</h1>
-
-<h2>Δημιουργία χρήστη</h2>
-<form method="post" action="{{ url_for('admin_create_user') }}" class="card grid">
-  <label>Username <input name="username" required></label>
-  <label>Κωδικός <input type="text" name="password" placeholder="π.χ. change-me" required></label>
-  <label>Email <input name="email" type="email"></label>
-  <label>Τηλέφωνο <input name="phone"></label>
-  <label>ΑΔΤ <input name="id_card"></label>
-  <label>Χρώμα <input name="color" type="color" value="#3273dc"></label>
-  <label>Ομάδα (id) <input name="team_id" placeholder="προαιρετικό"></label>
-  <label class="check"><input type="checkbox" name="is_admin"> Διαχειριστής</label>
-  <button>Δημιουργία</button>
-</form>
-
 <h2>Χρήστες</h2>
-<table class="table">
-  <tr><th>ID</th><th>Username</th><th>Email</th><th>Admin</th><th>Ομάδα</th></tr>
-  {% for u in users %}
-  <tr>
-    <td>{{ u.id }}</td>
-    <td>{{ u.username }}</td>
-    <td>{{ u.email or "—" }}</td>
-    <td>{{ "ναι" if u.is_admin else "όχι" }}</td>
-    <td>{{ u.team_id or "—" }}</td>
-  </tr>
-  {% endfor %}
-</table>
-
-<h2>Assign Task (γρήγορα)</h2>
-<form method="post" action="{{ url_for('admin_create_task') }}" class="card grid">
-  <label>Τίτλος <input name="title" required></label>
-  <label>Σε χρήστη (username) <input name="assignee_username" required></label>
-  <label>Αρχικό progress (%) <input name="progress" type="number" min="0" max="100" value="0"></label>
-  <button>Ανάθεση</button>
-</form>
-
-<h2>Tasks (τελευταία)</h2>
-<table class="table">
-  <tr><th>ID</th><th>Τίτλος</th><th>Σε</th><th>Status</th><th>Progress</th><th>Ενέργειες</th></tr>
-  {% for t in tasks %}
-  <tr>
-    <td>{{ t.id }}</td>
-    <td>{{ t.title }}</td>
-    <td>{{ user_map.get(t.assignee_id, "—") }}</td>
-    <td>{{ t.status }}</td>
-    <td>{{ t.progress }}%</td>
-    <td class="actions">
-      <form method="post" action="{{ url_for('admin_toggle_task', task_id=t.id) }}">
-        <button type="submit">Toggle</button>
-      </form>
-      <form method="post" action="{{ url_for('admin_delete_task', task_id=t.id) }}" onsubmit="return confirm('Διαγραφή;')">
-        <button class="danger" type="submit">Διαγραφή</button>
-      </form>
-    </td>
-  </tr>
-  {% endfor %}
-</table>
-{% endblock %}
+<ul>{% for u in users %}<li>{{ u.username }}{% if u.is_admin %} (admin){% endif %}</li>{% endfor %}</ul>
+<h2>Ομάδες</h2>
+<ul>{% for g in teams %}<li>{{ g.name }}</li>{% endfor %}</ul>
+<h2>Tasks</h2>
+<ul>{% for t in tasks %}<li>{{ t.title }} — {{ t.status }} ({{ t.progress }}%)</li>{% endfor %}</ul>
+</body></html>
