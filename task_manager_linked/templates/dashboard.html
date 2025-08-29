@@ -1,18 +1,17 @@
-<!doctype html>
-<html lang="el">
-  <head><meta charset="utf-8"><title>Dashboard</title></head>
-  <body>
-    <p>Καλώς ήρθες, {{ user.username }} —
-      {% if user.is_admin %}<a href="{{ url_for('admin') }}">Admin</a> |{% endif %}
-      <a href="{{ url_for('logout') }}">Αποσύνδεση</a>
-    </p>
-    <h2>Tasks (demo)</h2>
-    <ul>
-      {% for t in tasks %}
-        <li>{{ t.title }} — {{ t.status }} ({{ t.progress }}%)</li>
-      {% else %}
-        <li>Δεν υπάρχουν εργασίες.</li>
-      {% endfor %}
-    </ul>
-  </body>
-</html>
+{% extends "base.html" %}
+{% block content %}
+<h1>Dashboard</h1>
+<p>Καλώς ήρθες, <strong>{{ user.username }}</strong> —
+  {% if user.is_admin %}Ρόλος: Διαχειριστής{% else %}Ρόλος: Χρήστης{% endif %}
+</p>
+
+<div class="grid">
+  <a class="tile" href="{{ url_for('tasks_list') }}">Tasks μου</a>
+  <a class="tile" href="{{ url_for('progress_view') }}">Συνολική Πρόοδος</a>
+  <a class="tile" href="{{ url_for('catalog') }}">Κατάλογος Εργασιών</a>
+  <a class="tile" href="{{ url_for('teams') }}">Ομάδες</a>
+  <a class="tile" href="{{ url_for('directory') }}">Χρήστες</a>
+  <a class="tile" href="{{ url_for('settings') }}">Ρυθμίσεις</a>
+  {% if user.is_admin %}<a class="tile accent" href="{{ url_for('admin') }}">Πίνακας Διαχειριστή</a>{% endif %}
+</div>
+{% endblock %}
