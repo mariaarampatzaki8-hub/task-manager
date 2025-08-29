@@ -13,10 +13,12 @@
   {% if user %}
   <nav class="menu">
     <a href="{{ url_for('dashboard') }}">Πίνακας</a>
-    <a href="{{ url_for('tasks') }}">Tasks</a>
     <a href="{{ url_for('progress_view') }}">Πρόοδος</a>
-    <a href="{{ url_for('board') }}">Κατάλογος</a>
-    <a href="{{ url_for('directory') }}">Οδηγίες</a>
+    <!-- Χρησιμοποιούμε ένα από τα δύο παρακάτω (και τα δύο υπάρχουν στο working app.py) -->
+    <a href="{{ url_for('catalog') }}">Κατάλογος</a>
+    <!-- ή, αν προτιμάς, το board που δείχνει το ίδιο template: -->
+    <!-- <a href="{{ url_for('board') }}">Κατάλογος</a> -->
+    <a href="{{ url_for('directory') }}">Κατάλογος Χρηστών</a>
     <a href="{{ url_for('help_page') }}">Βοήθεια</a>
     <a href="{{ url_for('settings') }}">Ρυθμίσεις</a>
     {% if user.is_admin %}
