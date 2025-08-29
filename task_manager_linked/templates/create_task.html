@@ -1,16 +1,24 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Δημιουργία εργασίας</h1>
-<form method="post" action="{{ url_for('create_task') }}">
-  <p><label>Τίτλος<br><input name="title" required></label></p>
-  <p><label>Ανάθεση σε<br>
-    <select name="assignee_id">
-      <option value="">(Κανέναν)</option>
+<h1>Δημιουργία Task</h1>
+
+<form action="{{ url_for('admin_create_task') }}" method="post" class="form-grid">
+  <label>Τίτλος
+    <input type="text" name="title" required>
+  </label>
+
+  <label>Ανάθεση σε χρήστη
+    <select name="assignee_username">
       {% for u in users %}
-        <option value="{{ u.id }}">{{ u.username }}</option>
+        <option value="{{ u.username }}">{{ u.username }}</option>
       {% endfor %}
     </select>
-  </label></p>
-  <p><button type="submit">Αποθήκευση</button></p>
+  </label>
+
+  <label>Πρόοδος (0–100)
+    <input type="number" name="progress" min="0" max="100" value="0">
+  </label>
+
+  <button type="submit">Αποθήκευση</button>
 </form>
 {% endblock %}
