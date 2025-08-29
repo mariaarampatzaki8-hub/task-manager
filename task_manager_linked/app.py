@@ -121,7 +121,15 @@ def ensure_user_name_column():
 
 with app.app_context():
     bootstrap_db()
-    ensure_user_name_column()
+    # Προσθήκη πεδίων που μπορεί να λείπουν (idempotent)
+    from sqlalchemy import text
+    try:
+        with db.engine.begin() as conn:
+            conn.execute(text("ALTER TABLE tm_users ADD COLUMN IF NOT EXISTS name VARCHAR(200)"))
+            conn.execute(text("ALTER TABLE tm_users ADD COLUMN IF NOT EXISTS phone VARCHAR(50)"))
+            conn.execute(text("ALTER TABLE tm_users ADD COLUMN IF NOT EXISTS id_card VARCHAR(50)"))
+    except Exception as ex:
+        app.logger.warning(f"Startup migrations failed: {ex}")
 
 # -------------------------------------------------
 # Helpers
