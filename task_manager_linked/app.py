@@ -10,7 +10,12 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # ---------------- App ----------------
-app = Flask(__name__, instance_relative_config=True)
+app = Flask(
+    __name__,
+    instance_relative_config=True,
+    template_folder="templates",
+    static_folder="static",
+)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-" + secrets.token_hex(16))
 os.makedirs(app.instance_path, exist_ok=True)
 
