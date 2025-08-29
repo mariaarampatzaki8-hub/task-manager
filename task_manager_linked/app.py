@@ -213,19 +213,50 @@ def logout():
 # -------------------------------------------------
 # Pages
 # -------------------------------------------------
+
+from datetime import datetime
+
 @app.route("/dashboard")
 @login_required
 def dashboard():
     u = current_user()
-    tasks = Task.query.order_by(Task.created_at.desc()).all() if (u and u.is_admin) \
-            else Task.query.filter_by(assignee_id=u.id).order_by(Task.created_at.desc()).all()
-    users = User.query.all()
-    user_map = {usr.id: (usr.name or usr.username) for usr in users}
-    total = len(tasks)
-    done = len([t for t in tasks if t.status == "done"])
-    avg = int(sum(t.progress for t in tasks) / total) if total else 0
-    return render_template("dashboard.html", tasks=tasks, user_map=user_map, total=total, done=done, avg=avg)
 
+    tasks = (
+        Task.query.order_by(Task.created_at.desc()).all()
+        if (u and u.is_admin) else
+        Task.query.filter_by(assignee_id=u.id).order_by(Task.created_at.desc()).all()
+    )
+
+    users = User.query.all()
+    user_map = {usr.id: usr.username for usr in users}
+    teams = Team.query.all()
+    team_map = {t.id: t.name for t in teams}
+
+    def team_name_for(task):
+        assignee = next((x for x in users if x.id == task.assignee_id), None)
+        if assignee and assignee.team_id:
+            return team_map.get(assignee.team_id, "Χωρίς Ομάδα")
+        return "Χωρίς Ομάδα"
+
+    grouped = {}
+    for t in tasks or []:
+        grouped.setdefault(team_name_for(t), []).append(t)
+
+    total = len(tasks or [])
+    done = len([t for t in tasks or [] if t.status == "done"])
+    avg = int(sum(t.progress for t in tasks or []) / total) if total else 0
+
+    return render_template(
+        "dashboard.html",
+        tasks=tasks or [],
+        grouped=grouped,
+        user_map=user_map,
+        total=total,
+        done=done,
+        avg=avg,
+        now=datetime.now(),
+    )
+    
 @app.route("/progress-view")
 @login_required
 def progress_view():
