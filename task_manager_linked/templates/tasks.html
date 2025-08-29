@@ -1,16 +1,31 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Τα Tasks μου</h1>
+<h1>{% if user.is_admin %}Όλες οι Εργασίες{% else %}Οι Εργασίες μου{% endif %}</h1>
 <table class="table">
-  <tr><th>ID</th><th>Τίτλος</th><th>Σε</th><th>Status</th><th>Progress</th></tr>
-  {% for t in tasks %}
-  <tr>
-    <td>{{ t.id }}</td>
-    <td>{{ t.title }}</td>
-    <td>{{ user_map.get(t.assignee_id, "—") }}</td>
-    <td>{{ t.status }}</td>
-    <td>{{ t.progress }}%</td>
-  </tr>
-  {% endfor %}
+  <thead>
+    <tr>
+      <th>#</th><th>Τίτλος</th><th>Κατάσταση</th><th>Progress</th><th>Ανατέθηκε σε</th><th>Ημ/νία</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for t in tasks %}
+      <tr>
+        <td>{{ t.id }}</td>
+        <td>{{ t.title }}</td>
+        <td>{{ t.status }}</td>
+        <td>{{ t.progress }}%</td>
+        <td>
+          {% if user_map and t.assignee_id in user_map %}
+            {{ user_map[t.assignee_id] }}
+          {% else %}
+            {{ t.assignee_id or '—' }}
+          {% endif %}
+        </td>
+        <td>{{ t.created_at.strftime('%Y-%m-%d %H:%M') if t.created_at else '—' }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="muted">Δεν υπάρχουν εργασίες.</td></tr>
+    {% endfor %}
+  </tbody>
 </table>
 {% endblock %}
