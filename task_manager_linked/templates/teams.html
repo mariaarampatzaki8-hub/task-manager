@@ -1,20 +1,82 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Ομάδες</h1>
-<table class="table">
-  <thead>
-    <tr><th>#</th><th>Όνομα</th><th>Leader ID</th></tr>
-  </thead>
-  <tbody>
-    {% for g in teams %}
+
+{% for team in teams %}
+  <section class="team-card">
+    <header class="team-header">
+      <h2>{{ team.name }}</h2>
+      <small class="muted">
+        {% if team.leader_id %}
+          Leader: <strong>{{ users_by_team.get(team.id, []) | selectattr('id','equalto',team.leader_id) | list | first and ( (users_by_team[team.id] | selectattr('id','equalto',team.leader_id) | list | first).name or (users_by_team[team.id] | selectattr('id','equalto',team.leader_id) | list | first).username ) }}</strong>
+        {% else %}
+          Χωρίς leader
+        {% endif %}
+        · Μέλη: {{ users_by_team.get(team.id, [])|length }}
+      </small>
+    </header>
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Ονοματεπώνυμο</th>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Τηλέφωνο</th>
+          <th>Χρώμα</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users_by_team.get(team.id, []) %}
+          <tr>
+            <td>{{ u.name or '—' }}</td>
+            <td>{{ u.username }}</td>
+            <td>{{ u.email or '—' }}</td>
+            <td>{{ u.phone or '—' }}</td>
+            <td>
+              <span class="color-dot" style="background: {{ u.color or '#3273dc' }}"></span>
+              <small>{{ u.color or '#3273dc' }}</small>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="muted">Δεν υπάρχουν μέλη σε αυτή την ομάδα.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+{% endfor %}
+
+<section class="team-card">
+  <header class="team-header">
+    <h2>Χωρίς Ομάδα</h2>
+    <small class="muted">Μέλη: {{ no_team|length }}</small>
+  </header>
+  <table class="table">
+    <thead>
       <tr>
-        <td>{{ g.id }}</td>
-        <td>{{ g.name }}</td>
-        <td>{{ g.leader_id or '—' }}</td>
+        <th>Ονοματεπώνυμο</th>
+        <th>Username</th>
+        <th>Email</th>
+        <th>Τηλέφωνο</th>
+        <th>Χρώμα</th>
       </tr>
-    {% else %}
-      <tr><td colspan="3" class="muted">Δεν υπάρχουν ομάδες.</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
+    </thead>
+    <tbody>
+      {% for u in no_team %}
+        <tr>
+          <td>{{ u.name or '—' }}</td>
+          <td>{{ u.username }}</td>
+          <td>{{ u.email or '—' }}</td>
+          <td>{{ u.phone or '—' }}</td>
+          <td>
+            <span class="color-dot" style="background: {{ u.color or '#3273dc' }}"></span>
+            <small>{{ u.color or '#3273dc' }}</small>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="muted">—</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
 {% endblock %}
