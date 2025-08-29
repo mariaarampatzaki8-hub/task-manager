@@ -186,6 +186,21 @@ def catalog():
     tasks = Task.query.order_by(Task.id.desc()).all()
     return render_template("catalog.html", tasks=tasks)
 
+@app.route("/tasks", methods=["GET"], endpoint="tasks")
+@login_required
+def tasks_list():
+    u = current_user()
+    # Δείξε πρώτα τις δικές μου εργασίες. Αν είσαι admin, δείξε όλες.
+    tasks = (
+        Task.query.order_by(Task.created_at.desc()).all()
+        if (u and u.is_admin)
+        else Task.query.filter_by(assignee_id=u.id).order_by(Task.created_at.desc()).all()
+    )
+    # Χρήσιμο map για εμφάνιση αναθέτη/χρήστη στο template
+    users = User.query.all()
+    user_map = {usr.id: usr.username for usr in users}
+    return render_template("tasks.html", tasks=tasks, user_map=user_map)
+
 @app.route("/board")
 @login_required
 def board():
