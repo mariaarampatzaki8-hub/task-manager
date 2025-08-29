@@ -894,6 +894,21 @@ def admin_delete_task(task_id):
     flash("Η εργασία διαγράφηκε.", "info")
     return redirect(url_for("admin"))
 
+@app.route("/notes/<int:note_id>/delete", methods=["POST"])
+@login_required
+def delete_note(note_id):
+    u = current_user()
+    n = Note.query.get_or_404(note_id)
+
+    if not (u.is_admin or n.user_id == u.id):
+        flash("Δεν έχεις δικαίωμα διαγραφής.", "danger")
+        return redirect(url_for("notes"))
+
+    db.session.delete(n)
+    db.session.commit()
+    flash("Η σημείωση διαγράφηκε.", "info")
+    return redirect(url_for("notes"))
+
 # -------------------------------------------------
 # Error handlers
 # -------------------------------------------------
