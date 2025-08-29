@@ -46,7 +46,7 @@
         {% endif %}
       </td>
       <td class="actions">
-        {% if user.is_admin or user.id == n.user_id %}
+        {% if user.is_admin or user.id == n.author_id %}
           <form action="{{ url_for('delete_note', note_id=n.id) }}" method="post"
                 onsubmit="return confirm('Διαγραφή σημείωσης #{{ n.id }};');">
             <button type="submit">Διαγραφή</button>
