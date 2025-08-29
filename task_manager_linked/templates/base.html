@@ -3,45 +3,36 @@
 <head>
   <meta charset="utf-8">
   <title>Task Manager</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
 </head>
 <body>
 <header class="topbar">
-  <nav class="nav">
-    <a class="brand" href="{{ url_for('dashboard') }}">Task Manager</a>
+  <a class="brand" href="{{ url_for('dashboard') }}">Task Manager</a>
 
-    {% if user %}
-      <a href="{{ url_for('dashboard') }}">Αρχική</a>
-      <a href="{{ url_for('catalog') }}">Πίνακας</a>
-      <a href="{{ url_for('progress_view') }}">Πρόοδος</a>
-      <a href="{{ url_for('teams') }}">Ομάδες</a>
-      <a href="{{ url_for('directory') }}">Κατάλογος</a>
-      <a href="{{ url_for('help_page') }}">Οδηγίες</a>
-      <a href="{{ url_for('settings') }}">Ρυθμίσεις</a>
-
-      {% if user.is_admin %}
-        <a href="{{ url_for('admin') }}">Admin</a>
-        <a href="{{ url_for('admin_teams') }}">Διαχείριση Ομάδων</a>
-      {% endif %}
-
-      <span class="right">
-        <small>Γεια σου, {{ user.username }}</small>
-        <a href="{{ url_for('logout') }}">Αποσύνδεση</a>
-      </span>
-    {% else %}
-      <span class="right">
-        <a href="{{ url_for('index') }}">Σύνδεση</a>
-      </span>
+  {% if user %}
+  <nav class="menu">
+    <a href="{{ url_for('dashboard') }}">Πίνακας</a>
+    <a href="{{ url_for('tasks') }}">Tasks</a>
+    <a href="{{ url_for('progress_view') }}">Πρόοδος</a>
+    <a href="{{ url_for('board') }}">Κατάλογος</a>
+    <a href="{{ url_for('directory') }}">Οδηγίες</a>
+    <a href="{{ url_for('help_page') }}">Βοήθεια</a>
+    <a href="{{ url_for('settings') }}">Ρυθμίσεις</a>
+    {% if user.is_admin %}
+      <a href="{{ url_for('admin') }}">Admin</a>
+      <a href="{{ url_for('admin_teams') }}">Διαχείριση Ομάδων</a>
     {% endif %}
+    <a href="{{ url_for('logout') }}">Αποσύνδεση</a>
   </nav>
+  {% endif %}
 </header>
 
 <main class="container">
-  {% with msgs = get_flashed_messages(with_categories=true) %}
-    {% if msgs %}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
       <div class="flashes">
-        {% for cat, msg in msgs %}
+        {% for cat, msg in messages %}
           <div class="flash {{ cat }}">{{ msg }}</div>
         {% endfor %}
       </div>
