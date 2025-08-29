@@ -1,5 +1,25 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Κατάλογος</h1>
-<p>Placeholder καταλόγου (χρησιμοποιεί τον ίδιο πίνακα με το tasks).</p>
+<h1>Κατάλογος Εργασιών</h1>
+<table class="table">
+  <thead>
+    <tr>
+      <th>#</th><th>Τίτλος</th><th>Κατάσταση</th><th>Progress</th><th>Ανατέθηκε σε (ID)</th><th>Ημ/νία</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for t in tasks %}
+      <tr>
+        <td>{{ t.id }}</td>
+        <td>{{ t.title }}</td>
+        <td>{{ t.status }}</td>
+        <td>{{ t.progress }}%</td>
+        <td>{{ t.assignee_id or '—' }}</td>
+        <td>{{ t.created_at.strftime('%Y-%m-%d %H:%M') if t.created_at else '—' }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="muted">Δεν υπάρχουν εργασίες.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
 {% endblock %}
