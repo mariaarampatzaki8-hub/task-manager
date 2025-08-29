@@ -122,21 +122,74 @@
 <hr>
 
 <section>
-  <h2>Χρήστες</h2>
-  <ul>
-    {% for u in users %}
-      <li>{{ u.username }}{% if u.is_admin %} <small>(admin)</small>{% endif %} — {{ u.email or '—' }}</li>
-    {% endfor %}
-  </ul>
-</section>
-
 <section>
-  <h2>Ομάδες</h2>
-  <ul>
-    {% for g in teams %}
-      <li>{{ g.name }}{% if g.leader_id %} — leader: {{ user_map.get(g.leader_id) }}{% endif %}</li>
-    {% endfor %}
-  </ul>
-  <p><a href="{{ url_for('admin_teams') }}">Διαχείριση Ομάδων</a></p>
+  <h2>Χρήστες</h2>
+
+  {% if users and users|length %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Username</th>
+        <th>Email</th>
+        <th>Τηλέφωνο</th>
+        <th>ΑΔΤ</th>
+        <th>Χρώμα</th>
+        <th>Ομάδα</th>
+        <th>Admin</th>
+        <th>Ενέργειες</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <form action="{{ url_for('admin_update_user', user_id=u.id) }}" method="post">
+          <td><strong>{{ u.username }}</strong></td>
+
+          <td>
+            <input type="email" name="email" value="{{ u.email or '' }}" placeholder="name@example.com">
+          </td>
+
+          <td>
+            <input type="tel" name="phone" value="{{ u.phone or '' }}" placeholder="69xxxxxxxx">
+          </td>
+
+          <td>
+            <input type="text" name="id_card" value="{{ u.id_card or '' }}" placeholder="ΑΒ123456">
+          </td>
+
+          <td>
+            <input type="color" name="color" value="{{ u.color or '#3273dc' }}">
+          </td>
+
+          <td>
+            <select name="team_id">
+              <option value="">— καμία —</option>
+              {% for g in teams %}
+                <option value="{{ g.id }}" {% if u.team_id == g.id %}selected{% endif %}>{{ g.name }}</option>
+              {% endfor %}
+            </select>
+          </td>
+
+          <td style="text-align:center">
+            <input type="checkbox" name="is_admin" {% if u.is_admin %}checked{% endif %}>
+          </td>
+
+          <td class="actions">
+            <button type="submit">Αποθήκευση</button>
+        </form>
+
+        <form action="{{ url_for('admin_reset_password', user_id=u.id) }}"
+              method="post" style="display:inline"
+              onsubmit="return confirm('Reset κωδικού για {{ u.username }};');">
+          <button type="submit">Reset κωδικού</button>
+        </form>
+          </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p class="muted">Δεν υπάρχουν χρήστες.</p>
+  {% endif %}
 </section>
 {% endblock %}
