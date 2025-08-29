@@ -5,6 +5,9 @@
 <h2>Στοιχεία Προφίλ</h2>
 <form action="{{ url_for('update_profile') }}" method="post" style="max-width:640px;">
   <div class="field">
+  <label for="color">Χρώμα</label>
+  <input id="color" type="color" name="color" value="{{ user.color or '#3273dc' }}">
+</div>
     <label>Email</label>
     <input type="email" name="email" value="{{ user.email or '' }}">
   </div>
