@@ -4,50 +4,54 @@
   <meta charset="utf-8">
   <title>Task Manager</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+  <!-- πρόσεξε το s -->
+  <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
 </head>
 <body>
 <header class="topbar">
   <a class="brand" href="{{ url_for('dashboard') }}">Task Manager</a>
 
   {% if user %}
-  <nav class="menu">
-  <a class="{{ 'active' if request.endpoint == 'dashboard' else '' }}"
-     href="{{ url_for('dashboard') }}">Πίνακας</a>
+    <nav class="menu">
+      <a class="{{ 'active' if request.endpoint == 'dashboard' else '' }}"
+         href="{{ url_for('dashboard') }}">Πίνακας</a>
 
-  <a class="{{ 'active' if request.endpoint == 'tasks_list' else '' }}"
-     href="{{ url_for('tasks_list') }}">Tasks</a>
+      <a class="{{ 'active' if request.endpoint == 'tasks_list' else '' }}"
+         href="{{ url_for('tasks_list') }}">Tasks</a>
 
-  <a class="{{ 'active' if request.endpoint in ['progress_view','progress'] else '' }}"
-     href="{{ url_for('progress_view') }}">Πρόοδος</a>
+      <a class="{{ 'active' if request.endpoint in ['progress_view','progress'] else '' }}"
+         href="{{ url_for('progress_view') }}">Πρόοδος</a>
 
-  <a class="{{ 'active' if request.endpoint == 'catalog' else '' }}"
-     href="{{ url_for('catalog') }}">Κατάλογος</a>
+      <a class="{{ 'active' if request.endpoint == 'catalog' else '' }}"
+         href="{{ url_for('catalog') }}">Κατάλογος</a>
 
-  <a class="{{ 'active' if request.endpoint == 'teams' else '' }}"
-     href="{{ url_for('teams') }}">Ομάδες</a>
+      <a class="{{ 'active' if request.endpoint == 'teams' else '' }}"
+         href="{{ url_for('teams') }}">Ομάδες</a>
 
-  {# Κατάλογος Χρηστών: admin ή leader ομάδας #}
-  {% if user and (user.is_admin or user.team_id) %}
-    <a class="{{ 'active' if request.endpoint == 'directory' else '' }}"
-       href="{{ url_for('directory') }}">Κατάλογος Χρηστών</a>
+      {# Κατάλογος Χρηστών (προς το παρόν για admin· αν θες και leaders, θα το φτιάξουμε μετά) #}
+      {% if user.is_admin %}
+        <a class="{{ 'active' if request.endpoint == 'directory' else '' }}"
+           href="{{ url_for('directory') }}">Κατάλογος Χρηστών</a>
+      {% endif %}
+
+      <a class="{{ 'active' if request.endpoint == 'help_page' else '' }}"
+         href="{{ url_for('help_page') }}">Βοήθεια</a>
+
+      <a class="{{ 'active' if request.endpoint == 'settings' else '' }}"
+         href="{{ url_for('settings') }}">Ρυθμίσεις</a>
+
+      {% if user.is_admin %}
+        <a class="{{ 'active' if request.endpoint == 'admin' else '' }}"
+           href="{{ url_for('admin') }}">Admin</a>
+        <a class="{{ 'active' if request.endpoint == 'admin_teams' else '' }}"
+           href="{{ url_for('admin_teams') }}">Διαχείριση Ομάδων</a>
+      {% endif %}
+
+      <a href="{{ url_for('logout') }}">Αποσύνδεση</a>
+    </nav>
   {% endif %}
+</header>
 
-  <a class="{{ 'active' if request.endpoint == 'help_page' else '' }}"
-     href="{{ url_for('help_page') }}">Βοήθεια</a>
-
-  <a class="{{ 'active' if request.endpoint == 'settings' else '' }}"
-     href="{{ url_for('settings') }}">Ρυθμίσεις</a>
-
-  {% if user and user.is_admin %}
-    <a class="{{ 'active' if request.endpoint == 'admin' else '' }}"
-       href="{{ url_for('admin') }}">Admin</a>
-    <a class="{{ 'active' if request.endpoint == 'admin_teams' else '' }}"
-       href="{{ url_for('admin_teams') }}">Διαχείριση Ομάδων</a>
-  {% endif %}
-
-  <a href="{{ url_for('logout') }}">Αποσύνδεση</a>
-</nav>
 <main class="container">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
