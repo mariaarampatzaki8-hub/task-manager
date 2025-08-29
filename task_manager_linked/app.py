@@ -572,11 +572,13 @@ def notes():
             flash("Συμπλήρωσε τίτλο και κείμενο.", "warning")
             return redirect(url_for("notes"))
 
-        n = Note(title=title, body=body, user_id=u.id)
-        db.session.add(n)
+        note = Note(title=title, body=body, author_id=u.id)
+        db.session.add(note)
         db.session.commit()
         flash("Η σημείωση δημιουργήθηκε.", "success")
         return redirect(url_for("notes"))
+        notes = Note.query.order_by(Note.created_at.desc()).all()
+    return render_template("notes.html", notes=notes, user=u)
 
     # Λίστα σημειώσεων:
     # admin βλέπει όλες, αλλιώς μόνο τις δικές του
