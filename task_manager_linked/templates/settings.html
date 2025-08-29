@@ -1,77 +1,21 @@
 {% extends "base.html" %}
-{% block title %}Ρυθμίσεις{% endblock %}
-
 {% block content %}
 <h1>Ρυθμίσεις</h1>
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    <ul class="flashes">
-      {% for cat, msg in messages %}
-        <li class="flash {{ cat }}">{{ msg }}</li>
-      {% endfor %}
-    </ul>
-  {% endif %}
-{% endwith %}
+<h2>Προφίλ</h2>
+<form method="post" action="{{ url_for('update_profile') }}" class="card grid">
+  <label>Email <input type="email" name="email" value="{{ user.email or '' }}"></label>
+  <label>Τηλέφωνο <input name="phone" value="{{ user.phone or '' }}"></label>
+  <label>ΑΔΤ <input name="id_card" value="{{ user.id_card or '' }}"></label>
+  <label>Χρώμα <input type="color" name="color" value="{{ user.color or '#3273dc' }}"></label>
+  <button>Αποθήκευση</button>
+</form>
 
-<div class="grid-2">
-  <!-- Προφίλ: email & color -->
-  <section class="card">
-    <h2>Προφίλ</h2>
-    <form method="post" action="{{ url_for('update_profile') }}">
-      <div class="form-row">
-        <label for="email">Email</label>
-        <input id="email" name="email" type="email" value="{{ user.email or '' }}" placeholder="name@example.com">
-      </div>
-
-      <div class="form-row">
-        <label for="color">Χρώμα UI</label>
-        <input id="color" name="color" type="color" value="{{ user.color or '#3273dc' }}">
-      </div>
-
-      <div class="form-actions">
-        <button type="submit">Αποθήκευση</button>
-      </div>
-    </form>
-  </section>
-
-  <!-- Αλλαγή κωδικού -->
-  <section class="card">
-    <h2>Αλλαγή κωδικού</h2>
-    <form method="post" action="{{ url_for('update_password') }}">
-      <div class="form-row">
-        <label for="current_password">Τρέχων κωδικός</label>
-        <input id="current_password" name="current_password" type="password" required>
-      </div>
-
-      <div class="form-row">
-        <label for="new_password">Νέος κωδικός</label>
-        <input id="new_password" name="new_password" type="password" minlength="6" required>
-      </div>
-
-      <div class="form-row">
-        <label for="confirm_password">Επιβεβαίωση νέου κωδικού</label>
-        <input id="confirm_password" name="confirm_password" type="password" minlength="6" required>
-      </div>
-
-      <div class="form-actions">
-        <button type="submit">Αλλαγή κωδικού</button>
-      </div>
-    </form>
-  </section>
-</div>
-
-<style>
-  .grid-2 { display: grid; grid-template-columns: 1fr; gap: 24px; }
-  @media (min-width: 800px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
-  .card { padding: 16px; border: 1px solid #ddd; border-radius: 8px; background: #fff; }
-  .form-row { margin: 12px 0; display:flex; flex-direction:column; gap:6px; }
-  .form-actions { margin-top: 16px; }
-  .flashes { list-style:none; padding:0; margin:0 0 16px 0; }
-  .flash { padding:10px 12px; border-radius:6px; margin-bottom:8px; }
-  .flash.success { background:#e6ffed; border:1px solid #a2f3b5; }
-  .flash.warning { background:#fff8e1; border:1px solid #ffe08a; }
-  .flash.danger { background:#ffe6e6; border:1px solid #ffb3b3; }
-  .flash.info { background:#eef5ff; border:1px solid #b7d3ff; }
-</style>
+<h2>Κωδικός</h2>
+<form method="post" action="{{ url_for('update_password') }}" class="card grid">
+  <label>Τρέχων <input type="password" name="current_password" required></label>
+  <label>Νέος <input type="password" name="new_password" required></label>
+  <label>Επιβεβαίωση <input type="password" name="confirm_password" required></label>
+  <button>Αλλαγή κωδικού</button>
+</form>
 {% endblock %}
