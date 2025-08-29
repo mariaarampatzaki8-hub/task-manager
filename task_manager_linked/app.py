@@ -274,8 +274,62 @@ def progress_alias():
 @app.route("/catalog")
 @login_required
 def catalog():
-    tasks = Task.query.order_by(Task.id.desc()).all()
-    return render_template("catalog.html", tasks=tasks)
+    from collections import defaultdict
+    now = datetime.now()
+    now_str = now.strftime("%d/%m/%Y %H:%M")
+
+    # φέρε όλα τα tasks (μπορείς να βάλεις φίλτρα αργότερα)
+    tasks = Task.query.order_by(Task.created_at.desc()).all()
+
+    # users map για να δείχνουμε ονόματα
+    users = User.query.all()
+    user_map = {u.id: (u.username or f"user-{u.id}") for u in users}
+
+    # φέρε teams για να βρούμε ονόματα ομάδων
+    teams = {t.id: t.name for t in Team.query.all()}
+
+    # group by team name (ή "Χωρίς Ομάδα")
+    grouped = defaultdict(list)
+    for t in tasks:
+        # βρίσκω την ομάδα του ανατιθέμενου χρήστη
+        assignee_team_id = None
+        if t.assignee_id and t.assignee_id in [u.id for u in users]:
+            # βρίσκω τον χρήστη
+            # (πιο αποδοτικά: κάνε user_by_id = {u.id: u} πάνω)
+            pass
+    # αποδοτικό: χτίζουμε user_by_id μία φορά
+    user_by_id = {u.id: u for u in users}
+
+    grouped = defaultdict(list)
+    for task in tasks:
+        assignee = user_by_id.get(task.assignee_id)
+        team_name = teams.get(assignee.team_id) if assignee and assignee.team_id else "Χωρίς Ομάδα"
+        grouped[team_name].append(task)
+
+    # υπολογισμοί per team
+    team_stats = {}
+    for team_name, items in grouped.items():
+        total = len(items)
+        done = sum(1 for i in items if i.status == "done")
+        avg = int(sum(i.progress for i in items) / total) if total else 0
+        team_stats[team_name] = {"total": total, "done": done, "avg": avg}
+
+    # συνολικά
+    total_all = len(tasks)
+    done_all = sum(1 for i in tasks if i.status == "done")
+    avg_all = int(sum(i.progress for i in tasks) / total_all) if total_all else 0
+
+    # ταξινόμηση ομάδων αλφαβητικά με “Χωρίς Ομάδα” τελευταία
+    sorted_groups = sorted(grouped.items(), key=lambda kv: (kv[0] == "Χωρίς Ομάδα", kv[0].lower()))
+
+    return render_template(
+        "catalog.html",
+        now_str=now_str,
+        groups=sorted_groups,        # λίστα (team_name, [tasks])
+        team_stats=team_stats,       # dict με μετρικές ομάδας
+        user_map=user_map,
+        total=total_all, done=done_all, avg=avg_all,
+    )
 
 @app.route("/board")
 @login_required
