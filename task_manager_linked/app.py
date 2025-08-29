@@ -249,7 +249,50 @@ def catalog():
 @app.route("/board")
 @login_required
 def board():
-    return render_template("catalog.html")
+    # Φέρνουμε όλες τις ομάδες με τα μέλη τους
+    teams = Team.query.order_by(Team.name.asc()).all()
+
+    # Για γρήγορη πρόσβαση χρηστών με id->object
+    users = {u.id: u for u in User.query.all()}
+
+    # Ομαδοποίηση tasks ανά ομάδα (με βάση το team_id του assignee)
+    team_buckets = []  # list από dict: {"team": Team, "tasks": [Task], "stats": {...}}
+
+    for team in teams:
+        # όλοι οι χρήστες αυτής της ομάδας
+        member_ids = [u.id for u in User.query.filter_by(team_id=team.id).all()]
+        if member_ids:
+            tasks = Task.query.filter(Task.assignee_id.in_(member_ids)).order_by(Task.created_at.desc()).all()
+        else:
+            tasks = []
+
+        total = len(tasks)
+        done = sum(1 for t in tasks if t.status == "done")
+        avg  = int(sum(t.progress for t in tasks) / total) if total else 0
+
+        team_buckets.append({
+            "team": team,
+            "tasks": tasks,
+            "stats": {"total": total, "done": done, "avg": avg},
+        })
+
+    # Ειδικά tasks χωρίς ομάδα (assignee χωρίς team_id)
+    no_team_member_ids = [u.id for u in User.query.filter_by(team_id=None).all()]
+    if no_team_member_ids:
+        no_team_tasks = Task.query.filter(Task.assignee_id.in_(no_team_member_ids)).order_by(Task.created_at.desc()).all()
+    else:
+        no_team_tasks = []
+    nt_total = len(no_team_tasks)
+    nt_done  = sum(1 for t in no_team_tasks if t.status == "done")
+    nt_avg   = int(sum(t.progress for t in no_team_tasks) / nt_total) if nt_total else 0
+
+    return render_template(
+        "board.html",
+        team_buckets=team_buckets,
+        users=users,                 # map id->User για εμφάνιση ονομάτων
+        no_team_tasks=no_team_tasks,
+        no_team_stats={"total": nt_total, "done": nt_done, "avg": nt_avg},
+    )
 
 @app.route("/tasks", methods=["GET"], endpoint="tasks_list")
 @login_required
