@@ -99,3 +99,69 @@ th { background:#f1f5f9; font-weight:600; }
     display: none; /* κρύβει # και ημερομηνία στα κινητά */
   }
 }
+/* Πίνακας: ομάδα/κάρτα */
+.team-card {
+  background: #fff;
+  border: 1px solid #e9e9ef;
+  border-radius: 10px;
+  padding: 16px;
+  margin: 18px 0;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.team-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.team-header h2 { margin: 0; }
+.team-stats span { margin-right: 12px; color: #555; }
+
+/* Μπάρες προόδου */
+.progress-rail {
+  height: 10px;
+  background: #f2f4f8;
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 8px 0 14px;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4db6ff, #3e8ef7);
+  width: 0%;
+}
+
+.progress-mini {
+  position: relative;
+  height: 8px;
+  width: 140px;
+  background: #f2f4f8;
+  border-radius: 6px;
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+.progress-mini-fill {
+  height: 100%;
+  width: 0%;
+  background: #51cf66;
+}
+
+/* Ζωντανή ημερομηνία/ώρα */
+.datetime {
+  display: flex;
+  gap: 10px;
+  font-weight: 600;
+  color: #333;
+  margin: 10px 0 18px;
+}
+
+/* Στυλ completed γραμμών */
+tr.is-done td { color: #6c757d; }
+tr.is-done td:nth-child(2) { text-decoration: line-through; }
+
+/* Βοηθητικά */
+.muted { color: #888; }
