@@ -490,19 +490,24 @@ def teams():
 @app.route("/directory")
 @login_required
 def directory():
-    u = current_user()
+    # Όλοι οι χρήστες βλέπουν όλα τα μέλη, ομαδοποιημένα ανά ομάδα.
+    teams = Team.query.order_by(Team.name.asc()).all()
+    users = User.query.order_by(User.name.asc(), User.username.asc()).all()
 
-    # Πρόσβαση μόνο για admin ή leader
-    if u and u.is_admin:
-        users = User.query.order_by(User.username.asc()).all()
-    elif u and is_leader(u):
-        users = User.query.filter_by(team_id=u.team_id).order_by(User.username.asc()).all()
-    else:
-        flash("Δεν έχεις πρόσβαση στον κατάλογο χρηστών.", "warning")
-        return redirect(url_for("dashboard"))
+    users_by_team = {t.id: [] for t in teams}
+    no_team = []
+    for u in users:
+        if u.team_id and u.team_id in users_by_team:
+            users_by_team[u.team_id].append(u)
+        else:
+            no_team.append(u)
 
-    teams_map = {t.id: t.name for t in Team.query.all()}
-    return render_template("directory.html", users=users, teams_map=teams_map)
+    return render_template(
+        "directory.html",
+        teams=teams,
+        users_by_team=users_by_team,
+        no_team=no_team,
+    )
     
 @app.route("/help")
 @login_required
