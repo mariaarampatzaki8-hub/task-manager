@@ -1,8 +1,14 @@
-<!doctype html><html lang="el"><body>
-<h1>Σύνδεση</h1>
-<form method="post" action="{{ url_for('login') }}">
-  <input name="username" placeholder="admin" autofocus>
-  <input name="password" type="password" placeholder="admin123">
-  <button>Σύνδεση</button>
-</form>
-</body></html>
+<!doctype html>
+<html lang="el">
+  <head><meta charset="utf-8"><title>Σύνδεση</title></head>
+  <body>
+    <h1>Σύνδεση</h1>
+    <form method="post" action="{{ url_for('login') }}">
+      <label>Username</label><br>
+      <input name="username" placeholder="admin" autofocus><br>
+      <label>Κωδικός</label><br>
+      <input name="password" type="password" placeholder="admin123"><br><br>
+      <button type="submit">Σύνδεση</button>
+    </form>
+  </body>
+</html>
