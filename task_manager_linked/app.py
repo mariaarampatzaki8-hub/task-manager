@@ -90,6 +90,17 @@ class Task(db.Model):
     assignee_id = db.Column(db.Integer, db.ForeignKey("tm_users.id"))
     created_at  = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
+class Note(db.Model):
+    __tablename__ = "tm_notes"
+    id         = db.Column(db.Integer, primary_key=True)
+    title      = db.Column(db.String(200), nullable=False)
+    body       = db.Column(db.Text, nullable=False)           # κείμενο χρήστη
+    reply      = db.Column(db.Text)                           # απάντηση admin
+    author_id  = db.Column(db.Integer, db.ForeignKey("tm_users.id"), nullable=False)
+    status     = db.Column(db.String(20), default="open")     # open|answered|closed
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
 # -------------------------------------------------
 # Bootstrap / Seed + ασφαλές auto-migration
 # -------------------------------------------------
