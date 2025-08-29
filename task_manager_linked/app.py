@@ -229,6 +229,8 @@ def dashboard():
 
     users = User.query.all()
     user_map = {usr.id: usr.username for usr in users}
+    user_colors = {usr.id: (usr.color or "#3273dc") for usr in users}
+    
     teams = Team.query.all()
     team_map = {t.id: t.name for t in teams}
 
@@ -251,6 +253,7 @@ def dashboard():
         tasks=tasks or [],
         grouped=grouped,
         user_map=user_map,
+        user_colors=user_colors,
         total=total,
         done=done,
         avg=avg,
