@@ -412,6 +412,58 @@ def tasks_list():
     user_map = {usr.id: (usr.name or usr.username) for usr in users}
     return render_template("tasks.html", tasks=tasks, user_map=user_map)
 
+# ---- Update task progress (user ή admin) ----
+@app.route("/tasks/<int:task_id>/progress", methods=["POST"])
+@login_required
+def task_update_progress(task_id):
+    t = Task.query.get_or_404(task_id)
+    u = current_user()
+
+    # Μόνο ο ανατεθειμένος ή admin μπορούν να αλλάξουν πρόοδο
+    if not (u.is_admin or (t.assignee_id == u.id)):
+        flash("Δεν έχεις δικαίωμα να ενημερώσεις αυτό το task.", "danger")
+        return redirect(url_for("tasks_list"))
+
+    progress_raw = (request.form.get("progress") or "").strip()
+    try:
+        progress = max(0, min(100, int(progress_raw)))
+    except ValueError:
+        progress = t.progress
+
+    t.progress = progress
+    if progress >= 100:
+        t.status = "done"
+    elif t.status == "done":
+        t.status = "open"
+
+    db.session.commit()
+    flash("Η πρόοδος ενημερώθηκε.", "success")
+    return redirect(request.referrer or url_for("tasks_list"))
+
+
+# ---- Toggle done/open (user ή admin) ----
+@app.route("/tasks/<int:task_id>/toggle", methods=["POST"])
+@login_required
+def task_toggle(task_id):
+    t = Task.query.get_or_404(task_id)
+    u = current_user()
+
+    if not (u.is_admin or (t.assignee_id == u.id)):
+        flash("Δεν έχεις δικαίωμα για αυτή την ενέργεια.", "danger")
+        return redirect(url_for("tasks_list"))
+
+    if t.status == "done":
+        t.status = "open"
+        if t.progress == 100:
+            t.progress = 99
+    else:
+        t.status = "done"
+        t.progress = 100
+
+    db.session.commit()
+    flash("Η κατάσταση ενημερώθηκε.", "info")
+    return redirect(request.referrer or url_for("tasks_list"))
+
 @app.route("/teams")
 @login_required
 def teams():
