@@ -1,28 +1,45 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Κατάλογος Χρηστών</h1>
-<table class="table">
-  <thead>
-    <tr>
-      <th>#</th><th>Username</th><th>Email</th><th>Τηλέφωνο</th><th>ΑΔΤ</th><th>Ομάδα ID</th><th>Ρόλος</th><th>Χρώμα</th><th>Δημιουργία</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for u in users %}
+
+{% if users and users|length %}
+  <table class="table">
+    <thead>
       <tr>
-        <td>{{ u.id }}</td>
+        <th>Ονοματεπώνυμο</th>
+        <th>Username</th>
+        <th>Ομάδα</th>
+        <th>Email</th>
+        <th>Τηλέφωνο</th>
+        <th>ΑΔΤ</th>
+        <th>Χρώμα</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>{{ u.name or '—' }}</td>
         <td>{{ u.username }}</td>
+        <td>{{ teams_map.get(u.team_id, '—') }}</td>
         <td>{{ u.email or '—' }}</td>
         <td>{{ u.phone or '—' }}</td>
         <td>{{ u.id_card or '—' }}</td>
-        <td>{{ u.team_id or '—' }}</td>
-        <td>{% if u.is_admin %}Admin{% else %}User{% endif %}</td>
-        <td><span class="color" style="background: {{ u.color or '#3273dc' }};"></span> {{ u.color or '—' }}</td>
-        <td>{{ u.created_at.strftime('%Y-%m-%d %H:%M') if u.created_at else '—' }}</td>
+        <td>
+          {% set c = u.color or '#3273dc' %}
+          <span title="{{ c }}" style="display:inline-block;width:18px;height:18px;border-radius:4px;border:1px solid #ddd;vertical-align:middle;background:{{ c }}"></span>
+          <small style="margin-left:6px;">{{ c }}</small>
+        </td>
       </tr>
-    {% else %}
-      <tr><td colspan="9" class="muted">Δεν υπάρχουν χρήστες.</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p class="muted">Δεν υπάρχουν χρήστες.</p>
+{% endif %}
+
+{% if user.is_admin %}
+  <p style="margin-top:16px">
+    <a href="{{ url_for('admin_teams') }}">Διαχείριση Ομάδων</a>
+  </p>
+{% endif %}
 {% endblock %}
