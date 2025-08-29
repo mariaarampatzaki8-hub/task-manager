@@ -473,21 +473,21 @@ def teams():
 @login_required
 def directory():
     u = current_user()
-    # Admin: βλέπει όλους
-    if u and u.is_admin:
+    if not u:
+        return redirect(url_for("index"))
+
+    # admin ή leader -> βλέπουν όλους
+    if u.is_admin or is_leader(u):
         users = User.query.order_by(User.username.asc()).all()
-        return render_template("directory.html", users=users)
-
-    # Leader: βλέπει μόνο τα μέλη της/των ομάδων του
-    if u and is_leader(u):
-        team_ids = [t.id for t in Team.query.filter_by(leader_id=u.id).all()]
-        users = User.query.filter(User.team_id.in_(team_ids)).order_by(User.username.asc()).all()
-        return render_template("directory.html", users=users)
-
-    # Άλλοι χρήστες: δεν επιτρέπεται
-    flash("Πρόσβαση μόνο για διαχειριστές ή leaders.", "warning")
-    return redirect(url_for("dashboard"))
-
+    else:
+        users = (
+            User.query.filter_by(team_id=u.team_id)
+            .order_by(User.username.asc())
+            .all()
+            if u.team_id else []
+        )
+    return render_template("directory.html", users=users)
+    
 @app.route("/help")
 @login_required
 def help_page():
