@@ -1,11 +1,31 @@
-<!doctype html><html lang="el"><body>
-<p><a href="{{ url_for('dashboard') }}">Dashboard</a> |
-<a href="{{ url_for('logout') }}">Αποσύνδεση</a></p>
-<h1>Admin</h1>
-<h2>Χρήστες</h2>
-<ul>{% for u in users %}<li>{{ u.username }}{% if u.is_admin %} (admin){% endif %}</li>{% endfor %}</ul>
-<h2>Ομάδες</h2>
-<ul>{% for g in teams %}<li>{{ g.name }}</li>{% endfor %}</ul>
-<h2>Tasks</h2>
-<ul>{% for t in tasks %}<li>{{ t.title }} — {{ t.status }} ({{ t.progress }}%)</li>{% endfor %}</ul>
-</body></html>
+<!doctype html>
+<html lang="el">
+  <head><meta charset="utf-8"><title>Admin</title></head>
+  <body>
+    <p><a href="{{ url_for('dashboard') }}">Dashboard</a> |
+       <a href="{{ url_for('logout') }}">Αποσύνδεση</a></p>
+
+    <h1>Admin</h1>
+
+    <h2>Χρήστες</h2>
+    <ul>
+      {% for u in users %}
+        <li>{{ u.username }}{% if u.is_admin %} (admin){% endif %}</li>
+      {% endfor %}
+    </ul>
+
+    <h2>Ομάδες</h2>
+    <ul>
+      {% for g in teams %}
+        <li>{{ g.name }}</li>
+      {% endfor %}
+    </ul>
+
+    <h2>Tasks</h2>
+    <ul>
+      {% for t in tasks %}
+        <li>{{ t.title }} — {{ t.status }} ({{ t.progress }}%)</li>
+      {% endfor %}
+    </ul>
+  </body>
+</html>
