@@ -72,6 +72,56 @@
 <hr>
 
 <section>
+  <h2>Δημιουργία Χρήστη</h2>
+  <form action="{{ url_for('admin_create_user') }}" method="post" class="form-grid">
+    <label>Username
+      <input type="text" name="username" required minlength="3" placeholder="π.χ. jdoe">
+    </label>
+
+    <label>Ονοματεπώνυμο
+      <input type="text" name="name" placeholder="π.χ. Γιάννης Δοκιμή">
+    </label>
+
+    <label>ΑΔΤ
+      <input type="text" name="id_card" placeholder="π.χ. ΑΒ123456">
+    </label>
+
+    <label>Τηλέφωνο
+      <input type="tel" name="phone" placeholder="π.χ. 69xxxxxxxx">
+    </label>
+
+    <label>Email
+      <input type="email" name="email" placeholder="name@example.com">
+    </label>
+
+    <label>Προσωρινός κωδικός
+      <input type="password" name="password" required minlength="6" placeholder="π.χ. Temp*123">
+    </label>
+
+    <label>Χρώμα
+      <input type="color" name="color" value="#3273dc">
+    </label>
+
+    <label>Ομάδα
+      <select name="team_id">
+        <option value="">— καμία —</option>
+        {% for g in teams %}
+          <option value="{{ g.id }}">{{ g.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label style="align-self:end">
+      <input type="checkbox" name="is_admin"> Admin
+    </label>
+
+    <button type="submit">Δημιουργία</button>
+  </form>
+</section>
+
+<hr>
+
+<section>
   <h2>Χρήστες</h2>
   <ul>
     {% for u in users %}
